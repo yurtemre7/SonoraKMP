@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.aboutlibraries)
 }
 
 // Release signing: keystore.properties locally, env vars in CI. Falls back to debug signing.
@@ -172,6 +173,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.materialkolor)
     implementation(libs.reorderable)
+    implementation(libs.markdown.renderer.m3)
+    implementation(libs.aboutlibraries.compose.m3)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
@@ -182,6 +185,10 @@ dependencies {
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.sqlite.framework)
+    testImplementation(libs.room.testing)
+    testImplementation(platform(libs.koin.bom))
+    testImplementation(libs.koin.test)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
