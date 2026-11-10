@@ -8,7 +8,13 @@ import java.io.File
  * `artist.{jpg,png,webp,jpeg}`, then `<artistLower>.{…}`, else dir name == artist → first image.
  * Not thread-safe; use one instance per scan (it caches directory listings and searched artists).
  */
-class ArtistImageScanner(rootFolderPath: String?) {
+class ArtistImageScanner(rootFolderPath: String?, private val index: TreeSidecarIndex? = null) {
+    /** Images from the SAF index grouped by dir (lowercase name → path); used when File listing sees nothing. */
+    private val indexDirs: Map<String, Map<String, String>> by lazy {
+        index?.artistImageCandidates()?.keys.orEmpty().groupBy { it.substringBeforeLast('/') }
+            .mapValues { (_, ps) -> ps.associateBy { it.substringAfterLast('/').lowercase() } }
+    }
+
     private val normRoot = rootFolderPath?.trimEnd('/', '\\')?.replace('\\', '/')
     private val dirFiles = HashMap<String, Set<String>>()
     private val searched = HashSet<String>()
@@ -35,7 +41,13 @@ class ArtistImageScanner(rootFolderPath: String?) {
             val files = dirFiles.getOrPut(norm) {
                 dir.listFiles { f -> f.isFile }?.map { it.name.lowercase() }?.toSet() ?: emptySet()
             }
-            if (files.isNotEmpty()) {
+            val indexed = indexDirs[norm]
+            if (indexed != null && found == null) {
+                val cands = EXTS.map { "artist.$it" } + EXTS.map { "$lowerArtist.$it" }
+                found = cands.firstNotNullOfOrNull { indexed[it] }
+                    ?: if (dir.name.lowercase().trim() == lowerArtist) indexed.keys.sorted().firstOrNull()?.let { indexed[it] } else null
+            }
+            if (found == null && files.isNotEmpty()) {
                 val cands = EXTS.map { "artist.$it" } + EXTS.map { "$lowerArtist.$it" }
                 found = cands.firstOrNull { it in files }?.let { File(dir, it).absolutePath }
                 if (found == null && dir.name.lowercase().trim() == lowerArtist) {
