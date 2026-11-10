@@ -104,7 +104,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 
 **P5a**
 - [ ] **P5-01** Startup gate [UI-01, LIB-02] — deps: [P1-12, P3-15] — owns: `A/ui/screens/gate/**`, `A/permissions/**` — done when: Loading/Slow/Error/Permission states with 15 s/30 s timers, clear-data retry, open-settings on permanent denial.
-- [ ] **P5-02** Onboarding [UI-02, LIB-01] — deps: [P1-12, P3-15] — owns: `A/ui/screens/onboarding/**` — done when: 3 pages, permission rows, folder picker, finish flow + snackbar.
+- [ ] **P5-02** Onboarding [UI-02, LIB-01] — deps: [P1-12, P3-15] — owns: `A/ui/screens/onboarding/**` — done when: 3 pages, permission rows, folder picker, finish flow + snackbar; greeting only when a name is entered (D-64).
 - [ ] **P5-03** Home scaffold, header, search, sort sheet [UI-03..06] — deps: [P1-12, P2-02, P2-03] — owns: `A/ui/screens/home/{HomeScreen,HomeViewModel,HomeHeader,SearchHeader,SortSheet}.kt` — done when: greeting/actions/progress, shared query, per-tab buttons & counts, sort sheet with plays special case.
 - [ ] **P5-05** Fast scroller & multi-select [UI-07, UI-13] — deps: [P1-13] — owns: `A/ui/components/{FastScroller,MultiSelectActionBar,SelectionState}.kt` — done when: thumb/bubble/haptics; selection state holder + action bar with all actions & snackbars.
 - [ ] **P5-06** Mini player & Pulse button [UI-15] — deps: [P4-12, P1-13] — owns: `A/ui/components/{MiniPlayer,PulseButton}.kt` — done when: gestures (up/down+undo/left/right), progress hairline, morphing rotating cookie with reduce-motion check.
