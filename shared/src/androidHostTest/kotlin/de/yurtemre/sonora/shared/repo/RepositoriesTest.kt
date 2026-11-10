@@ -17,6 +17,14 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertIs
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import de.yurtemre.sonora.shared.backup.FLUTTER_1_28_1_BACKUP
+import de.yurtemre.sonora.shared.repo.api.BackupExportResult
+import de.yurtemre.sonora.shared.repo.api.BackupRestoreResult
+import de.yurtemre.sonora.shared.repo.impl.BackupRepositoryImpl
+import de.yurtemre.sonora.shared.settings.SettingsRepository
+import okio.Path.Companion.toOkioPath
 
 class RepositoriesTest {
     private val db = Room.inMemoryDatabaseBuilder<SonoraDatabase>(HostContext)
@@ -106,6 +114,61 @@ class RepositoriesTest {
         assertEquals(2L, s.firstPlayedSongId)
         stats.reset()
         assertEquals(de.yurtemre.sonora.shared.repo.api.StatsSnapshot(), stats.snapshot.first())
+    }
+
+    private fun newDb() = Room.inMemoryDatabaseBuilder<SonoraDatabase>(HostContext)
+        .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
+        .setDriver(BundledSQLiteDriver()).setQueryCoroutineContext(Dispatchers.IO).build()
+
+    private fun newSettings() = SettingsRepository(PreferenceDataStoreFactory.createWithPath {
+        java.io.File.createTempFile("prefs", ".preferences_pb").also { it.delete() }.toOkioPath()
+    })
+
+    @Test fun backupExportRestoreRoundTrip() = runBlocking {
+        db.songDao().upsertAll(listOf(song(1, "/m/a.mp3"), song(2, "/m/b.mp3"), song(3, "/m/c.mp3")))
+        val settings = newSettings()
+        settings.setUserName("Emre"); settings.setDefaultThemeColor(0xFF112233); settings.setSleepTimerDefaultMinutes(45)
+        val p = playlists.create("Mix", listOf(2, 1), "d")
+        favorites.toggleSong(3, "/m/c.mp3"); favorites.toggleAlbum("al|||a")
+        stats.recordCompleteListen(1, 5_000, 2, "2026-11-10", p.id)
+        val backup = BackupRepositoryImpl(db, settings, stats, files, clock, "1.0+1")
+        assertEquals(BackupExportResult.Success, backup.export("content://out"))
+
+        val db2 = newDb()
+        try {
+            db2.songDao().upsertAll(listOf(song(11, "/m/a.mp3"), song(12, "/m/b.mp3"), song(13, "/m/c.mp3")))
+            val settings2 = newSettings(); val stats2 = StatsRepositoryImpl(db2)
+            val r = BackupRepositoryImpl(db2, settings2, stats2, files, clock, "1.0+1").restore("content://out")
+            assertEquals(BackupRestoreResult.Success(1, 2, 0, false), r)
+            val restored = PlaylistRepositoryImpl(db2, files, clock).playlist(p.id).first()!!
+            assertEquals(Triple("Mix", "d", listOf(12L, 11)), Triple(restored.name, restored.description, restored.songIds))
+            val fav2 = FavoritesRepositoryImpl(db2, clock)
+            assertEquals(setOf(13L), fav2.favoriteSongs.first().keys)
+            assertEquals(setOf("al|||a"), fav2.favoriteAlbums.first().keys)
+            val s = stats2.snapshot.first()
+            assertEquals(1, s.songs.getValue(11).plays)
+            assertEquals(Triple(11L, "2026-11-10", mapOf(p.id to 1)), Triple(s.firstPlayedSongId, s.firstPlayedDate, s.playlistPlays))
+            val a = settings2.settings.first()
+            assertEquals(Triple("Emre", 0xFF112233, 45), Triple(a.userName, a.defaultThemeColor, a.sleepTimerDefaultMinutes))
+        } finally { db2.close() }
+    }
+
+    @Test fun backupRestoresFlutterFixture() = runBlocking {
+        db.songDao().upsertAll(listOf(
+            SongEntity(1, "One More Time", "Daft Punk", "Discovery", 320_000, "/sdcard/Music/Daft Punk/Discovery/01 One More Time.mp3"),
+            SongEntity(2, "First Love", "宇多田ヒカル", "First Love", 259_733, "/storage/emulated/0/Music/宇多田ヒカル/First Love/03 First Love.flac"),
+        ))
+        files.store["content://flutter"] = FLUTTER_1_28_1_BACKUP
+        val settings = newSettings()
+        val r = BackupRepositoryImpl(db, settings, stats, files, clock, "1.0+1").restore("content://flutter")
+        assertIs<BackupRestoreResult.Success>(r)
+        assertEquals(2, r.playlists)
+        assertEquals(true, r.localeChanged)
+        val all = playlists.playlists.first()
+        assertEquals(listOf("Late Night" to listOf(1L, 2L), "Empty" to emptyList()), all.map { it.name to it.songIds })
+        assertEquals(setOf(2L), favorites.favoriteSongs.first().keys)
+        assertEquals(31, stats.snapshot.first().songs.getValue(1).plays)
+        assertEquals("ja", settings.settings.first().appLocale.storageName)
     }
 }
 
