@@ -53,3 +53,34 @@ room {
 dependencies {
     add("kspAndroid", libs.room.compiler)
 }
+
+// Host (JVM) tests run Room with the bundled SQLite driver. The Android artifact has no
+// desktop native library, so extract the one for this machine from sqlite-bundled-jvm.
+val hostSqliteNatives: Configuration by configurations.creating { isTransitive = false }
+dependencies { hostSqliteNatives(libs.sqlite.bundled.jvm) }
+
+val hostSqlitePlatform: String = run {
+    val os = System.getProperty("os.name").lowercase()
+    val arm = System.getProperty("os.arch").lowercase().let { it.contains("aarch64") || it.contains("arm") }
+    when {
+        os.contains("mac") -> if (arm) "osx_arm64" else "osx_x64"
+        os.contains("win") -> "windows_x64"
+        else -> if (arm) "linux_arm64" else "linux_x64"
+    }
+}
+val hostSqliteDir = layout.buildDirectory.dir("hostSqliteNatives")
+
+val extractHostSqliteNatives by tasks.registering(Sync::class) {
+    from(zipTree(hostSqliteNatives.singleFile)) {
+        include("natives/$hostSqlitePlatform/*")
+    }
+    into(hostSqliteDir)
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn(extractHostSqliteNatives)
+    systemProperty(
+        "java.library.path",
+        hostSqliteDir.get().asFile.resolve("natives/$hostSqlitePlatform").absolutePath,
+    )
+}
