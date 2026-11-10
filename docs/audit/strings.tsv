@@ -1,0 +1,430 @@
+key	en	ja	placeholders
+aboutSonora	About Sonora	Sonoraについて	
+accessAudioAndImageFiles	Access Audio & Image Files	音声ファイルと画像ファイルへのアクセス	
+accessAudioSubtitle	Required to index audio tracks and scan local cover images (artist.jpg / cover.jpg) on your device.	音声トラックのインデックス作成と、ローカルのカバー画像（artist.jpg / cover.jpg）のスキャンに必要です。	
+activeSyncLocation	Active sync location	現在の同期先	
+addToPlaylist	Add to playlist	プレイリストに追加	
+addToQueue	Add to Queue	キューに追加	
+albumCount	{count, plural, =1{1 album} other{{count} albums}}	{count}件のアルバム	count:int
+albums	Albums	アルバム	
+allPermissionsGranted	All Permissions Granted	すべての権限が許可されました	
+alreadyOnLatest	You are already on the latest version.	すでに最新バージョンです。	
+amoledDark	AMOLED Pure Black	AMOLEDピュアブラック	
+amoledDarkSubtitle	Use pitch black backgrounds in dark mode instead of dark gray	ダークモード時に、ダークグレーではなく完全な黒背景を使用します	
+blurredBackgrounds	Blurred backgrounds	ぼかし背景	
+blurredBackgroundsSubtitle	Show a blurred cover behind the player and detail screens. Uses more GPU on weak phones	プレーヤーと詳細画面の背後にぼかしたカバーを表示します。低性能な端末ではGPU負荷が高くなります	
+appDescription	A beautiful local music player for Android, built with Flutter and Material 3 Expressive design.	FlutterとMaterial 3 Expressiveデザインで構築された、Android向けの美しいローカル音楽プレーヤーです。	
+appLanguage	App Language	アプリの言語	
+appTitle	Sonora	Sonora	
+appearance	Appearance	外観	
+appearanceSubtitle	Theme, colors, visualizer, local images	テーマ、カラー、ビジュアライザー、ローカル画像	
+arbLanguage	English	日本語	
+artistCount	{count, plural, =1{1 artist} other{{count} artists}}	{count}人のアーティスト	count:int
+artists	Artists	アーティスト	
+autoCheckUpdates	Automatically Check for Updates	更新を自動確認	
+autoCheckUpdatesSubtitle	Check GitHub for releases every time the app opens	アプリ起動時にGitHubで新しいリリースを確認します	
+back	Back	戻る	
+cancel	Cancel	キャンセル	
+cancelTimer	Cancel Timer	タイマーをキャンセル	
+change	Change	変更	
+changeCover	Change Cover	カバーを変更	
+changeFolder	Change Folder	フォルダを変更	
+changelogLabel	Changelog:	更新履歴:	
+changelogSubtitle	View what's new	新機能を確認	
+changelogTitle	Changelog	更新履歴	
+checkForUpdates	Check for Updates	更新を確認	
+checkForUpdatesSubtitle	Check GitHub for a new release	GitHubで新しいリリースを確認します	
+chooseMusicFolder	Choose the primary folder containing your audio tracks (MP3, FLAC, M4A, etc.) to build your initial library database.	初回ライブラリを作成するため、音声ファイル（MP3、FLAC、M4Aなど）が含まれているメインフォルダを選択してください。	
+chooseSquareImage	For best results, choose a square image.	最適な表示のため、正方形の画像を選択してください。	
+close	Close	閉じる	
+communityAndSupport	Community & Support	コミュニティとサポート	
+configurePermissions	Configure Permissions	権限を設定	
+create	Create	作成	
+createPlaylist	Create a playlist	プレイリストを作成	
+customSpeed	Custom Speed	カスタム速度	
+dangerZone	Danger Zone	危険な操作	
+dark	Dark	ダーク	
+dataManagement	Data Management	データ管理	
+dateCreated	Date Created	作成日	
+dateModified	Date Modified	更新日	
+defaultSleepTimer	Default Sleep Timer	デフォルトのスリープタイマー	
+defaultSleepTimerSubtitle	Default duration selected when opening the sleep timer	スリープタイマーを開いたときに最初に選択される時間です	
+defaultStartPage	Default Start Page	デフォルトの開始ページ	
+defaultStartPageSubtitle	Page to show when the app starts	アプリ起動時に表示するページです	
+delete	Delete	削除	
+deletePlaylist	Delete Playlist	プレイリストを削除	
+deletePlaylistConfirmMessage	Delete "{name}"? This cannot be undone.	「{name}」を削除しますか？ この操作は元に戻せません。	name:String
+deletePlaylistConfirmTitle	Delete Playlist?	プレイリストを削除しますか？	
+description	Description	説明	
+developerProfile	Developer Profile	開発者プロフィール	
+developerProfileSubtitle	Check out yurtemre7 on GitHub	GitHubでyurtemre7を見る	
+disableShuffle	Disable shuffle	シャッフルをオフ	
+displayedAs	Displayed As:	表示形式:	
+editDescription	Edit description	説明を編集	
+enableShuffle	Enable shuffle	シャッフルをオン	
+enterYourName	Enter Your Name	名前を入力	
+experimental	Experimental	実験的	
+exportToM3u	Export to M3U	M3Uにエクスポート	
+exportedPlaylist	Exported playlist: {name}	プレイリストをエクスポートしました: {name}	name:String
+failedToExport	Failed to export	エクスポートに失敗しました	
+failedToLoadChangelog	Failed to load changelog.	更新履歴を読み込めませんでした。	
+failedToSelectDirectory	Failed to select directory. Please try again.	フォルダを選択できませんでした。もう一度お試しください。	
+favoriteRemove	Remove Favorite	お気に入りから削除	
+favoriteSong	Favorite Song	お気に入りの曲	
+favorites	Favorites	お気に入り	
+fileSize	File Size	ファイルサイズ	
+filterTitleArtist	Remove artist from titles	タイトル先頭のアーティスト名を削除	
+filterTitleArtistSubtitle	Hides "Artist - " from the beginning of song titles.	曲名の先頭にある「Artist - 」を非表示にします。	
+filterTitleFeatures	Remove (feat.) from titles	タイトル内の（feat.）を削除	
+filterTitleFeaturesSubtitle	Hides featured artists from the song title if present.	曲名に含まれるフィーチャリング情報を非表示にします。	
+formattingSubtitle	Configure how song titles are displayed	曲名の表示方法を設定します	
+getStarted	Get Started	はじめる	
+goodAfternoon	Good afternoon, {name}	{name}さん、こんにちは	name:String
+goodEvening	Good evening, {name}	{name}さん、こんばんは	name:String
+goodMorning	Good morning, {name}	{name}さん、おはようございます	name:String
+infoSettings	Info & Support	情報とサポート	
+infoSubtitle	About, updates, changelog, danger zone	アプリ情報、更新、更新履歴、危険な操作	
+keepPlayingOnClose	Keep playing on app close	アプリ終了後も再生を継続	
+keepPlayingOnCloseSubtitle	Keep playing music in the background when swiped away	アプリをスワイプして閉じても、バックグラウンドで再生を続けます	
+restoreLastPlayedSong	Remember last played song	最後に再生した曲を記憶	
+restoreLastPlayedSongSubtitle	Automatically restore the last played song and queue when opening Sonora	Sonora起動時に最後に再生した曲とキューを自動的に復元します	
+lastSync	Last Sync	最終同期	
+later	Later	あとで	
+libraryFormatting	Library Formatting	ライブラリの表示形式	
+librarySync	Library Sync	ライブラリ同期	
+licenses	Licenses	ライセンス	
+licensesSubtitle	Open source licenses	オープンソースライセンス	
+light	Light	ライト	
+listeningStatistics	Listening Statistics	再生統計	
+lyrics	Lyrics	歌詞	
+lyricsCaps	LYRICS	歌詞	
+madeWithLove	Made with ❤️ by yurtemre	yurtemreが❤️を込めて制作	
+mfx	MFX	MFX	
+mfxBassBoosted	Bass Boosted	低音強調	
+mfxBassBoostedSubtitle	Strong low-frequency bump (+80%)	低音域を強くブーストします（+80%）	
+mfxLoFi	Lo-Fi / Vintage Room	Lo‑Fi / ヴィンテージルーム	
+mfxLoFiSubtitle	Aggressive high-cut filter	高域を大きくカットするフィルターです	
+mfxResetAll	Reset All Effects	すべてのエフェクトをリセット	
+mfxWarmth	Warmth (Reverb)	暖かみ（リバーブ）	
+mfxWarmthSubtitle	Simulated via EQ (Bass boost, High cut)	EQで再現します（低音ブースト、高域カット）	
+mfxBluetoothPatch	Bluetooth Audio Device Patch	Bluetooth機器用パッチ	
+mfxBluetoothPatchSubtitle	Prevents volume drop and distortion in effects on Bluetooth headsets	Bluetoothイヤホンでの音量低下や歪みを防ぎます	
+minuteAbbr	{min} min	{min}分	min:int
+musicEffects	Music Effects	音響エフェクト	
+neverSynced	Never synced	一度も同期していません	
+nextTooltip	Next	次へ	
+noAlbumsFound	No albums found	アルバムが見つかりません	
+noArtistsFound	No artists found	アーティストが見つかりません	
+noFavoritesYet	No favorites yet	お気に入りはまだありません	
+noLyricsAvailable	No lyrics available	利用可能な歌詞はありません	
+noLyricsFound	No lyrics found	歌詞が見つかりません	
+noMatchingAlbumsFound	No matching albums found	一致するアルバムが見つかりません	
+noMatchingArtistsFound	No matching artists found	一致するアーティストが見つかりません	
+noMatchingPlaylistsFound	No matching playlists found	一致するプレイリストが見つかりません	
+noMatchingSongsFound	No matching songs found	一致する曲が見つかりません	
+noMusicFilesFound	No music files found	音楽ファイルが見つかりません	
+noRelatedSongs	No related songs	関連する曲はありません	
+onboardingDescription	A premium offline music experience built with beautiful Material 3 Expressive elements.\n\nEnjoy fluid, stutter-free playback and fast background syncing.	美しいMaterial 3 Expressive要素で構築された、プレミアムなオフライン音楽体験です。\n\n滑らかで途切れのない再生と、高速なバックグラウンド同期をお楽しみください。	
+openGithubReleases	Open GitHub Releases	GitHub Releasesを開く	
+originalMetadata	Original Metadata:	元のメタデータ:	
+pauseOnDuck	Pause on notifications	通知時に一時停止	
+pauseOnDuckSubtitle	Pause music instead of lowering volume when a notification arrives	通知が届いたとき、音量を下げる代わりに再生を一時停止します	
+pauseTooltip	Pause	一時停止	
+permissionsExplained	Permissions Explained	権限の説明	
+permissionsExplanation	To play and control your music, Sonora needs runtime authorization permissions from your device.	音楽を再生・操作するために、Sonoraは端末の実行時権限を必要とします。	
+permissionsNeeded	Permissions Needed	必要な権限	
+personalization	Personalization	パーソナライズ	
+placeLrcFile	Place a .lrc or .txt file with the same name next to the audio file to load lyrics.	歌詞を読み込むには、音声ファイルと同じ名前の .lrc または .txt ファイルを隣に配置してください。	
+play	Play	再生	
+playNext	Play Next	次に再生	
+playTooltip	Play	再生	
+playback	Playback	再生	
+playbackSubtitle	Sleep timer, start page, background play	スリープタイマー、開始ページ、バックグラウンド再生	
+playlistCount	{count, plural, =1{1 playlist} other{{count} playlists}}	{count}件のプレイリスト	count:int
+playlistName	Playlist name	プレイリスト名	
+playlists	Playlists	プレイリスト	
+plusOneMin	+1 min	+1分	
+preferLocalArtistImages	Prefer Local Artist Images	ローカルのアーティスト画像を優先	
+preferLocalArtistImagesSubtitle	Use local artist.jpg files from your music folders when available	利用可能な場合、音楽フォルダ内の artist.jpg を優先して使用します	
+presetSpeedAndPitch	Preset Speed & Pitch	速度とピッチのプリセット	
+preview	Preview	プレビュー	
+previousTooltip	Previous	前へ	
+privacyCardDataContent	This app operates entirely offline and communicates with no servers, with the exception of checking GitHub for app updates. All of your library statistics, preferences, and playtime data stay strictly on your device and are never sent anywhere. \n\nYou can trust that your listening habits remain private.	このアプリは完全にオフラインで動作し、アプリ更新の確認のためにGitHubへアクセスする場合を除き、いかなるサーバーとも通信しません。ライブラリ統計、設定、再生時間データはすべて端末内にのみ保存され、外部へ送信されることはありません。\n\nあなたの再生履歴やリスニング習慣はプライベートに保たれます。	
+privacyCardDataTitle	Your Data is Yours	データはあなたのものです	
+privacyCardDeleteDataContent	You have full control. You can wipe all app settings, statistics, and caches instantly at any time from the Danger Zone located at the bottom of the Info & Support tab.	すべてのデータは自分で管理できます。情報とサポートタブの最下部にある危険な操作から、アプリ設定、統計、キャッシュをいつでもすぐに削除できます。	
+privacyCardDeleteDataTitle	Delete All Data	すべてのデータを削除	
+privacyCardInternetContent	Only used to fetch the latest release version and changelog from GitHub to notify you of available updates.	利用可能な更新を通知するため、GitHubから最新リリースのバージョンと更新履歴を取得する目的でのみ使用されます。	
+privacyCardInternetTitle	Internet	インターネット	
+privacyCardNotificationsContent	Used to display the media player controls in your notification shade and lock screen. A foreground service is required to keep the music playing continuously in the background when the app is closed.	通知シェードとロック画面にメディアプレーヤーの操作を表示するために使用されます。アプリを閉じてもバックグラウンドで音楽を継続再生するには、フォアグラウンドサービスが必要です。	
+privacyCardNotificationsTitle	Notifications & Foreground Service	通知とフォアグラウンドサービス	
+privacyCardStorageContent	Used to scan your selected music folder for audio tracks and local artist/album artwork (e.g., artist.jpg or cover.png).\n\nTransparent Privacy Guarantee: Although Android prompts for "Photos & Media" access, Sonora strictly scans files inside your designated music directory. We NEVER read, inspect, or access your personal photo gallery, camera roll, or private images.	選択した音楽フォルダ内の音声トラックと、ローカルのアーティスト／アルバムアートワーク（例: artist.jpg や cover.png）をスキャンするために使用されます。\n\n明確なプライバシー保証: Androidでは「写真とメディア」へのアクセス許可が表示されますが、Sonoraがスキャンするのは指定された音楽ディレクトリ内のファイルに限られます。個人の写真ギャラリー、カメラロール、プライベート画像を読み取ったり、調べたり、アクセスしたりすることは決してありません。	
+privacyCardStorageTitle	Storage, Audio & Cover Images	ストレージ、音声、カバー画像	
+privacyCardWakeLockContent	Prevents your device from sleeping and abruptly stopping the music playback while you are listening.	再生中に端末がスリープして、音楽再生が突然停止しないようにします。	
+privacyCardWakeLockTitle	Wake Lock	Wake Lock	
+privacySettings	Privacy & Permissions	プライバシーと権限	
+privacySubtitle	Data management and required permissions	データ管理と必要な権限	
+queue	Queue	キュー	
+queueEmpty	Queue is empty	キューは空です	
+queueNOfM	Queue ({current} of {total})	キュー（{current} / {total}）	current:int,total:int
+scrollToCurrentTrack	Scroll to current track	現在の曲へスクロール	
+rateLimitMessage	GitHub API rate limit (60 requests/hour for anonymous requests) has been reached.\n\nPlease open the GitHub repository directly to check for new releases.	GitHub APIのレート制限（匿名リクエストは1時間あたり60回）に達しました。\n\n新しいリリースを確認するには、GitHubリポジトリを直接開いてください。	
+rateLimitTitle	Rate Limit Exceeded	レート制限を超過しました	
+refresh	Refresh	更新	
+related	Related	関連	
+relatedCaps	RELATED	関連	
+removeCover	Remove Cover	カバーを削除	
+removeFromPlaylist	Remove from playlist	プレイリストから削除	
+rename	Rename	名前を変更	
+renamePlaylist	Rename Playlist	プレイリスト名を変更	
+repeatAll	Repeat all	すべてリピート	
+repeatOff	Repeat off	リピートオフ	
+repeatOne	Repeat one	1曲リピート	
+reset	Reset	リセット	
+resetAll	Reset	リセット	
+resetApplication	Reset Application	アプリをリセット	
+resetApplicationConfirmMessage	This will permanently delete all imported audio files and clear your library. This cannot be undone.	取り込まれたすべての音声ファイルが完全に削除され、ライブラリが消去されます。この操作は元に戻せません。	
+resetApplicationConfirmTitle	Reset Application?	アプリをリセットしますか？	
+resetApplicationSubtitle	Hold for 3 seconds to wipe all data.	3秒間長押しすると、すべてのデータを削除します。	
+resetSpeed	Reset to 1.0x	1.0xに戻す	
+resetStatistics	Reset Statistics	統計をリセット	
+resetStatisticsTitle	Reset Statistics?	統計をリセットしますか？	
+resetStatisticsWarning	This will permanently delete all your listening statistics, including total time, play counts, and top charts. This cannot be undone.	総再生時間、再生回数、トップチャートを含むすべての再生統計が完全に削除されます。この操作は元に戻せません。	
+save	Save	保存	
+saveAsPlaylist	Save as Playlist	プレイリストとして保存	
+saveQueueAsPlaylist	Save Queue as Playlist	キューをプレイリストとして保存	
+searchAlbumsHint	Search albums...	アルバムを検索...	
+searchArtistsHint	Search artists...	アーティストを検索...	
+searchPlaylistsHint	Search playlists...	プレイリストを検索...	
+searchSongsHint	Search songs, artists...	曲名、アーティストを検索...	
+selectFolder	Select Folder	フォルダを選択	
+selectLanguage	Select Language	言語を選択	
+selectedDirectory	Selected Directory:	選択したディレクトリ:	
+setMusicDirectory	Set Music Directory	音楽ディレクトリを設定	
+setSyncFolder	Set Sync Folder	同期フォルダを設定	
+settings	Settings	設定	
+setupMusicDirectory	Setup Music Directory	音楽ディレクトリを設定	
+showAudioVisualizer	Show Audio Visualizer	音声ビジュアライザーを表示	
+showAudioVisualizerSubtitle	Animate audio wave visualizer inside player screen	プレーヤー画面内で音声波形ビジュアライザーをアニメーション表示します	
+showNotifications	Show Notifications	通知を表示	
+showNotificationsSubtitle	Required to show lockscreen & notification shade media playback controls.	ロック画面と通知シェードにメディア再生コントロールを表示するために必要です。	
+shuffle	Shuffle	シャッフル	
+shufflePlay	Shuffle Play	シャッフル再生	
+sleepTimer	Sleep Timer	スリープタイマー	
+songCount	{count, plural, =1{1 song} other{{count} songs}}	{count}曲	count:int
+songInfo	Song Info	曲情報	
+songInformation	Song Information	曲の情報	
+songs	Songs	曲	
+sort	Sort	並び替え	
+sortAlbumsBy	Sort Albums By	アルバムの並び替え	
+sortArtistsBy	Sort Artists By	アーティストの並び替え	
+sortAscending	Sort Ascending	昇順	
+sortByAlbumCount	Album Count	アルバム数	
+sortByAlbumName	Album Name	アルバム名	
+sortByArtist	Artist	アーティスト	
+sortByArtistName	Artist Name	アーティスト名	
+sortByDateFavorited	Date Favorited	お気に入り追加日	
+sortByDuration	Duration	再生時間	
+sortByName	Name	名前	
+sortByPlaylistName	Playlist Name	プレイリスト名	
+sortByRecentlyAdded	Recently Added	最近追加した順	
+sortBySongCount	Song Count	曲数	
+sortByTitle	Title	タイトル	
+sortByTrackCount	Track Count	トラック数	
+sortDescending	Sort Descending	降順	
+sortPlaylistsBy	Sort Playlists By	プレイリストの並び替え	
+sortSongsBy	Sort Songs By	曲の並び替え	
+sortSubtitle	Your sorting preference will be saved per tab and automatically applied on next startup.	並び替え設定はタブごとに保存され、次回起動時に自動で適用されます。	
+sourceCode	Source Code	ソースコード	
+sourceCodeSubtitle	View the GitHub repository	GitHubリポジトリを見る	
+startTimer	Start Timer	タイマーを開始	
+stats	Stats	統計	
+stopInX	Stop in {duration}	{duration}後に停止	duration:String
+syncDuration	 in {duration}ms	{duration}msで完了	duration:String
+syncExplanation	Sonora plays your files locally and offline. When you copy new tracks into this folder, run a sync below to add them to your library.	Sonoraはファイルをローカルでオフライン再生します。このフォルダに新しい曲をコピーしたら、下の同期を実行してライブラリに追加してください。	
+syncLibraryDatabase	Sync Library Database?	ライブラリデータベースを同期しますか？	
+syncLibraryDatabaseSubtitle	It's been at least a month since your last library synchronization. Sonora runs offline—if you have loaded new music files into your device folder, run a sync now to discover and listen to them.	前回のライブラリ同期から少なくとも1か月が経過しています。Sonoraはオフラインで動作するため、端末のフォルダに新しい音楽ファイルを追加した場合は、今すぐ同期して見つけて再生してください。	
+syncNow	Sync Now	今すぐ同期	
+syncedXSongs	Synced {count} songs{duration}.	{count}曲を同期しました{duration}。	count:int,duration:String
+syncing	Syncing...	同期中...	
+systemDefault	System Default	システムのデフォルト	
+telegramContact	Telegram Contact	Telegram連絡先	
+telegramContactSubtitle	Reach out via @emredev	@emredev に連絡	
+thankYouTitle	Thank you	ありがとうございます	
+thankYouTitleWithName	Thank you, {name}	{name}さん、ありがとうございます	name:String
+thankYouMessage	Thank you for supporting Sonora. You mean the world to me. I appreciate you and hope you enjoy Sonora as much as I do.	Sonoraを応援していただき、本当にありがとうございます。使ってくださるあなたの存在は、私にとってかけがえのない宝物です。心から感謝しています。私が大好きなこのSonoraを、あなたにも同じように楽しんでいただけたら嬉しいです。	
+themeMode	Theme Mode	テーマモード	
+timer	Timer	タイマー	
+titleFilters	Title Filters	タイトルフィルター	
+trackCount	{count, plural, =1{1 track} other{{count} tracks}}	{count}トラック	count:int
+tryAgain	Try Again	再試行	
+upNext	Up next	次に再生	
+upNextCaps	UP NEXT	次に再生	
+updateAvailable	Update Available	更新があります	
+updateAvailableMessage	Version {version} is now available!	バージョン {version} が利用可能です！	version:String
+updateCheckFailed	Failed to check for updates. Check your internet connection.	更新の確認に失敗しました。インターネット接続を確認してください。	
+useGreetingTitle	Use Greeting Title	あいさつタイトルを使用	
+useGreetingTitleSubtitle	Show a time-based greeting on the home screen instead of the app name	ホーム画面でアプリ名の代わりに時間帯に応じたあいさつを表示します	
+version	Version {version}	バージョン {version}	version:String
+viewStatistics	View Statistics	統計を見る	
+viewStatisticsSubtitle	See your playback history and stats	再生履歴と統計を確認します	
+welcomeToSonora	Welcome to Sonora	Sonoraへようこそ	
+yesterday	Yesterday	昨日	
+yourName	Your Name	あなたの名前	
+yourNameOptional	Your Name (Optional)	あなたの名前（任意）	
+yourOwnPlaylist	Your own playlist	自分のプレイリスト	
+metadataGroup	Metadata	メタデータ	
+fileInfoGroup	File Info	ファイル情報	
+audioPropertiesGroup	Audio Properties	オーディオプロパティ	
+titleLabel	Title	タイトル	
+artistLabel	Artist	アーティスト	
+albumLabel	Album	アルバム	
+trackLabel	Track	トラック	
+genreLabel	Genre	ジャンル	
+yearLabel	Year	年	
+durationLabel	Duration	再生時間	
+filePathLabel	File Path	ファイルパス	
+openFolder	Open Folder	フォルダを開く	
+openFolderError	Could not open folder	フォルダを開けませんでした	
+copyPath	Copy Path	パスをコピー	
+shareFile	Share File	ファイルを共有	
+copiedToClipboard	Copied to clipboard	クリップボードにコピーしました	
+formatLabel	Format	フォーマット	
+bitrateLabel	Bitrate	ビットレート	
+sampleRateLabel	Sample Rate	サンプルレート	
+mfxSuperSlowed	Super Slowed	スーパースロード	
+mfxSlowed	Slowed	スロード	
+mfxNormal	Normal	ノーマル	
+mfxSpedUp	Sped Up	スピードアップ	
+mfxNightcore	Nightcore	ナイトコア	
+mfxSuperSpedUp	Super Sped Up	スーパースピードアップ	
+mfxPercentSlower	{percent}% slower	{percent}% スロー	percent:String
+mfxPercentFaster	{percent}% faster	{percent}% ファスト	percent:String
+mfxSpeedSubtitle	{speed}x Speed	{speed}x スピード	speed:String
+customEqualizer	Custom Equalizer	カスタムイコライザー	
+eqFlat	Flat	フラット	
+eqPop	Pop	ポップ	
+eqRock	Rock	ロック	
+eqJazz	Jazz	ジャズ	
+eqClassical	Classical	クラシック	
+addToFavorites	Add to favorites	お気に入りに追加	
+removeFromFavorites	Remove from favorites	お気に入りから削除	
+noPlaylistsYet	No playlists yet	プレイリストがまだありません	
+noPlaylistsYetSubtitle	Create custom playlists to group and organize your synced music files.	同期した音楽ファイルをグループ化して整理するためにカスタムプレイリストを作成しましょう。	
+completeListens	Complete\nListens	完奏回数	
+skips	Skips	スキップ数	
+restarts	Restarts	再開数	
+funFacts	Fun Facts	ファンファクト	
+firstSongPlayed	First Song Played	最初に再生した曲	
+mostPlayedSong	Most Played Song	最も再生した曲	
+uniqueSongsPlayed	Unique Songs Played	再生したユニークな曲	
+shuffleSessions	Shuffle Sessions	シャッフルセッション	
+mostActiveDay	Most Active Day	最もアクティブな曜日	
+mostPlayedSongs	Most Played Songs	再生数の多い曲	
+noSongStatsYet	No listening data yet.\nStart playing music to see your top songs!	再生データがまだありません。\n音楽を聴き始めると、ここにトップ曲が表示されます！	
+mostPlayedAlbums	Most Played Albums	再生数の多いアルバム	
+noAlbumStatsYet	No listening data yet.\nStart playing music to see your top albums!	再生データがまだありません。\n音楽を聴き始めると、ここにトップアルバムが表示されます！	
+mostPlayedArtists	Most Played Artists	再生数の多いアーティスト	
+noArtistStatsYet	No listening data yet.\nStart playing music to see your top artists!	再生データがまだありません。\n音楽を聴き始めると、ここにトップアーティストが表示されます！	
+mostPlayedPlaylists	Most Played Playlists	再生数の多いプレイリスト	
+noPlaylistStatsYet	No listening data yet.\nPlay music from playlists to see them here!	再生データがまだありません。\nプレイリストから音楽を再生すると、ここに表示されます！	
+playsCount	{count, plural, =1{1 play} other{{count} plays}}	{count} 回再生	count:int
+songsCountShort	{count} songs	{count} 曲	count:int
+importM3u	Import M3U	M3Uからインポート	
+importedPlaylist	Playlist imported	プレイリストをインポートしました	
+playlistIsEmpty	Playlist is empty	プレイリストは空です	
+playlistIsEmptySubtitle	Go to the Songs list and use the song menu to add music to this playlist.	曲一覧に移動し、曲メニューからこのプレイリストに音楽を追加してください。	
+playlistDeleted	Playlist "{name}" deleted.	プレイリスト「{name}」を削除しました。	name:String
+chooseFolderSubtitle	Choose a folder directory on your device to scan and play music from.	端末内のフォルダを選択して、音楽をスキャン・再生します。	
+noMusicFilesInFolderSubtitle	Please put some audio files (e.g. .mp3, .m4a) in the folder:\n\n{folder}	フォルダに音声ファイル（.mp3, .m4aなど）を配置してください:\n\n{folder}	folder:String
+removedFromQueue	Removed "{title}" from queue	「{title}」をキューから削除しました	title:String
+nowPlaying	Now Playing	再生中	
+fromThisAlbum	From this album	このアルバムから	
+moreByArtist	More by {artist}	{artist}のその他の曲	artist:String
+savedPlaylist	Saved {name}	「{name}」を保存しました	name:String
+collapse	Collapse	折りたたむ	
+debugCacheInfo	Debug Cache Info	デバッグキャッシュ情報	
+pauseOnDisconnect	Pause on Disconnect	切断時に一時停止	
+pauseOnDisconnectSubtitle	Pause playback when headphones or Bluetooth disconnect	ヘッドフォンやBluetoothが切断されたときに再生を一時停止します	
+resumeOnConnect	Resume on Connect	再接続時に再開	
+resumeOnConnectSubtitle	Automatically resume playback when reconnecting audio device	オーディオ機器の再接続時に自動的に再生を再開します	
+sleepTimerFadeOut	Sleep Timer Fade Out	スリープタイマーのフェードアウト	
+sleepTimerFadeOutSubtitle	Gradually reduce volume before timer ends	タイマー終了前に徐々に音量を下げます	
+finishCurrentSong	Finish current song before sleeping	スリープ前に現在の曲を最後まで再生	
+finishCurrentSongSubtitle	Wait for currently playing song to finish before stopping	停止する前に再生中の曲が終わるのを待ちます	
+off	Off	オフ	
+nowPlayingStyle	Now Playing Style	再生中画面のスタイル	
+nowPlayingStyleSubtitle	Choose the visual design of the player screen	プレーヤー画面のデザインを選択します	
+styleModern	Modern	モダン	
+styleVinyl	Vinyl Turntable	レコード盤	
+styleMinimalist	Minimalist	ミニマリスト	
+secondsAbbr	{seconds}s	{seconds}秒	seconds:int
+selectedCount	{count} selected	{count}曲 選択中	count:int
+selectAll	Select All	すべて選択	
+deselectAll	Deselect All	選択を解除	
+batchAddedToQueue	Added {count} songs to queue	{count}曲をキューに追加しました	count:int
+batchAddedToPlayNext	Added {count} songs to play next	{count}曲を次に再生に追加しました	count:int
+batchAddedToPlaylist	Added {count} songs to {playlist}	{count}曲を「{playlist}」に追加しました	count:int,playlist:String
+batchFavorited	Added {count} songs to favorites	{count}曲をお気に入りに追加しました	count:int
+batchUnfavorited	Removed {count} songs from favorites	{count}曲をお気に入りから削除しました	count:int
+batchRemovedFromPlaylist	Removed {count} songs from {playlist}	{count}曲を「{playlist}」から削除しました	count:int,playlist:String
+share	Share	共有	
+themeColorsHeader	Theme Colors & Accent	テーマカラーとアクセント	
+displayAndContrast	Display & Contrast	ディスプレイとコントラスト	
+playerScreenAesthetics	Player Screen Aesthetics	再生画面の表示設定	
+wallpaperColorActive	Wallpaper Palette Active	壁紙パレット適用中	
+colorSourceMaterialYou	Material You	Material You	
+colorSourceAlbumArt	Album Art	アルバム	
+colorSourceCustom	Custom	カスタム	
+colorSourceMaterialYouDesc	Theme colors are extracted from your system wallpaper (Android 12+)	システムの壁紙からテーマカラーを抽出します（Android 12以降）	
+colorSourceAlbumArtDesc	Theme colors dynamically adapt to the currently playing song's artwork	再生中のアルバムアートに合わせてテーマカラーを自動調整します	
+colorSourceCustomDesc	Theme colors use your chosen static accent color	選択したアクセントカラーを常に使用します	
+fallbackColorHeader	Fallback Color (when no song is playing)	待機時のフォールバックカラー	
+customColorHeader	Choose Accent Color	アクセントカラーの選択	
+allSongs	All Songs	すべての曲	
+recentlyPlayed	Recently Played	最近再生した曲	
+recentlyPlayedActivitySubtitle	Songs you listened to recently	最近聴いた曲を表示します	
+mostPlayed	Most Played	再生回数の多い順	
+leastPlayed	Least Played	再生回数の少ない順	
+today	Today	今日	
+thisWeek	This Week	今週	
+noRecentlyPlayedSongs	No recently played songs	最近再生した曲はありません	
+noRecentlyPlayedSongsSubtitle	Listen to a song for a little while and it will appear here.	曲をしばらく聴くと、ここに表示されます。	
+listensCount	{count, plural, =0{Never played} =1{1 listen} other{{count} listens}}	{count} 回再生	count:int
+backupRestore	Backup & restore	バックアップと復元	
+backupRestoreSubtitle	Save playlists, favorites, stats and settings to a file	プレイリスト、お気に入り、統計、設定をファイルに保存	
+backupContentsTitle	What's in a backup	バックアップの内容	
+backupContentsContent	Playlists, favorite songs, albums and artists, listening stats and your settings. Music files, playlist cover images and the library cache are not included; the library is rescanned on the new device.	プレイリスト、お気に入りの曲・アルバム・アーティスト、再生統計、各種設定が含まれます。音楽ファイル、プレイリストのカバー画像、ライブラリのキャッシュは含まれません。新しい端末ではライブラリが再スキャンされます。	
+backupExportTitle	Export backup	バックアップを書き出す	
+backupExportDescription	Save your personal data to a JSON file you can keep somewhere safe.	個人データをJSONファイルに保存します。安全な場所に保管してください。	
+backupImportTitle	Restore backup	バックアップから復元	
+backupImportDescription	Load a Sonora backup file, for example after reinstalling the app or on a new phone.	アプリの再インストール後や新しいスマートフォンで、Sonoraのバックアップファイルを読み込みます。	
+backupExportSuccess	Backup saved	バックアップを保存しました	
+backupExportFailed	Could not save the backup	バックアップを保存できませんでした	
+backupRestoreConfirmTitle	Restore this backup?	このバックアップを復元しますか？	
+backupRestoreConfirmContent	Backup from {date}.\n\n• Settings from the backup replace your current ones.\n• Playlists are merged. A playlist that exists in both is overwritten by the backup version.\n• Favorites are added to your current favorites.\n• Listening stats are replaced completely.\n\nSongs are matched to your current library. Songs that can't be found are skipped.	{date} のバックアップです。\n\n• バックアップの設定で現在の設定を上書きします。\n• プレイリストは統合されます。両方にあるプレイリストはバックアップの内容で上書きされます。\n• お気に入りは現在のお気に入りに追加されます。\n• 再生統計はすべて置き換えられます。\n\n曲は現在のライブラリと照合され、見つからない曲はスキップされます。	date:String
+backupRestoreAction	Restore	復元	
+backupRestoreSuccess	Backup restored	バックアップを復元しました	
+backupRestoredFavorites	{count, plural, =1{1 favorite song} other{{count} favorite songs}}	お気に入りの曲 {count}曲	count:int
+backupUnmatchedSongs	{count, plural, =1{1 song not found in your library} other{{count} songs not found in your library}}	ライブラリに見つからない曲 {count}曲	count:int
+backupErrorInvalidFile	This file is not a valid Sonora backup	有効なSonoraのバックアップファイルではありません	
+backupErrorUnsupportedVersion	This backup was made by a newer version of Sonora. Update the app and try again.	このバックアップは新しいバージョンのSonoraで作成されています。アプリを更新してから再度お試しください。	
+backupErrorRestoreFailed	Could not restore the backup	バックアップを復元できませんでした	
+replayGain	Volume levelling	音量の均一化	
+replayGainSubtitle	Use ReplayGain tags to play tracks at a consistent loudness. Untagged tracks play unchanged.	ReplayGainタグを使って曲ごとの音量差をそろえます。タグのない曲はそのまま再生されます	
+replayGainTrack	Track	トラック	
+replayGainAlbum	Album	アルバム	
+replayGainTrackGainLabel	Track gain	トラックゲイン	
+replayGainAlbumGainLabel	Album gain	アルバムゲイン	
+backupErrorLibraryEmpty	Your music library is empty. Scan your music folder first, then try again.	音楽ライブラリが空です。先に音楽フォルダをスキャンしてから、もう一度お試しください。	
+backupErrorNoMatchingSongs	None of the songs in this backup are in your library. Check that the right music folder is selected and scanned.	このバックアップの曲がライブラリに1曲も見つかりません。正しい音楽フォルダが選択・スキャンされているか確認してください。	
+backupErrorRolledBack	Could not restore the backup. Your previous data was kept.	バックアップを復元できませんでした。以前のデータはそのまま保持されています。	
+backupErrorFilePicker	Could not open the file. Please try again.	ファイルを開けませんでした。もう一度お試しください。	
+backupRestartNeeded	Restart the app to see all changes	すべての変更を反映するにはアプリを再起動してください	
+sleepTimerMusicStopsIn	Music stops in	停止まで	
+sleepTimerFinishingSong	Finishing song...	曲を最後まで再生中…	
+sleepTimerDragHint	Drag to set timer (1 to 60 minutes)	ドラッグしてタイマーを設定（1〜60分）	
+sleepTimerMinutes	{minutes} min	{minutes}分	minutes:int
+sleepTimerRemaining	{time} remaining	残り{time}	time:String
+endTimer	End timer	タイマーを終了	
+addMusic	Add music	音楽を追加	
+addMusicHint	Add songs with the button below, or copy them into Sonora's folder in the Files app (On My iPhone > Sonora > Music).	下のボタンで曲を追加するか、「ファイル」アプリの「このiPhone内 > Sonora > Music」にコピーしてください。	
