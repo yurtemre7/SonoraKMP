@@ -62,25 +62,25 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 ## P3 Android data (batch P3a → P3b → P3c)
 
 **P3a**
-- [ ] **P3-01** MediaStore scanner [LIB-03] — deps: [P1-09] — owns: `SA/scan/MediaStoreScanner.kt` — done when: port of `queryMediaStore` (selection, variants, escaping, fallbacks, lyrics flag) returning raw rows.
-- [ ] **P3-02** Album art cache [LIB-05] — deps: [P1-09] — owns: `SA/scan/ArtworkCache.kt` — done when: extraction (720 px q90 / albumart URI), markers, cold pool ≤ 5 min, background mode with callback, prune.
-- [ ] **P3-03** Tag reader [LIB-06] — deps: [P1-09] — owns: `SA/scan/TagReader.kt` — done when: jaudiotagger read with `MediaMetadataRetriever` fallback, embedded picture bytes, never throws.
-- [ ] **P3-04** Artist images & lyrics locator [LIB-07, LIB-24] — deps: [P1-09] — owns: `SA/scan/{ArtistImageScanner,LyricsLocator}.kt` — done when: single walk algorithm; sidecar lookup + read.
-- [ ] **P3-05** Seed color extractor [LIB-22] — deps: [P1-09] — owns: `SA/scan/SeedColorExtractor.kt` — done when: Palette vibrant→dominant, null on failure.
-- [ ] **P3-06** Platform helpers [LIB-01, LIB-17] — deps: [P1-09] — owns: `SA/platform/{TreeUriPaths,PlaylistCoverProcessor}.kt` — done when: tree URI ↔ path conversion (primary + volume uuid), 512 px q85 center crop.
-- [ ] **P3-07** Playlist repository [LIB-16..19] — deps: [P1-06, P2-10] — owns: `S/repo/impl/PlaylistRepositoryImpl.kt` — done when: CRUD, dedupe add, reorder, cover replace (old deleted), M3U import/export via `FileStore`.
-- [ ] **P3-08** Favorites repository [LIB-20] — deps: [P1-06] — owns: `S/repo/impl/FavoritesRepositoryImpl.kt` — done when: songs/albums/artists toggle/bulk, relink by path API.
-- [ ] **P3-09** Stats repository [STAT-01..07] — deps: [P1-06, P2-12] — owns: `S/repo/impl/StatsRepositoryImpl.kt` — done when: record events transactionally, snapshot Flow, reset, pause/resume nesting, replace-all for restore.
-- [ ] **P3-10** App platform helpers — deps: [P1-11] — owns: `A/platform/{ShareHelper,UrlOpener,FolderOpener,MediaVolume}.kt` — done when: share files (single/multi), open URL, folder opener strategies (D-31), ensure media volume.
+- [x] **P3-01** MediaStore scanner [LIB-03] — deps: [P1-09] — owns: `SA/scan/MediaStoreScanner.kt` — done when: port of `queryMediaStore` (selection, variants, escaping, fallbacks, lyrics flag) returning raw rows.
+- [x] **P3-02** Album art cache [LIB-05] — deps: [P1-09] — owns: `SA/scan/ArtworkCache.kt` — done when: extraction (720 px q90 / albumart URI), markers, cold pool ≤ 5 min, background mode with callback, prune.
+- [x] **P3-03** Tag reader [LIB-06] — deps: [P1-09] — owns: `SA/scan/TagReader.kt` — done when: jaudiotagger read with `MediaMetadataRetriever` fallback, embedded picture bytes, never throws.
+- [x] **P3-04** Artist images & lyrics locator [LIB-07, LIB-24] — deps: [P1-09] — owns: `SA/scan/{ArtistImageScanner,LyricsLocator}.kt` — done when: single walk algorithm; sidecar lookup + read.
+- [x] **P3-05** Seed color extractor [LIB-22] — deps: [P1-09] — owns: `SA/scan/SeedColorExtractor.kt` — done when: Palette vibrant→dominant, null on failure.
+- [x] **P3-06** Platform helpers [LIB-01, LIB-17] — deps: [P1-09] — owns: `SA/platform/{TreeUriPaths,PlaylistCoverProcessor}.kt` — done when: tree URI ↔ path conversion (primary + volume uuid), 512 px q85 center crop.
+- [x] **P3-07** Playlist repository [LIB-16..19] — deps: [P1-06, P2-10] — owns: `S/repo/impl/PlaylistRepositoryImpl.kt` — done when: CRUD, dedupe add, reorder, cover replace (old deleted), M3U import/export via `FileStore`.
+- [x] **P3-08** Favorites repository [LIB-20] — deps: [P1-06] — owns: `S/repo/impl/FavoritesRepositoryImpl.kt` — done when: songs/albums/artists toggle/bulk, relink by path API.
+- [x] **P3-09** Stats repository [STAT-01..07] — deps: [P1-06, P2-12] — owns: `S/repo/impl/StatsRepositoryImpl.kt` — done when: record events transactionally, snapshot Flow, reset, pause/resume nesting, replace-all for restore.
+- [x] **P3-10** App platform helpers — deps: [P1-11] — owns: `A/platform/{ShareHelper,UrlOpener,FolderOpener,MediaVolume}.kt` — done when: share files (single/multi), open URL, folder opener strategies (D-31), ensure media volume.
 
 **P3b**
-- [ ] **P3-11** Directory scanner [LIB-06] — deps: [P3-03, P3-06] — owns: `SA/scan/DirectoryScanner.kt` — done when: DocumentFile/File walk, extension set, cover files, fallbacks, embedded art `files/embedded_art/<id>.jpg`, id allocation.
-- [ ] **P3-12** Android library scanner [LIB-03..07] — deps: [P3-01, P3-02, P3-04, P3-11] — owns: `SA/scan/AndroidLibraryScanner.kt` — done when: implements `LibraryScanner` (MediaStore first, directory fallback, artist images, unchanged rule inputs).
-- [ ] **P3-13** Backup repository [BAK-01..06] — deps: [P2-18, P3-07, P3-08, P3-09] — owns: `S/repo/impl/BackupRepositoryImpl.kt` — done when: export from DB/DataStore, apply plan in one transaction with rollback snapshot, `WriteFailed` on error.
+- [x] **P3-11** Directory scanner [LIB-06] — deps: [P3-03, P3-06] — owns: `SA/scan/DirectoryScanner.kt` — done when: DocumentFile/File walk, extension set, cover files, fallbacks, embedded art `files/embedded_art/<id>.jpg`, id allocation.
+- [x] **P3-12** Android library scanner [LIB-03..07] — deps: [P3-01, P3-02, P3-04, P3-11] — owns: `SA/scan/AndroidLibraryScanner.kt` — done when: implements `LibraryScanner` (MediaStore first, directory fallback, artist images, unchanged rule inputs).
+- [x] **P3-13** Backup repository [BAK-01..06] — deps: [P2-18, P3-07, P3-08, P3-09] — owns: `S/repo/impl/BackupRepositoryImpl.kt` — done when: export from DB/DataStore, apply plan in one transaction with rollback snapshot, `WriteFailed` on error.
 
 **P3c**
-- [ ] **P3-14** Library repository [LIB-04, 08, 21, 22, 23] — deps: [P3-12, P2-06, P2-01, P3-05] — owns: `S/repo/impl/LibraryRepositoryImpl.kt` — done when: sync orchestration (missing folder protection, exception → cache), RG fill fan-out 4, favorites relink, seed-color background pass (3 s, 100 ms), groups/index Flows, sync reminder computation.
-- [ ] **P3-15** Wire shared DI — deps: [P3-13, P3-14] — owns: `SA/di/**` — done when: all repos/scanners bound in `sharedModule`; app resolves `LibraryRepository` at runtime on emulator.
+- [x] **P3-14** Library repository [LIB-04, 08, 21, 22, 23] — deps: [P3-12, P2-06, P2-01, P3-05] — owns: `S/repo/impl/LibraryRepositoryImpl.kt` — done when: sync orchestration (missing folder protection, exception → cache), RG fill fan-out 4, favorites relink, seed-color background pass (3 s, 100 ms), groups/index Flows, sync reminder computation.
+- [x] **P3-15** Wire shared DI — deps: [P3-13, P3-14] — owns: `SA/di/**` — done when: all repos/scanners bound in `sharedModule`; app resolves `LibraryRepository` at runtime on emulator.
 
 ## P4 Playback, Auto, widget (batch P4a → P4b → P4c)
 
@@ -187,7 +187,7 @@ Shared unit tests (`ST/`):
 - [ ] **P10-15** Settings defaults test — deps: [P1-04] — owns: `ST/settings/SettingsRepositoryTest.kt` — done when: fresh DataStore yields every §5.3 default; setters round-trip; color-source legacy mirroring.
 
 App tests (`AT/`, Robolectric):
-- [ ] **P10-16** DAO tests — deps: [P1-05, P3-07] — owns: `AT/data/DaoTest.kt` — done when: playlist add dedupe/remove-all/reorder, favorites relink, stats transaction, clearAll.
+- [x] **P10-16** DAO tests — deps: [P1-05, P3-07] — owns: `AT/data/DaoTest.kt` — done when: playlist add dedupe/remove-all/reorder, favorites relink, stats transaction, clearAll.
 - [ ] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
 - [ ] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
 - [ ] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
