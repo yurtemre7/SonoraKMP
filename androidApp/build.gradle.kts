@@ -15,7 +15,31 @@ fun signingValue(key: String, env: String): String? =
     keystoreProps.getProperty(key) ?: System.getenv(env)
 
 val sonoraVersionName: String = providers.gradleProperty("sonora.versionName").get()
-val sonoraVersionCode: Int = providers.gradleProperty("sonora.versionCode").get().toInt()
+
+/**
+ * versionCode derived from versionName (override with -Psonora.versionCode=N):
+ *   (major * 1_000_000 + minor * 1_000 + patch) * 10 + stage
+ * stage = 9 for a final release; pre-releases sort below it:
+ *   alpha.N -> 0..2, beta.N -> 3..5, rc.N -> 6..8 (N clamped, N=1 is the first slot).
+ * e.g. 1.2.3 -> 10020039, 1.2.3-beta.1 -> 10020033, 1.2.3-rc.2 -> 10020037.
+ */
+fun deriveVersionCode(name: String): Int {
+    val match = Regex("""^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+.*)?$""").matchEntire(name)
+        ?: error("sonora.versionName '$name' is not semantic (X.Y.Z[-pre])")
+    val (major, minor, patch) = match.destructured.toList().take(3).map(String::toInt)
+    require(minor < 1_000 && patch < 1_000) { "minor/patch must be < 1000: $name" }
+    val pre = match.groupValues[4]
+    val stage = if (pre.isEmpty()) 9 else {
+        val label = pre.substringBefore('.').lowercase()
+        val n = pre.substringAfter('.', "1").toIntOrNull() ?: 1
+        val base = when (label) { "beta" -> 3; "rc" -> 6; else -> 0 }
+        base + (n - 1).coerceIn(0, 2)
+    }
+    return (major * 1_000_000 + minor * 1_000 + patch) * 10 + stage
+}
+
+val sonoraVersionCode: Int = providers.gradleProperty("sonora.versionCode").orNull?.toInt()
+    ?: deriveVersionCode(sonoraVersionName)
 
 android {
     namespace = "de.yurtemre.sonora"
