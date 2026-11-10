@@ -1,5 +1,7 @@
 package de.yurtemre.sonora.di
 
+import de.yurtemre.sonora.BuildConfig
+import de.yurtemre.sonora.shared.di.AppInfo
 import org.koin.dsl.module
 
 /**
@@ -9,4 +11,5 @@ import org.koin.dsl.module
  * are added here or included via `includes(...)` as they land.
  */
 val appModule = module {
+    single { AppInfo("${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}") }
 }
