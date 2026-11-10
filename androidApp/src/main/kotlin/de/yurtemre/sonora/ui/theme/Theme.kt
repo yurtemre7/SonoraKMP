@@ -35,22 +35,22 @@ import com.materialkolor.rememberDynamicMaterialThemeState
 val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 const val ColorTransitionMillis = 450
 
-/** Extra Afterglow tokens not covered by MaterialTheme. */
+/** Extra Sleeve tokens not covered by MaterialTheme. */
 @Immutable
-data class AfterglowExtras(
-    val eyebrow: TextStyle = EyebrowTextStyle,
+data class SleeveExtras(
+    val sectionHeader: TextStyle = SectionHeaderTextStyle,
     val isDark: Boolean = false,
     val isAmoled: Boolean = false,
 )
 
-val LocalAfterglowExtras = staticCompositionLocalOf { AfterglowExtras() }
+val LocalSleeveExtras = staticCompositionLocalOf { SleeveExtras() }
 
 /** Placeholder; P6-04 wires this to ANIMATOR_DURATION_SCALE. */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
 @Composable
 fun SonoraTheme(
-    colorSource: ThemeColorSourceUi = ThemeColorSourceUi.Afterglow,
+    colorSource: ThemeColorSourceUi = ThemeColorSourceUi.Sleeve,
     themeMode: ThemeModeUi = ThemeModeUi.System,
     amoled: Boolean = false,
     seedColor: Color? = null,
@@ -70,13 +70,13 @@ fun SonoraTheme(
     )
 
     CompositionLocalProvider(
-        LocalAfterglowExtras provides AfterglowExtras(isDark = dark, isAmoled = pitchBlack),
+        LocalSleeveExtras provides SleeveExtras(isDark = dark, isAmoled = pitchBlack),
     ) {
         MaterialExpressiveTheme(
             colorScheme = animated,
             motionScheme = MotionScheme.expressive(),
-            typography = AfterglowTypography,
-            shapes = AfterglowShapes,
+            typography = SleeveTypography,
+            shapes = SleeveShapes,
             content = content,
         )
     }
@@ -94,45 +94,32 @@ private fun rememberSchemeFor(
         val s = if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
         return if (amoled) s.withAmoledSurfaces() else s
     }
-    val brand = source == ThemeColorSourceUi.Afterglow ||
-        source == ThemeColorSourceUi.System || seed == null
-    val state = if (brand) {
-        rememberDynamicMaterialThemeState(
-            seedColor = AfterglowColors.Ember,
-            isDark = dark,
-            isAmoled = amoled,
-            primary = AfterglowColors.Ember,
-            secondary = AfterglowColors.Dusk,
-            tertiary = AfterglowColors.Seaglass,
-            neutral = AfterglowColors.Ink,
-            style = PaletteStyle.Expressive,
-            contrastLevel = Contrast.Default.value,
-        )
-    } else {
-        rememberDynamicMaterialThemeState(
-            seedColor = seed!!,
-            isDark = dark,
-            isAmoled = amoled,
-            style = PaletteStyle.Expressive,
-            contrastLevel = Contrast.Default.value,
-        )
+    if (source == ThemeColorSourceUi.Sleeve || source == ThemeColorSourceUi.System || seed == null) {
+        val s = if (dark) SleeveDarkScheme else SleeveLightScheme
+        return if (amoled) s.withAmoledSurfaces() else s
     }
-    var s = state.colorScheme
-    if (brand) s = s.withAfterglowRoles(dark)
+    val state = rememberDynamicMaterialThemeState(
+        seedColor = seed,
+        isDark = dark,
+        isAmoled = amoled,
+        style = PaletteStyle.TonalSpot,
+        contrastLevel = Contrast.Default.value,
+    )
+    val s = state.colorScheme
     return if (amoled) s.withAmoledSurfaces() else s
 }
 
-@Preview(name = "Afterglow light")
-@Preview(name = "Afterglow dark", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Sleeve light")
+@Preview(name = "Sleeve dark", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun SonoraThemePreview() {
     SonoraTheme {
         Surface {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("UP NEXT", style = LocalAfterglowExtras.current.eyebrow)
-                Text("Afterglow", style = MaterialTheme.typography.displaySmall)
-                Text("Late-night listening room", style = MaterialTheme.typography.titleMedium)
-                Text("Warm ember light on deep ink.", style = MaterialTheme.typography.bodyMedium)
+                Text("Up next", style = LocalSleeveExtras.current.sectionHeader)
+                Text("Sleeve", style = MaterialTheme.typography.displaySmall)
+                Text("Play the music you own", style = MaterialTheme.typography.titleMedium)
+                Text("Flat colour, one family.", style = MaterialTheme.typography.bodyMedium)
                 Button(onClick = {}) { Text("Play") }
             }
         }

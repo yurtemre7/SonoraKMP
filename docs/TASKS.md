@@ -24,7 +24,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [x] **P1-04** Settings repository — deps: [P1-02] — owns: `S/settings/**` — done when: `SettingsKeys` covers every §5.3 key, `SettingsRepository` exposes `Flow<AppSettings>` + typed setters + legacy-bool mirroring for color source, `PlaybackStateStore` (last_played_*), compiles.
 - [x] **P1-05** Room schema — deps: [P1-02] — owns: `S/db/**`, `shared/schemas/**` — done when: all tables of §5.2 with DAOs (Flow reads, `@Transaction` writers, `clearAll`), `SonoraDatabase` with `@ConstructedBy`, schema v1 JSON exported, `BUILD_SHARED` passes.
 - [x] **P1-06** Repository contracts — deps: [P1-02] — owns: `S/repo/api/**` — done when: interfaces `LibraryRepository`, `PlaylistRepository`, `FavoritesRepository`, `StatsRepository`, `BackupRepository`, `LibraryScanner`, `FileStore`, `Clock` with KDoc referencing SPEC IDs compile.
-- [x] **P1-07** Theme (Afterglow) — deps: [P1-01] — owns: `A/ui/theme/**`, `AR/values/themes.xml`, `AR/values-night/themes.xml` — done when: `SonoraTheme(source, mode, amoled, seed)` builds MaterialKolor Expressive schemes with pinned keys, AMOLED overrides, Bricolage/Figtree typography scale, shapes, `MotionScheme.expressive()`, splash theme; preview renders.
+- [x] **P1-07** Theme (Sleeve) — deps: [P1-01] — owns: `A/ui/theme/**`, `AR/values/themes.xml`, `AR/values-night/themes.xml` — done when: `SonoraTheme(source, mode, amoled, seed)` builds hand-tuned Sleeve schemes (MaterialKolor TonalSpot for album-art/custom seeds), AMOLED overrides, Bricolage Grotesque typography scale, shapes, `MotionScheme.expressive()`, splash theme; preview renders.
 - [x] **P1-08** Format helpers — deps: [P1-03] — owns: `A/ui/format/**` — done when: duration (`m:ss`, `h:mm:ss`, total parts via resources), file size, date/time, relative day, month-year, weekday name helpers exist.
 
 **P1c**
@@ -108,8 +108,8 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [ ] **P5-03** Home scaffold, header, search, sort sheet [UI-03..06] — deps: [P1-12, P2-02, P2-03] — owns: `A/ui/screens/home/{HomeScreen,HomeViewModel,HomeHeader,SearchHeader,SortSheet}.kt` — done when: greeting/actions/progress, shared query, per-tab buttons & counts, sort sheet with plays special case.
 - [ ] **P5-05** Fast scroller & multi-select [UI-07, UI-13] — deps: [P1-13] — owns: `A/ui/components/{FastScroller,MultiSelectActionBar,SelectionState}.kt` — done when: thumb/bubble/haptics; selection state holder + action bar with all actions & snackbars.
 - [ ] **P5-06** Mini player & Pulse button [UI-15] — deps: [P4-12, P1-13] — owns: `A/ui/components/{MiniPlayer,PulseButton}.kt` — done when: gestures (up/down+undo/left/right), progress hairline, morphing rotating cookie with reduce-motion check.
-- [ ] **P5-07** Now Playing overlay & player view [UI-16, UI-17, UI-22] — deps: [P4-12] — owns: `A/ui/screens/nowplaying/{NowPlayingOverlay,NowPlayingViewModel,PlayerView,ArtworkArea,ArtistPickerSheet}.kt`, `A/ui/components/{AfterglowBackdrop,Vinyl,Visualizer,MarqueeText}.kt` — done when: expand/collapse with predictive back, view switching with back-to-player, styles/immersive, chips, controls, collapse+push for album/artist.
-- [ ] **P5-08** Up Next, Lyrics, Related, seek bar [UI-18..21] — deps: [P4-12, P2-09] — owns: `A/ui/screens/nowplaying/{UpNextView,LyricsView,RelatedView}.kt`, `A/ui/components/EmberSeekBar.kt` — done when: reorder/swipe-remove+undo, synced lyrics auto-scroll (4 s grace, tap-seek), related lists, wavy seek bar with h:mm:ss.
+- [ ] **P5-07** Now Playing overlay & player view [UI-16, UI-17, UI-22] — deps: [P4-12] — owns: `A/ui/screens/nowplaying/{NowPlayingOverlay,NowPlayingViewModel,PlayerView,ArtworkArea,ArtistPickerSheet}.kt`, `A/ui/components/{TintedBackdrop,Vinyl,Visualizer,MarqueeText}.kt` — done when: expand/collapse with predictive back, view switching with back-to-player, styles/immersive, chips, controls, collapse+push for album/artist.
+- [ ] **P5-08** Up Next, Lyrics, Related, seek bar [UI-18..21] — deps: [P4-12, P2-09] — owns: `A/ui/screens/nowplaying/{UpNextView,LyricsView,RelatedView}.kt`, `A/ui/components/WavySeekBar.kt` — done when: reorder/swipe-remove+undo, synced lyrics auto-scroll (4 s grace, tap-seek), related lists, wavy seek bar with h:mm:ss.
 - [ ] **P5-09** Sleep timer & MFX sheets [UI-31, UI-32] — deps: [P4-12] — owns: `A/ui/screens/nowplaying/sheets/**` — done when: both sheets incl. custom EQ (vertical sliders, presets, hidden when unsupported).
 - [ ] **P5-10** Shared sheets & dialogs [UI-28..30] — deps: [P1-13, P3-15] — owns: `A/ui/sheets/**` — done when: song info, playlist selector (single/multi), rename/description/create/save-queue dialogs.
 - [ ] **P5-11** Album & Artist detail [UI-23, UI-24] — deps: [P1-12, P3-15] — owns: `A/ui/screens/album/**`, `A/ui/screens/artist/**` — done when: headers, play/shuffle/favorite, lists with menu & multi-select, not-found states.
@@ -160,7 +160,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 
 ## P9 Website (`/site`)
 
-- [x] **P9-01** Site scaffold & tokens — owns: `site/**` — done when: Afterglow tokens, self-hosted woff2, light/dark toggle, responsive.
+- [x] **P9-01** Site scaffold & tokens — owns: `site/**` — done when: Sleeve tokens, self-hosted woff2, light/dark toggle, responsive.
 - [x] **P9-02** Hero & features — done when: Pulse-button hero, feature grid, screenshot slots (placeholders until P9-05).
 - [x] **P9-03** Download — done when: latest release APK via GitHub API with static fallback, EN/JA toggle.
 - [ ] **P9-04** Site QA — deps: [P8-07] — owns: `site/**` (fixes only) — done when: download button resolves a real release asset, no console errors, a11y checks pass.
@@ -190,7 +190,7 @@ App tests (`AT/`, Robolectric):
 - [ ] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
 - [ ] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
 - [ ] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
-- [ ] **P10-20** Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Afterglow/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
+- [ ] **P10-20** Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Sleeve/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
 - [ ] **P10-21** Sync banner UI test — deps: [P5-04] — owns: `AT/ui/SyncBannerTest.kt` — done when: 3 cases of audit/ui §2.9.
 - [ ] **P10-22** Multi-select bar UI test — deps: [P5-05] — owns: `AT/ui/MultiSelectBarTest.kt` — done when: "1 selected", select-all/close callbacks, 5 actions.
 - [ ] **P10-23** Dialogs UI test — deps: [P5-10] — owns: `AT/ui/DialogsTest.kt` — done when: confirm true/false, rename prefill/submit, description blank → null.
@@ -215,7 +215,7 @@ App tests (`AT/`, Robolectric):
 | Sync performance benchmark logs & "Copy Performance Benchmark Logs" | Debug noise; debug screen shows sync duration |
 | flutter_local_notifications boot/scheduled receivers | No scheduled notifications |
 | 17-package file-manager `<queries>` list & generic chooser strategies | Reduced folder-opener strategies (D-31) |
-| Material You dynamic colors in the widget | Afterglow tokens (D-33) |
+| Material You dynamic colors in the widget | Sleeve tokens (D-33) |
 | Legacy pref keys (`sort_by*`, `metadata_version`, `eq_*`, `dynamic_theme_color`, `mfx_is{Slowed,…}`, `mfx_preset`) | Read only when importing Flutter backups |
 | Android Auto (browse tree, artwork provider, voice search) | Not needed (D-52) |
 | Kept but limited: DevBadge (dev builds), Debug caches screen (debug builds only) | Developer aid |

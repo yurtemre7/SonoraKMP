@@ -2,11 +2,11 @@
 <resources>
     <style name="Theme.Sonora" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/sonora_window_background</item>
-        <item name="android:colorPrimary">#FFFFB4A1</item>
-        <item name="android:colorAccent">#FFE5573B</item>
+        <item name="android:colorPrimary">#FF9DB0FF</item>
+        <item name="android:colorAccent">#FF9DB0FF</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
-    <color name="sonora_window_background">#FF17131A</color>
+    <color name="sonora_window_background">#FF10142A</color>
 </resources>

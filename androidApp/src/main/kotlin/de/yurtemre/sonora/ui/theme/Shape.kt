@@ -5,17 +5,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-/** Corner scale (DESIGN §3). */
-val AfterglowShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(32.dp),
+/** Corner scale 4 / 8 / 12 / 20 / 28 (DESIGN §3). */
+val SleeveShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
-/** Squircle-ish artwork shape; never square or circle. */
-val ArtworkShape = RoundedCornerShape(percent = 22)
+/** Artwork is a sleeve: square with 8 dp corners. */
+val SleeveShape = RoundedCornerShape(8.dp)
 
-/** Pills for buttons and chips. */
+/** Sleeve thumbnails in rows: 6 dp corners. */
+val SleeveRowShape = RoundedCornerShape(6.dp)
+
+/** Pills for buttons and chips only. */
 val PillShape = CircleShape

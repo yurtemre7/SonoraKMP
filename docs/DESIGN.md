@@ -1,166 +1,185 @@
-# Sonora design system — "Afterglow"
+# Sonora design system — "Sleeve"
 
-Sonora's Kotlin port gets its own identity. The Flutter app used Outfit/Inter,
-round controls and blurred covers. Afterglow is built around the idea of a
-**late-night listening room**: warm ember light on deep ink, soft organic
-shapes that breathe with the music, and confident, slightly quirky type.
+Sonora plays music files people own and keep. The visual language comes from
+that world: the printed record sleeve, the CD spine on a shelf, the label
+sticker. It borrows their **flatness, type and colour** — not their textures.
+No skeuomorphic grain, no fake chrome, and **no gradients anywhere**.
 
 It is Material 3 Expressive underneath (`MaterialExpressiveTheme`,
-`MotionScheme.expressive()`, expressive components), but never stock M3: the
-palette, type pairing, shape vocabulary and the signature components below are
-Sonora's own.
+`MotionScheme.expressive()`, expressive components) but never stock M3.
+
+Revision 2 (2026-11-10) replaced "Afterglow" (cream + terracotta, animated
+gradient backdrop, gradient placeholders, all-caps eyebrows) after review: those
+read as generic generated design.
 
 ## 1. Color
 
-### Brand seed and scheme generation
+Flat colours only. A surface is one colour; tone changes come from stepping
+between palette values, never from blending them.
 
-| Token | Hex | Use |
+| Token | Hex | Role |
 | --- | --- | --- |
-| `Ember` (seed / primary key) | `#E5573B` | play button, active track, progress |
-| `Dusk` (secondary key) | `#7A6BD6` | chips, selection, secondary actions |
-| `Seaglass` (tertiary key) | `#2FA593` | stats highlights, success, lyrics active line |
-| `Ink` (neutral key) | `#17131A` | surfaces (dark), text (light) |
-| `Paper` (neutral light) | `#FBF6F1` | background (light) |
-
-Schemes are generated with MaterialKolor (`PaletteStyle.Expressive`,
-`Contrast.Default`) from the Ember seed, with secondary/tertiary/neutral keys
-pinned to the values above. This gives full tonal palettes for light, dark and
-the AMOLED variant while keeping the brand hue recognisable.
+| **Fog** | `#E9EBEF` | light background (cool grey, not cream) |
+| **Ink** | `#141A2E` | light text; dark-mode deep surfaces |
+| **Cobalt** | `#2A44D4` | primary: play, progress, current track, links |
+| **Label** | `#F2C230` | sticker yellow: fills only (badges, selected chip, "new version"), always with Ink text |
+| **Moss** | `#4F7A5A` | tertiary: success, stats highlights |
+| **Night** | `#10142A` | dark background |
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| background / surface | Paper `#FBF6F1` | Ink `#17131A` |
-| surfaceContainerLow / High | warm `#F5EDE6` / `#ECE1D8` | `#201B23` / `#2C2630` |
-| primary / onPrimary | `#A83A22` / `#FFFFFF` | `#FFB4A1` / `#5F1404` |
-| primaryContainer | `#FFDAD1` | `#86240F` |
-| secondary | `#5C4DB5` | `#C8BFFF` |
-| tertiary | `#006B5E` | `#5ADBC4` |
-| outline | `#85736E` | `#A08D88` |
+| background / surface | `#E9EBEF` | `#10142A` |
+| surfaceContainerLow / Container / High | `#F3F4F7` / `#E1E4EA` / `#D6DAE2` | `#171C36` / `#1D2341` / `#252C4D` |
+| onSurface / onSurfaceVariant | `#141A2E` / `#454C63` | `#E4E7F2` / `#A9AFC6` |
+| primary / onPrimary | `#2A44D4` / `#FFFFFF` | `#9DB0FF` / `#0B1A6B` |
+| primaryContainer / on | `#DDE2FF` / `#0B1A6B` | `#2234A8` / `#DDE2FF` |
+| secondary (Label) / on | `#F2C230` / `#141A2E` | `#F2C230` / `#141A2E` |
+| tertiary (Moss) / on | `#4F7A5A` / `#FFFFFF` | `#9CC7A6` / `#12301B` |
+| outline / outlineVariant | `#767D93` / `#C3C8D4` | `#7C839C` / `#363D5C` |
+| error | `#B3261E` | `#FFB4AB` |
 
-AMOLED ("Pitch black" setting): dark scheme with `background`, `surface` and
-all `surfaceContainer*` roles forced to `#000000`/`#0A0A0A`/`#121212`.
+AMOLED ("Pitch black"): dark scheme with background/surface `#000000` and
+containers `#0B0D18` / `#11142A` / `#181C36` (navy-tinted, not neutral grey).
 
-### Color sources (parity with Flutter "Color source" setting)
+### Color sources (parity with the Flutter "Color source" setting)
 
-1. **Afterglow** (default): the brand scheme above.
-2. **System (Material You)**: `dynamicLight/DarkColorScheme` on Android 12+;
-   hidden below API 31.
-3. **Album art**: seed extracted from the current cover with AndroidX Palette
-   (vibrant → dominant fallback), scheme generated with MaterialKolor
-   `PaletteStyle.Expressive`; transitions animate with `animateColorAsState`
-   (450 ms, emphasized easing) so covers "bleed" into the UI.
-4. **Custom accent**: user-picked seed from the accent grid (same swatch list as
-   Flutter plus the brand seed).
+1. **Sleeve** (default): the hand-tuned roles above. Not generated.
+2. **System (Material You)** on Android 12+; hidden below API 31.
+3. **Album art**: seed from the current cover (AndroidX Palette, vibrant →
+   dominant), scheme via MaterialKolor `PaletteStyle.TonalSpot`. Colour changes
+   animate as a solid crossfade (450 ms, emphasized), never a gradient.
+4. **Custom accent**: user-picked seed from the swatch picker.
 
-### Contrast rules
+### Contrast
 
-* Body text on any surface: at least 4.5:1. Large titles and icons: 3:1.
-* `onPrimary` on `primary` checked for all 4 sources in a unit test
-  (`ContrastTest`) using WCAG relative luminance; generated album-art schemes
-  that fail fall back to `Contrast.Medium`.
-* Never place text directly on artwork: scrims use `surface` at 72% with a
-  vertical gradient.
+* Text ≥ 4.5:1, large text and icons ≥ 3:1. Label yellow never carries text in
+  light mode except Ink on Label (10:1).
+* `ContrastTest` checks onPrimary/primary and onSurface/surface for every source
+  in light, dark and AMOLED; generated album-art schemes that fail fall back to
+  `Contrast.Medium`.
+* Text never sits on artwork. Overlays use a flat `surface` at 88% opacity.
 
 ## 2. Typography
 
-| Family | File | Role |
-| --- | --- | --- |
-| **Bricolage Grotesque** (variable: opsz, wdth, wght) | `res/font/bricolage_grotesque.ttf` | display, headline, title (the "voice") |
-| **Figtree** (variable: wght) | `res/font/figtree.ttf` | body, label, UI text |
+**One family: Bricolage Grotesque** (variable `opsz`, `wdth`, `wght`;
+`res/font/bricolage_grotesque.ttf`, OFL). Its width axis does the work a second
+family would: condensed for titles and spines, normal width for reading.
+Japanese falls back to the system CJK font (Noto Sans CJK JP).
 
-Both are OFL (licenses in `docs/licenses`). Japanese falls back to the system
-CJK font (Noto Sans CJK JP), which pairs well with Figtree's geometry.
-
-Scale (Material roles → Afterglow):
-
-| Role | Font | Size / line | Weight | Notes |
+| Role | Size / line | Weight | Width | Use |
 | --- | --- | --- | --- | --- |
-| displayLarge | Bricolage | 57/64 | 800, wdth 90 | Now Playing title (expanded) |
-| displaySmall | Bricolage | 36/44 | 700 | Stats hero numbers |
-| headlineLarge | Bricolage | 32/40 | 700 | Screen titles (large top bar) |
-| headlineMedium | Bricolage | 28/36 | 700 | Detail screen titles |
-| titleLarge | Bricolage | 22/28 | 650 | Collapsed top bar, sheet titles |
-| titleMedium | Figtree | 16/24 | 600 | Song title in lists |
-| bodyLarge / Medium | Figtree | 16/24, 14/20 | 400 | Text |
-| labelLarge | Figtree | 14/20 | 600 | Buttons |
-| labelSmall | Figtree | 11/16 | 600, +0.6 tracking, uppercase | Section eyebrows ("UP NEXT") |
+| displayLarge | 64/64 | 800 | 75 | **Spine** title (rotated) |
+| displaySmall | 40/44 | 750 | 75 | stats figures |
+| headlineLarge | 32/38 | 700 | 80 | screen titles |
+| headlineMedium | 26/32 | 700 | 80 | album/artist/playlist titles |
+| titleLarge | 20/26 | 650 | 90 | sheet and dialog titles |
+| titleMedium | 16/22 | 600 | 100 | song title in rows |
+| bodyLarge / bodyMedium | 16/24 · 14/20 | 400 | 100 | text, artist lines |
+| labelLarge | 14/20 | 600 | 100 | buttons |
+| labelMedium | 12/16 | 600 | 100 | chips, counts |
 
-Emphasized variants (`*Emphasized` in M3 Expressive) use +100 weight and
-`wdth 85` for a condensed, punchy look on active items.
+Rules:
+* Sentence case everywhere. **No all-caps labels or eyebrows.**
+* Times, durations and counts use tabular figures (`fontFeatureSettings = "tnum"`).
+* No single highlighted word in a title (no colour/weight accent on one word).
+* `opsz` follows the font size; line length ≤ 70 characters on tablets.
 
-## 3. Shape language
+## 3. Shape
 
-* **Corner scale**: extraSmall 6, small 10, medium 16, large 24, extraLarge 32,
-  full pills for buttons and chips.
-* **Artwork** uses a squircle-ish `RoundedCornerShape(22%)`, never a hard
-  square or a circle. Artist avatars use `MaterialShapes.Cookie9Sided`.
-* **Morphing shapes** (`androidx.graphics.shapes` via M3 `MaterialShapes`):
-  * Play/pause button: `Circle` (paused) ↔ `Cookie9Sided` (playing), morphed with
-    a spring; the cookie rotates slowly (1 turn / 12 s) while audio plays.
-  * Empty states use a large `SoftBurst` / `Clover4Leaf` container with an icon.
-  * Placeholder art: `Pentagon`/`Sunny` filled with a tonal gradient derived
-    from the song title hash, so missing covers still look intentional.
-* Pressed states shrink corner radius (button shape morphing from M3 Expressive
-  `ButtonDefaults.shapes()`).
+* Corner scale: 4 / 8 / 12 / 20 / 28; pills only for buttons and chips.
+* **Artwork is a sleeve**: square with 8 dp corners (rows: 6 dp). Never round.
+* **Typographic sleeves** (missing artwork): a flat block in Cobalt, Ink or Moss
+  (picked by title hash), album title set left-aligned at the bottom in
+  condensed 800 weight, artist above it in body weight, 12% inset. Like a
+  white-label promo pressing. No gradients, no generated patterns.
+* Artist avatars: `MaterialShapes.Cookie9Sided` (the only organic shape outside
+  the play button), filled flat when no image exists, with the initial.
+* Play/pause button: `Circle` (paused) ↔ `Cookie9Sided` (playing) morph on tap,
+  spring. It does **not** rotate.
 
 ## 4. Motion
 
-* `MotionScheme.expressive()` everywhere (spatial springs overshoot slightly,
-  effects springs are critically damped).
-* Screen transitions (Navigation 3): shared-axis X for push, fade-through for
-  tab switches; predictive back drives the back animation (scale to 0.92 +
-  corner radius 32 on the outgoing scene).
-* Mini player → Now Playing: shared element (`SharedTransitionLayout`) on the
-  artwork and title; the sheet uses predictive back to collapse.
-* List items: `animateItem()` for reorders/removals.
-* Reduce motion: if the system "Remove animations" is on
-  (`ANIMATOR_DURATION_SCALE == 0`), the cookie rotation and visualizer stop.
+* `MotionScheme.expressive()`; motion answers the user (open, expand, reorder,
+  confirm) and shows what changed.
+* Only two ambient motions, both meaning "this is playing": the wavy seek bar
+  (amplitude 0 when paused) and the equalizer bars on the current row.
+* Navigation: shared-axis X for push; predictive back scales the outgoing scene
+  to 0.94 with 28 dp corners.
+* Mini player → Now Playing: shared element on the sleeve and title.
+* Reduce motion (animator scale 0): wave and bars freeze, transitions become fades.
 
-## 5. Signature components
+## 5. Signature: the Spine
 
-1. **Pulse button** — the morphing, slowly rotating play/pause cookie with a
-   48–96 dp size range. Used in Now Playing and the mini player.
-2. **Ember wave** — `LinearWavyProgressIndicator` as the seek bar track while
-   playing (amplitude 0 when paused), with a draggable thumb and
-   elapsed/remaining labels in tabular figures.
-3. **Afterglow backdrop** — instead of a blurred cover (Flutter), the Now
-   Playing background is a slow, animated radial gradient mesh built from
-   the cover's 3 palette swatches. Cheap on GPU, works on API 24 without
-   `RenderEffect`. A "Blurred backgrounds" setting switches to real blur on
-   API 31+ for parity.
-4. **Floating mini player** — a pill-shaped `surfaceContainerHigh` card that
-   floats 8 dp above the navigation bar, with a progress hairline along its
-   bottom edge, swipe gestures (up = open, down = close, left/right = skip).
-5. **Track chips** — list rows show a tonal track-number chip; the playing row
-   swaps it for animated equalizer bars and uses titleMedium emphasized.
-6. **Button groups** — transport and filter rows use M3 Expressive
-   `ButtonGroup` / connected toggle buttons (repeat, shuffle, lyrics/queue/related
-   tabs in Now Playing).
-7. **Loading** — the expressive `LoadingIndicator` (shape-morphing) replaces
-   spinners for scans, update downloads and startup.
+The one bold element. Everything around it stays quiet.
 
-## 6. Layout and adaptivity
+* **Now Playing (portrait)**: the song title runs bottom-to-top along the left
+  edge in displayLarge condensed, Ink on Fog (or onSurface), clipped by the
+  screen edge if long rather than shrunk; the sleeve sits to its right, the
+  controls below. Artist and album sit horizontally under the sleeve.
+* **Album / playlist header**: the title as a spine beside the sleeve, track
+  count and total time below in tabular figures.
+* **Tablet / landscape**: the spine is the divider between the library pane and
+  Now Playing.
+* Accessibility: the rotated text is decorative for TalkBack; the same title is
+  exposed once as a heading.
 
-* Edge-to-edge with `WindowInsets` padding; transparent system bars.
-* Window size classes:
-  * **Compact**: bottom `ShortNavigationBar`, floating mini player.
-  * **Medium**: `NavigationRail`, two-column album grid → 3–4 columns.
-  * **Expanded**: `WideNavigationRail` + list-detail (library list left, detail
-    or Now Playing right).
-* Max content width 840 dp for settings and text-heavy screens.
+## 6. Other components
 
-## 7. Accessibility
+1. **Play button** — the morphing cookie (§3), 56–88 dp.
+2. **Seek bar** — `LinearWavyProgressIndicator` track with a draggable thumb;
+   elapsed/remaining in tabular figures (h:mm:ss when ≥ 1 h).
+3. **Now Playing background** — flat `surfaceContainerLow` tinted 12% toward the
+   cover's dominant colour. One colour, no blur. The "Blurred backgrounds"
+   setting keeps parity: API 31+ only, blur of the sleeve at 40% behind a flat
+   88% surface overlay.
+4. **Mini player** — a flat `surfaceContainerHigh` bar docked above the
+   navigation bar (not floating), 2 dp Cobalt progress line on its top edge;
+   swipe up = open, down = close (with undo), left/right = skip.
+5. **Song row** — sleeve thumbnail or track number in tabular figures; the
+   playing row swaps the number for equalizer bars and colours the title Cobalt.
+   No card per row; rows are separated by space, not dividers.
+6. **Section headers** — titleMedium sentence case with a right-aligned count
+   ("Albums  42"), only where the count is useful.
+7. **Button groups / connected toggles** — repeat, shuffle and the Now Playing
+   view switcher (Lyrics / Up next / Related).
+8. **Loading** — expressive `LoadingIndicator` for scans and downloads.
+9. **Badges** — Label yellow fill with Ink text, used sparingly (new version,
+   selection count).
 
-* Every icon button has a `contentDescription` from string resources.
-* Minimum touch target 48 dp (`minimumInteractiveComponentSize`).
-* Song rows merge semantics: "Title, Artist, 3:42, now playing".
-* Custom actions on rows for TalkBack (play next, add to queue, favorite) so
-  long-press menus are reachable.
-* Font scaling to 200% must not clip titles (marquee only when not scaled).
-* Contrast verified by `ContrastTest` (see §1).
+## 7. Layout
 
-## 8. Website
+* Edge-to-edge with inset padding; transparent system bars.
+* Left-aligned content; titles align to the same 16 dp (compact) / 24 dp
+  (medium+) margin as list text.
+* Compact: bottom `ShortNavigationBar`, docked mini player.
+* Medium: `NavigationRail`, album grid 3–4 columns.
+* Expanded: `WideNavigationRail` + list-detail; Now Playing in the right pane
+  with the Spine as the divider.
+* Settings and text screens max 720 dp wide.
 
-The landing page in `/site` uses the same palette tokens as CSS custom
-properties, the same two fonts (self-hosted woff2), the Pulse button motif as
-the hero illustration, and light/dark via `prefers-color-scheme` plus a toggle.
+## 8. Accessibility
+
+* Every icon button has a `contentDescription` from resources.
+* 48 dp minimum touch targets.
+* Song rows merge semantics ("Title, Artist, 3:42, now playing") and expose
+  custom actions (play next, add to queue, favourite).
+* At font scale ≥ 1.5 the Spine falls back to a horizontal title and marquee is off.
+* Contrast verified by `ContrastTest` (§1).
+
+## 9. Website (`/site`)
+
+Same tokens as CSS custom properties, Bricolage Grotesque only (self-hosted
+woff2), light/dark via `prefers-color-scheme` plus a toggle.
+
+* **Hero**: a shelf of spines. A row of vertical spines in flat Cobalt, Ink,
+  Moss, Fog and one Label-yellow spine, each carrying a real feature name in
+  condensed type ("Gapless", "ReplayGain", "Synced lyrics", …); the tallest
+  spine reads "Sonora". Headline beside it: "Play the music you own." Then a
+  short line and the Download button. No gradient, no glow; one load moment:
+  the spines slide into the shelf once (skipped under reduced motion).
+* **Features**: a plain two-column list (name + one sentence), grouped by
+  Library / Playback / Yours (backup, privacy, languages). No cards, no icons
+  grid, no numbers.
+* **Screenshots**: phone frames on a flat Fog/Night band.
+* Copy: plain verbs, sentence case, no arrows appended to links, no middle-dot
+  meta strings.

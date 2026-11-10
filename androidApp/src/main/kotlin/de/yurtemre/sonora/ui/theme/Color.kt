@@ -1,65 +1,114 @@
 package de.yurtemre.sonora.ui.theme
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-/** Afterglow brand keys (DESIGN §1). */
-object AfterglowColors {
-    val Ember = Color(0xFFE5573B)
-    val Dusk = Color(0xFF7A6BD6)
-    val Seaglass = Color(0xFF2FA593)
-    val Ink = Color(0xFF17131A)
-    val Paper = Color(0xFFFBF6F1)
+/** Sleeve palette (DESIGN §1). Flat colours only. */
+object SleeveColors {
+    val Fog = Color(0xFFE9EBEF)
+    val Ink = Color(0xFF141A2E)
+    val Cobalt = Color(0xFF2A44D4)
+    val Label = Color(0xFFF2C230)
+    val Moss = Color(0xFF4F7A5A)
+    val Night = Color(0xFF10142A)
 
     val AmoledBackground = Color(0xFF000000)
-    val AmoledContainerLow = Color(0xFF0A0A0A)
-    val AmoledContainerHigh = Color(0xFF121212)
+    val AmoledContainerLow = Color(0xFF0B0D18)
+    val AmoledContainer = Color(0xFF11142A)
+    val AmoledContainerHigh = Color(0xFF181C36)
 }
 
-/** Color source setting (mirrors Flutter "Color source"); map from shared settings later. */
-enum class ThemeColorSourceUi { Afterglow, System, AlbumArt, Custom }
+/** Color source setting (mirrors Flutter "Color source"). Shared storage name `afterglow` maps to [Sleeve]. */
+enum class ThemeColorSourceUi { Sleeve, System, AlbumArt, Custom }
 
 /** Theme mode setting. */
 enum class ThemeModeUi { System, Light, Dark }
 
-/** Pins the hand-tuned brand roles from DESIGN §1 on top of the generated Afterglow scheme. */
-internal fun ColorScheme.withAfterglowRoles(dark: Boolean): ColorScheme = if (dark) {
-    copy(
-        background = AfterglowColors.Ink,
-        surface = AfterglowColors.Ink,
-        surfaceContainerLow = Color(0xFF201B23),
-        surfaceContainerHigh = Color(0xFF2C2630),
-        primary = Color(0xFFFFB4A1),
-        onPrimary = Color(0xFF5F1404),
-        primaryContainer = Color(0xFF86240F),
-        secondary = Color(0xFFC8BFFF),
-        tertiary = Color(0xFF5ADBC4),
-        outline = Color(0xFFA08D88),
-    )
-} else {
-    copy(
-        background = AfterglowColors.Paper,
-        surface = AfterglowColors.Paper,
-        surfaceContainerLow = Color(0xFFF5EDE6),
-        surfaceContainerHigh = Color(0xFFECE1D8),
-        primary = Color(0xFFA83A22),
-        onPrimary = Color(0xFFFFFFFF),
-        primaryContainer = Color(0xFFFFDAD1),
-        secondary = Color(0xFF5C4DB5),
-        tertiary = Color(0xFF006B5E),
-        outline = Color(0xFF85736E),
-    )
-}
+/** Hand-tuned Sleeve light roles (DESIGN §1). */
+val SleeveLightScheme: ColorScheme = lightColorScheme(
+    primary = SleeveColors.Cobalt,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFDDE2FF),
+    onPrimaryContainer = Color(0xFF0B1A6B),
+    inversePrimary = Color(0xFF9DB0FF),
+    secondary = SleeveColors.Label,
+    onSecondary = SleeveColors.Ink,
+    secondaryContainer = SleeveColors.Label,
+    onSecondaryContainer = SleeveColors.Ink,
+    tertiary = SleeveColors.Moss,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFCFE6D4),
+    onTertiaryContainer = Color(0xFF12301B),
+    background = SleeveColors.Fog,
+    onBackground = SleeveColors.Ink,
+    surface = SleeveColors.Fog,
+    onSurface = SleeveColors.Ink,
+    surfaceVariant = Color(0xFFE1E4EA),
+    onSurfaceVariant = Color(0xFF454C63),
+    surfaceTint = SleeveColors.Cobalt,
+    inverseSurface = SleeveColors.Ink,
+    inverseOnSurface = SleeveColors.Fog,
+    error = Color(0xFFB3261E),
+    onError = Color.White,
+    outline = Color(0xFF767D93),
+    outlineVariant = Color(0xFFC3C8D4),
+    surfaceBright = Color(0xFFF3F4F7),
+    surfaceDim = Color(0xFFD6DAE2),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF3F4F7),
+    surfaceContainer = Color(0xFFE1E4EA),
+    surfaceContainerHigh = Color(0xFFD6DAE2),
+    surfaceContainerHighest = Color(0xFFCBD0DA),
+)
 
-/** AMOLED ("Pitch black") surface overrides (DESIGN §1). */
+/** Hand-tuned Sleeve dark roles (DESIGN §1). */
+val SleeveDarkScheme: ColorScheme = darkColorScheme(
+    primary = Color(0xFF9DB0FF),
+    onPrimary = Color(0xFF0B1A6B),
+    primaryContainer = Color(0xFF2234A8),
+    onPrimaryContainer = Color(0xFFDDE2FF),
+    inversePrimary = SleeveColors.Cobalt,
+    secondary = SleeveColors.Label,
+    onSecondary = SleeveColors.Ink,
+    secondaryContainer = SleeveColors.Label,
+    onSecondaryContainer = SleeveColors.Ink,
+    tertiary = Color(0xFF9CC7A6),
+    onTertiary = Color(0xFF12301B),
+    tertiaryContainer = Color(0xFF2E5638),
+    onTertiaryContainer = Color(0xFFCFE6D4),
+    background = SleeveColors.Night,
+    onBackground = Color(0xFFE4E7F2),
+    surface = SleeveColors.Night,
+    onSurface = Color(0xFFE4E7F2),
+    surfaceVariant = Color(0xFF1D2341),
+    onSurfaceVariant = Color(0xFFA9AFC6),
+    surfaceTint = Color(0xFF9DB0FF),
+    inverseSurface = Color(0xFFE4E7F2),
+    inverseOnSurface = SleeveColors.Ink,
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    outline = Color(0xFF7C839C),
+    outlineVariant = Color(0xFF363D5C),
+    surfaceBright = Color(0xFF252C4D),
+    surfaceDim = SleeveColors.Night,
+    surfaceContainerLowest = Color(0xFF0B0E20),
+    surfaceContainerLow = Color(0xFF171C36),
+    surfaceContainer = Color(0xFF1D2341),
+    surfaceContainerHigh = Color(0xFF252C4D),
+    surfaceContainerHighest = Color(0xFF2D3558),
+)
+
+/** AMOLED ("Pitch black") surface overrides (DESIGN §1): navy-tinted containers. */
 internal fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
-    background = AfterglowColors.AmoledBackground,
-    surface = AfterglowColors.AmoledBackground,
-    surfaceDim = AfterglowColors.AmoledBackground,
-    surfaceContainerLowest = AfterglowColors.AmoledBackground,
-    surfaceContainerLow = AfterglowColors.AmoledContainerLow,
-    surfaceContainer = AfterglowColors.AmoledContainerLow,
-    surfaceContainerHigh = AfterglowColors.AmoledContainerHigh,
-    surfaceContainerHighest = AfterglowColors.AmoledContainerHigh,
-    surfaceBright = AfterglowColors.AmoledContainerHigh,
+    background = SleeveColors.AmoledBackground,
+    surface = SleeveColors.AmoledBackground,
+    surfaceDim = SleeveColors.AmoledBackground,
+    surfaceContainerLowest = SleeveColors.AmoledBackground,
+    surfaceContainerLow = SleeveColors.AmoledContainerLow,
+    surfaceContainer = SleeveColors.AmoledContainer,
+    surfaceContainerHigh = SleeveColors.AmoledContainerHigh,
+    surfaceContainerHighest = SleeveColors.AmoledContainerHigh,
+    surfaceBright = SleeveColors.AmoledContainerHigh,
 )

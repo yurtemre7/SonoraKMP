@@ -7,13 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.ui.theme.SonoraTheme
 
-/** Expressive empty state: SoftBurst (or Clover) container + icon + title/subtitle + optional action. */
+/** Empty state: icon in a flat circle + title/subtitle + optional action. [clover] is kept for API compatibility and ignored. */
 @Composable
 fun EmptyState(
     icon: ImageVector,
@@ -35,14 +34,13 @@ fun EmptyState(
     action: (@Composable () -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    val shape = (if (clover) MaterialShapes.Clover4Leaf else MaterialShapes.SoftBurst).toShape()
     Column(
         modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(112.dp).clip(shape).background(cs.secondaryContainer), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = cs.onSecondaryContainer, modifier = Modifier.size(48.dp))
+        Box(Modifier.size(96.dp).clip(CircleShape).background(cs.surfaceContainerHigh), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = cs.onSurfaceVariant, modifier = Modifier.size(40.dp))
         }
         Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
         if (subtitle != null) {

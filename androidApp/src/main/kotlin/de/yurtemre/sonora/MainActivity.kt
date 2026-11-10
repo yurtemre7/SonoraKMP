@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 }
 
 private fun ThemeColorSource.toUi() = when (this) {
-    ThemeColorSource.Afterglow -> ThemeColorSourceUi.Afterglow
+    ThemeColorSource.Afterglow -> ThemeColorSourceUi.Sleeve
     ThemeColorSource.System -> ThemeColorSourceUi.System
     ThemeColorSource.AlbumArt -> ThemeColorSourceUi.AlbumArt
     ThemeColorSource.Custom -> ThemeColorSourceUi.Custom

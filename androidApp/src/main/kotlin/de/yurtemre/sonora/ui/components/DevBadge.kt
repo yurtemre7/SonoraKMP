@@ -11,19 +11,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.BuildConfig
 import de.yurtemre.sonora.R
-import de.yurtemre.sonora.ui.theme.LocalAfterglowExtras
 import de.yurtemre.sonora.ui.theme.PillShape
 import de.yurtemre.sonora.ui.theme.SonoraTheme
 
-/** Small pill shown only in debug builds. */
+/** Small Label-yellow badge shown only in debug builds. */
 @Composable
 fun DevBadge(modifier: Modifier = Modifier, show: Boolean = BuildConfig.DEBUG) {
     if (!show) return
-    Surface(modifier, shape = PillShape, color = MaterialTheme.colorScheme.tertiaryContainer) {
+    Surface(modifier, shape = PillShape, color = MaterialTheme.colorScheme.secondary) {
         Text(
             stringResource(R.string.dev_badge),
-            style = LocalAfterglowExtras.current.eyebrow,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
     }

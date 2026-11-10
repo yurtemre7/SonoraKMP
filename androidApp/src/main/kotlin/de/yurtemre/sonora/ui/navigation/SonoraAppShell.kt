@@ -7,14 +7,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailItem
+import androidx.compose.material3.WideNavigationRailItemDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -116,6 +120,7 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                     if (showNav) ShortNavigationBar {
                         LibraryTab.entries.forEach { tab ->
                             ShortNavigationBarItem(
+                                colors = ShortNavigationBarItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
                                 selected = rootTab == tab,
                                 onClick = { onTab(tab) },
                                 icon = { Icon(tab.icon, null) },
@@ -130,6 +135,7 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                 NavigationRail {
                     LibraryTab.entries.forEach { tab ->
                         NavigationRailItem(
+                            colors = NavigationRailItemDefaults.colors(selectedTextColor = MaterialTheme.colorScheme.onSurface),
                             selected = rootTab == tab,
                             onClick = { onTab(tab) },
                             icon = { Icon(tab.icon, null) },
@@ -144,6 +150,7 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                 WideNavigationRail {
                     LibraryTab.entries.forEach { tab ->
                         WideNavigationRailItem(
+                            colors = WideNavigationRailItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
                             selected = rootTab == tab,
                             onClick = { onTab(tab) },
                             icon = { Icon(tab.icon, null) },

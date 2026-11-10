@@ -9,75 +9,64 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import de.yurtemre.sonora.R
 
-// Variable fonts: variation settings apply on API 26+; API 24/25 fall back to the default instance.
-private fun bricolage(weight: Int, width: Float = 100f, opsz: Float) = Font(
+// One family: Bricolage Grotesque (DESIGN §2). Variation settings apply on API 26+.
+private fun bricolage(weight: Int, width: Float, opsz: Float) = Font(
     R.font.bricolage_grotesque,
     weight = FontWeight(weight),
     variationSettings = FontVariation.Settings(
         FontVariation.weight(weight),
         FontVariation.width(width),
-        FontVariation.Setting("opsz", opsz),
+        FontVariation.Setting("opsz", opsz.coerceIn(12f, 96f)),
     ),
 )
 
-private fun figtree(weight: Int) = Font(
-    R.font.figtree,
-    weight = FontWeight(weight),
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
-)
-
-private fun bricolageStyle(size: Int, line: Int, weight: Int, width: Float = 100f) = TextStyle(
+/** Builds a Bricolage style; `opsz` follows the font size. */
+fun sleeveStyle(size: Int, line: Int, weight: Int, width: Float = 100f) = TextStyle(
     fontFamily = FontFamily(bricolage(weight, width, size.toFloat())),
     fontWeight = FontWeight(weight),
     fontSize = size.sp,
     lineHeight = line.sp,
 )
 
-private fun figtreeStyle(size: Int, line: Int, weight: Int, tracking: Float = 0f) = TextStyle(
-    fontFamily = FontFamily(figtree(weight)),
-    fontWeight = FontWeight(weight),
-    fontSize = size.sp,
-    lineHeight = line.sp,
-    letterSpacing = tracking.sp,
-)
+/** Tabular figures for times, durations and counts. */
+fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
-/** Emphasized variant: +100 weight, wdth 85 for Bricolage (DESIGN §2). */
-private fun bricolageEmph(size: Int, line: Int, weight: Int) = bricolageStyle(size, line, weight + 100, 85f)
-private fun figtreeEmph(size: Int, line: Int, weight: Int, tracking: Float = 0f) =
-    figtreeStyle(size, line, weight + 100, tracking)
+/** Sentence-case section header (titleMedium, DESIGN §6.6). */
+val SectionHeaderTextStyle: TextStyle = sleeveStyle(16, 22, 600)
 
-/** Section eyebrow ("UP NEXT"): labelSmall; callers uppercase the text. */
-val EyebrowTextStyle: TextStyle = figtreeStyle(11, 16, 600, 0.6f)
+/** Emphasized variant: +100 weight, narrower. */
+private fun emph(size: Int, line: Int, weight: Int, width: Float) =
+    sleeveStyle(size, line, (weight + 100).coerceAtMost(900), (width - 10f).coerceAtLeast(75f))
 
-val AfterglowTypography: Typography = Typography(
-    displayLarge = bricolageStyle(57, 64, 800, 90f),
-    displayMedium = bricolageStyle(45, 52, 750),
-    displaySmall = bricolageStyle(36, 44, 700),
-    headlineLarge = bricolageStyle(32, 40, 700),
-    headlineMedium = bricolageStyle(28, 36, 700),
-    headlineSmall = bricolageStyle(24, 32, 650),
-    titleLarge = bricolageStyle(22, 28, 650),
-    titleMedium = figtreeStyle(16, 24, 600),
-    titleSmall = figtreeStyle(14, 20, 600),
-    bodyLarge = figtreeStyle(16, 24, 400),
-    bodyMedium = figtreeStyle(14, 20, 400),
-    bodySmall = figtreeStyle(12, 16, 400),
-    labelLarge = figtreeStyle(14, 20, 600),
-    labelMedium = figtreeStyle(12, 16, 600),
-    labelSmall = EyebrowTextStyle,
-    displayLargeEmphasized = bricolageEmph(57, 64, 800),
-    displayMediumEmphasized = bricolageEmph(45, 52, 750),
-    displaySmallEmphasized = bricolageEmph(36, 44, 700),
-    headlineLargeEmphasized = bricolageEmph(32, 40, 700),
-    headlineMediumEmphasized = bricolageEmph(28, 36, 700),
-    headlineSmallEmphasized = bricolageEmph(24, 32, 650),
-    titleLargeEmphasized = bricolageEmph(22, 28, 650),
-    titleMediumEmphasized = figtreeEmph(16, 24, 600),
-    titleSmallEmphasized = figtreeEmph(14, 20, 600),
-    bodyLargeEmphasized = figtreeEmph(16, 24, 400),
-    bodyMediumEmphasized = figtreeEmph(14, 20, 400),
-    bodySmallEmphasized = figtreeEmph(12, 16, 400),
-    labelLargeEmphasized = figtreeEmph(14, 20, 600),
-    labelMediumEmphasized = figtreeEmph(12, 16, 600),
-    labelSmallEmphasized = figtreeEmph(11, 16, 600, 0.6f),
+val SleeveTypography: Typography = Typography(
+    displayLarge = sleeveStyle(64, 64, 800, 75f),
+    displayMedium = sleeveStyle(52, 56, 775, 75f),
+    displaySmall = sleeveStyle(40, 44, 750, 75f),
+    headlineLarge = sleeveStyle(32, 38, 700, 80f),
+    headlineMedium = sleeveStyle(26, 32, 700, 80f),
+    headlineSmall = sleeveStyle(22, 28, 700, 85f),
+    titleLarge = sleeveStyle(20, 26, 650, 90f),
+    titleMedium = sleeveStyle(16, 22, 600),
+    titleSmall = sleeveStyle(14, 20, 600),
+    bodyLarge = sleeveStyle(16, 24, 400),
+    bodyMedium = sleeveStyle(14, 20, 400),
+    bodySmall = sleeveStyle(12, 16, 400),
+    labelLarge = sleeveStyle(14, 20, 600),
+    labelMedium = sleeveStyle(12, 16, 600),
+    labelSmall = sleeveStyle(11, 16, 600),
+    displayLargeEmphasized = emph(64, 64, 800, 75f),
+    displayMediumEmphasized = emph(52, 56, 775, 75f),
+    displaySmallEmphasized = emph(40, 44, 750, 75f),
+    headlineLargeEmphasized = emph(32, 38, 700, 80f),
+    headlineMediumEmphasized = emph(26, 32, 700, 80f),
+    headlineSmallEmphasized = emph(22, 28, 700, 85f),
+    titleLargeEmphasized = emph(20, 26, 650, 90f),
+    titleMediumEmphasized = emph(16, 22, 600, 100f),
+    titleSmallEmphasized = emph(14, 20, 600, 100f),
+    bodyLargeEmphasized = emph(16, 24, 400, 100f),
+    bodyMediumEmphasized = emph(14, 20, 400, 100f),
+    bodySmallEmphasized = emph(12, 16, 400, 100f),
+    labelLargeEmphasized = emph(14, 20, 600, 100f),
+    labelMediumEmphasized = emph(12, 16, 600, 100f),
+    labelSmallEmphasized = emph(11, 16, 600, 100f),
 )

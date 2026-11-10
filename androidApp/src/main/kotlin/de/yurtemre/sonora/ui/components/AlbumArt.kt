@@ -16,7 +16,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import de.yurtemre.sonora.R
-import de.yurtemre.sonora.ui.theme.ArtworkShape
+import de.yurtemre.sonora.ui.theme.SleeveShape
 import de.yurtemre.sonora.ui.theme.SonoraTheme
 
 /** Decode size hints so lists never decode full-resolution covers. */
@@ -28,13 +28,14 @@ fun AlbumArt(
     title: String,
     modifier: Modifier = Modifier,
     size: ArtSize = ArtSize.Small,
-    shape: Shape = ArtworkShape,
+    shape: Shape = SleeveShape,
     decorative: Boolean = false,
+    artist: String? = null,
 ) {
     val context = LocalContext.current
     val desc = if (decorative) null else stringResource(R.string.cd_album_art, title)
     if (model == null) {
-        PlaceholderArt(title, modifier.clip(shape))
+        PlaceholderArt(title, modifier.clip(shape), artist)
         return
     }
     val request = remember(model, size) {
@@ -45,8 +46,8 @@ fun AlbumArt(
         contentDescription = desc,
         contentScale = ContentScale.Crop,
         modifier = modifier.clip(shape),
-        loading = { PlaceholderArt(title) },
-        error = { PlaceholderArt(title) },
+        loading = { PlaceholderArt(title, artist = artist) },
+        error = { PlaceholderArt(title, artist = artist) },
     )
 }
 

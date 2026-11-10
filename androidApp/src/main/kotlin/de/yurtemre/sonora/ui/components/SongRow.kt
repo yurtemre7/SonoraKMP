@@ -48,14 +48,16 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.ui.theme.LocalReduceMotion
 import de.yurtemre.sonora.ui.theme.PillShape
+import de.yurtemre.sonora.ui.theme.SleeveRowShape
+import de.yurtemre.sonora.ui.theme.tabular
 import de.yurtemre.sonora.ui.theme.SonoraTheme
 
 /** Extra TalkBack action exposed on a [SongRow]. */
 data class SongRowAction(val label: String, val onAction: () -> Unit)
 
 /**
- * List row for a song. Leading slot shows a track-number chip (or artwork when [artwork] is set);
- * when [isPlaying] it swaps to animated equalizer bars (static under [LocalReduceMotion]).
+ * List row for a song (DESIGN §6.5): no card, no divider. Leading slot shows the track number in
+ * tabular figures (or the sleeve when [showArtwork]); when [isPlaying] it swaps to Cobalt equalizer bars (static under [LocalReduceMotion]).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -79,7 +81,7 @@ fun SongRow(
     val desc = stringResource(R.string.song_row_state_desc, title, artist, duration)
     val playingDesc = stringResource(R.string.cd_now_playing)
     val moreLabel = stringResource(R.string.cd_more_options)
-    val bg = if (selected) cs.secondaryContainer else Color.Transparent
+    val bg = if (selected) cs.primaryContainer else Color.Transparent
     Row(
         modifier
             .fillMaxWidth()
@@ -104,28 +106,24 @@ fun SongRow(
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             when {
                 selected -> Icon(Icons.Rounded.CheckCircle, null, tint = cs.primary)
-                isPlaying -> Box(
-                    Modifier.size(40.dp).clip(PillShape).background(cs.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) { EqualizerBars(cs.onPrimaryContainer) }
-                showArtwork -> AlbumArt(artwork, title, Modifier.size(48.dp), decorative = true)
-                else -> Box(
-                    Modifier.size(36.dp).clip(PillShape).background(cs.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(trackNumber?.toString() ?: "–", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
-                }
+                isPlaying -> EqualizerBars(cs.primary)
+                showArtwork -> AlbumArt(artwork, title, Modifier.size(48.dp), shape = SleeveRowShape, decorative = true)
+                else -> Text(
+                    trackNumber?.toString() ?: "–",
+                    style = MaterialTheme.typography.labelLarge.tabular(),
+                    color = cs.onSurfaceVariant,
+                )
             }
         }
         Column(Modifier.weight(1f)) {
             Text(
                 title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = if (isPlaying) cs.primary else cs.onSurface,
             )
             Text(artist, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
         }
-        Text(duration, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
+        Text(duration, style = MaterialTheme.typography.labelMedium.tabular(), color = cs.onSurfaceVariant)
         if (onMoreClick != null) {
             IconButton(onClick = onMoreClick) { Icon(Icons.Rounded.MoreVert, moreLabel) }
         }
@@ -162,7 +160,7 @@ private fun formatDuration(ms: Long): String {
 @Composable
 private fun SongRowPreview() = SonoraTheme {
     Column {
-        SongRow("Afterglow", "Aurora", 215_000, {}, trackNumber = 1, onMoreClick = {})
+        SongRow("Sleeve", "Aurora", 215_000, {}, trackNumber = 1, onMoreClick = {})
         SongRow("Night Drive", "Aurora", 3_725_000, {}, trackNumber = 2, isPlaying = true, onMoreClick = {})
         SongRow("Echoes", "Aurora", 185_000, {}, trackNumber = 3, selected = true, onMoreClick = {})
     }
