@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Now playing widget, light. Sleeve tokens, flat, no dynamic colour (D-33). -->
+    <color name="widget_surface">#FFF3F4F7</color>
+    <color name="widget_on_surface">#FF141A2E</color>
+    <color name="widget_on_surface_variant">#FF454C63</color>
+    <color name="widget_primary">#FF2A44D4</color>
+    <color name="widget_on_primary">#FFFFFFFF</color>
+    <color name="widget_placeholder">#FF2A44D4</color>
+    <color name="widget_on_placeholder">#FFFFFFFF</color>
+</resources>

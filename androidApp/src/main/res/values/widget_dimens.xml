@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="widget_radius">20dp</dimen>
+    <!-- Artwork is a sleeve: 8dp corners (DESIGN.md). -->
+    <dimen name="widget_art_radius">8dp</dimen>
+    <dimen name="widget_padding">8dp</dimen>
+    <dimen name="widget_padding_large">12dp</dimen>
+    <dimen name="widget_art_size">48dp</dimen>
+    <dimen name="widget_art_size_large">96dp</dimen>
+    <dimen name="widget_button_size">40dp</dimen>
+    <dimen name="widget_button_padding">8dp</dimen>
+</resources>
