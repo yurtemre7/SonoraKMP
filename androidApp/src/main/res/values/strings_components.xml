@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cd_album_art">Album art for %1$s</string>
+    <string name="cd_artist_avatar">Artist picture for %1$s</string>
+    <string name="cd_more_options">More options</string>
+    <string name="cd_now_playing">Now playing</string>
+    <string name="cd_selected">Selected</string>
+    <string name="song_row_state_desc">%1$s by %2$s, %3$s</string>
+    <string name="action_play_next">Play next</string>
+    <string name="action_add_to_queue">Add to queue</string>
+    <string name="confirm">Confirm</string>
+    <string name="dev_badge">DEV</string>
+</resources>

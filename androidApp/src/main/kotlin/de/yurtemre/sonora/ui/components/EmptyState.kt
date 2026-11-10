@@ -1,0 +1,59 @@
+package de.yurtemre.sonora.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import de.yurtemre.sonora.ui.theme.SonoraTheme
+
+/** Expressive empty state: SoftBurst (or Clover) container + icon + title/subtitle + optional action. */
+@Composable
+fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    clover: Boolean = false,
+    action: (@Composable () -> Unit)? = null,
+) {
+    val cs = MaterialTheme.colorScheme
+    val shape = (if (clover) MaterialShapes.Clover4Leaf else MaterialShapes.SoftBurst).toShape()
+    Column(
+        modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(112.dp).clip(shape).background(cs.secondaryContainer), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = cs.onSecondaryContainer, modifier = Modifier.size(48.dp))
+        }
+        Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        if (subtitle != null) {
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
+        }
+        action?.invoke()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun EmptyStatePreview() = SonoraTheme {
+    EmptyState(Icons.Rounded.LibraryMusic, androidx.compose.ui.res.stringResource(de.yurtemre.sonora.R.string.track_label))
+}
