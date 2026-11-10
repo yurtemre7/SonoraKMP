@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_tab_songs">曲</string>
+    <string name="nav_tab_albums">アルバム</string>
+    <string name="nav_tab_artists">アーティスト</string>
+    <string name="nav_tab_playlists">プレイリスト</string>
+    <string name="nav_title_library">ライブラリ</string>
+    <string name="nav_title_album">アルバム</string>
+    <string name="nav_title_artist">アーティスト</string>
+    <string name="nav_title_playlist">プレイリスト</string>
+    <string name="nav_title_favorites">お気に入り</string>
+    <string name="nav_title_recently_played">最近再生した曲</string>
+    <string name="nav_title_stats">再生統計</string>
+    <string name="nav_title_settings">設定</string>
+    <string name="nav_title_settings_appearance">外観</string>
+    <string name="nav_title_settings_formatting">ライブラリの表示形式</string>
+    <string name="nav_title_settings_playback">再生</string>
+    <string name="nav_title_settings_privacy">プライバシーと権限</string>
+    <string name="nav_title_settings_backup">バックアップと復元</string>
+    <string name="nav_title_settings_info">情報とサポート</string>
+    <string name="nav_title_changelog">変更履歴</string>
+    <string name="nav_title_licenses">ライセンス</string>
+    <string name="nav_title_debug_caches">デバッグキャッシュ</string>
+    <string name="nav_title_onboarding">ようこそ</string>
+    <string name="nav_coming_soon">近日公開</string>
+    <string name="nav_back">戻る</string>
+</resources>

@@ -21,6 +21,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
+        android:name=".SonoraApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="${appName}"
@@ -30,12 +31,18 @@
 
         <activity
             android:name=".MainActivity"
+            android:theme="@style/Theme.Sonora.App"
             android:exported="true"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Android Auto / Assistant voice search (AUTO-05) -->
+            <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

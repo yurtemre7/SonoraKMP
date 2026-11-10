@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.os.ConfigurationCompat
 import de.yurtemre.sonora.R
 import java.time.DayOfWeek
 import java.time.Instant
@@ -113,7 +112,7 @@ object DateFormats {
 /** Current app locale (follows AppCompat per-app locale via configuration). */
 @Composable
 @ReadOnlyComposable
-fun currentLocale(): Locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
+fun currentLocale(): Locale = LocalConfiguration.current.locales[0]
 
 @Composable
 fun rememberTotalDurationText(totalSeconds: Long): String =

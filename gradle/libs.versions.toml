@@ -28,6 +28,7 @@ palette = "1.1.0"
 documentfile = "1.1.0"
 jaudiotagger = "3.0.1"
 junit = "4.13.2"
+desugar = "2.1.5"
 turbine = "1.2.1"
 robolectric = "4.17"
 androidx-test-core = "1.7.0"
@@ -107,6 +108,8 @@ room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 
 # Images
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }
 
 # Tests
 junit = { module = "junit:junit", version.ref = "junit" }

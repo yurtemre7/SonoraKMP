@@ -98,7 +98,7 @@ android {
     }
 
     compileOptions {
-        isCoreLibraryDesugaringEnabled = false
+        isCoreLibraryDesugaringEnabled = true
     }
 
     testOptions {
@@ -130,6 +130,7 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
