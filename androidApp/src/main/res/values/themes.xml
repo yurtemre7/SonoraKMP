@@ -1,3 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Sonora" parent="android:Theme.Material.NoActionBar" />
+    <!-- Window/splash theme (light). Compose draws the real UI; this avoids flashes and enables edge-to-edge. -->
+    <style name="Theme.Sonora" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/sonora_window_background</item>
+        <item name="android:colorPrimary">#FFA83A22</item>
+        <item name="android:colorAccent">#FFE5573B</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+    <color name="sonora_window_background">#FFFBF6F1</color>
 </resources>
