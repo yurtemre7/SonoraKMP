@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_step">ステップ %1$d / %2$d</string>
+    <string name="onboarding_next">次へ</string>
+    <string name="onboarding_get_started">はじめる</string>
+    <string name="onboarding_fab_disabled">まだ進めません</string>
+    <string name="onboarding_welcome_title">Sonora へようこそ</string>
+    <string name="onboarding_welcome_body">手元の音楽ファイルを、そのまま再生。オフラインでプライベート、同期もすばやく。</string>
+    <string name="onboarding_name_label">お名前（任意）</string>
+    <string name="onboarding_name_hint">ホーム画面のあいさつに使います。空欄のままでもかまいません。</string>
+    <string name="onboarding_permissions_title">いくつかの許可</string>
+    <string name="onboarding_permissions_body">ライブラリの作成のために音声ファイルを読み取り、通知に再生コントロールを表示します。</string>
+    <string name="onboarding_permission_audio">音楽とオーディオ</string>
+    <string name="onboarding_permission_audio_body">曲を見つけて再生するために必要です</string>
+    <string name="onboarding_permission_notifications">通知</string>
+    <string name="onboarding_permission_notifications_body">ロック画面と通知シェードに再生コントロールを表示します</string>
+    <string name="onboarding_permissions_allow">アクセスを許可</string>
+    <string name="onboarding_status_granted">許可済み</string>
+    <string name="onboarding_status_not_granted">未許可</string>
+    <string name="onboarding_folder_title">音楽フォルダを選ぶ</string>
+    <string name="onboarding_folder_body">曲が入っているフォルダを選んでください（MP3、FLAC、M4A など）。あとから設定で変更できます。</string>
+    <string name="onboarding_folder_selected">音楽フォルダ</string>
+    <string name="onboarding_folder_none">まだ選ばれていません</string>
+    <string name="onboarding_folder_choose">フォルダを選ぶ</string>
+    <string name="onboarding_folder_change">フォルダを変更</string>
+    <string name="onboarding_folder_unsupported">このフォルダは使用できません。内部ストレージか SD カード上のフォルダを選んでください。</string>
+    <string name="onboarding_scanning">音楽をスキャンしています</string>
+    <string name="onboarding_scanning_body">ライブラリが大きいと少し時間がかかります。</string>
+    <string name="onboarding_folder_configured">音楽フォルダを設定しました</string>
+    <plurals name="onboarding_folder_imported">
+        <item quantity="other">音楽フォルダを設定しました。%1$d 曲を取り込みました。</item>
+    </plurals>
+</resources>

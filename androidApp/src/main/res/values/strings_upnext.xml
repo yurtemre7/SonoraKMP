@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seek_bar_label">Playback position</string>
+    <string name="seek_bar_state">%1$s of %2$s</string>
+    <string name="seek_bar_remaining">%1$s remaining</string>
+    <string name="up_next_title">Up next</string>
+    <string name="up_next_empty">The queue is empty</string>
+    <string name="up_next_scroll_to_current">Scroll to current song</string>
+    <string name="up_next_removed">Removed “%1$s”</string>
+    <string name="up_next_undo">Undo</string>
+    <string name="up_next_remove">Remove from queue</string>
+    <string name="up_next_move_up">Move up</string>
+    <string name="up_next_move_down">Move down</string>
+    <string name="up_next_drag_handle">Reorder</string>
+</resources>

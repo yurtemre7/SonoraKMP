@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fast_scroller_label">高速スクロール</string>
+    <string name="fast_scroller_state">%1$d%%</string>
+    <string name="scroll_section_letter_other">#</string>
+    <plurals name="scroll_section_minutes">
+        <item quantity="other">%d分</item>
+    </plurals>
+    <plurals name="scroll_section_plays">
+        <item quantity="other">%d回再生</item>
+    </plurals>
+    <plurals name="selection_count">
+        <item quantity="other">%d件選択中</item>
+    </plurals>
+    <string name="selection_close">選択を終了</string>
+    <string name="selection_select_all">すべて選択</string>
+    <string name="selection_play_next">次に再生</string>
+    <string name="selection_add_to_queue">キューに追加</string>
+    <string name="selection_add_to_playlist">プレイリストに追加</string>
+    <string name="selection_favorite">お気に入りに追加</string>
+    <string name="selection_unfavorite">お気に入りから削除</string>
+    <string name="selection_share">共有</string>
+    <plurals name="selection_snack_play_next">
+        <item quantity="other">%d曲を次に再生します</item>
+    </plurals>
+    <plurals name="selection_snack_queued">
+        <item quantity="other">%d曲をキューに追加しました</item>
+    </plurals>
+    <plurals name="selection_snack_favorited">
+        <item quantity="other">%d曲をお気に入りに追加しました</item>
+    </plurals>
+    <plurals name="selection_snack_unfavorited">
+        <item quantity="other">%d曲をお気に入りから削除しました</item>
+    </plurals>
+    <string name="selection_snack_share_failed">共有できませんでした</string>
+</resources>

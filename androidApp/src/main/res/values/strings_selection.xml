@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fast_scroller_label">Fast scroll</string>
+    <string name="fast_scroller_state">%1$d%%</string>
+    <string name="scroll_section_letter_other">#</string>
+    <plurals name="scroll_section_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="scroll_section_plays">
+        <item quantity="one">%d play</item>
+        <item quantity="other">%d plays</item>
+    </plurals>
+    <plurals name="selection_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="selection_close">Close selection</string>
+    <string name="selection_select_all">Select all</string>
+    <string name="selection_play_next">Play next</string>
+    <string name="selection_add_to_queue">Add to queue</string>
+    <string name="selection_add_to_playlist">Add to playlist</string>
+    <string name="selection_favorite">Favorite</string>
+    <string name="selection_unfavorite">Remove from favorites</string>
+    <string name="selection_share">Share</string>
+    <plurals name="selection_snack_play_next">
+        <item quantity="one">%d song plays next</item>
+        <item quantity="other">%d songs play next</item>
+    </plurals>
+    <plurals name="selection_snack_queued">
+        <item quantity="one">Added %d song to queue</item>
+        <item quantity="other">Added %d songs to queue</item>
+    </plurals>
+    <plurals name="selection_snack_favorited">
+        <item quantity="one">Added %d song to favorites</item>
+        <item quantity="other">Added %d songs to favorites</item>
+    </plurals>
+    <plurals name="selection_snack_unfavorited">
+        <item quantity="one">Removed %d song from favorites</item>
+        <item quantity="other">Removed %d songs from favorites</item>
+    </plurals>
+    <string name="selection_snack_share_failed">Couldn\'t share these songs</string>
+</resources>

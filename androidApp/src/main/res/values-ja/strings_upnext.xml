@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seek_bar_label">再生位置</string>
+    <string name="seek_bar_state">%2$s中 %1$s</string>
+    <string name="seek_bar_remaining">残り %1$s</string>
+    <string name="up_next_title">次に再生</string>
+    <string name="up_next_empty">キューに曲がありません</string>
+    <string name="up_next_scroll_to_current">再生中の曲へ移動</string>
+    <string name="up_next_removed">「%1$s」を削除しました</string>
+    <string name="up_next_undo">元に戻す</string>
+    <string name="up_next_remove">キューから削除</string>
+    <string name="up_next_move_up">上へ移動</string>
+    <string name="up_next_move_down">下へ移動</string>
+    <string name="up_next_drag_handle">並べ替え</string>
+</resources>

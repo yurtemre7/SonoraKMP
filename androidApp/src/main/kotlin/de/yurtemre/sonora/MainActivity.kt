@@ -15,12 +15,13 @@ import de.yurtemre.sonora.shared.model.ThemeModeSetting
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.SonoraAppShell
+import de.yurtemre.sonora.ui.screens.gate.GateHost
 import de.yurtemre.sonora.ui.theme.SonoraTheme
 import de.yurtemre.sonora.ui.theme.ThemeColorSourceUi
 import de.yurtemre.sonora.ui.theme.ThemeModeUi
 import org.koin.android.ext.android.inject
 
-/** AppCompatActivity for per-app language (L10N-03). Hosts the gate (TODO P5-01) and then the shell. */
+/** AppCompatActivity for per-app language (L10N-03). Hosts the startup gate (UI-01) → onboarding → shell. */
 class MainActivity : AppCompatActivity() {
     private val settingsRepository: SettingsRepository by inject()
 
@@ -37,11 +38,12 @@ class MainActivity : AppCompatActivity() {
                 themeMode = settings.themeMode.toUi(),
                 amoled = settings.amoledDark,
             ) {
-                // TODO(P5-01): GateHost until Ready; then the shell.
-                SonoraAppShell(
-                    widthSizeClass = windowSize.widthSizeClass,
-                    defaultTab = LibraryTab.fromStartPage(settings.defaultStartPage),
-                )
+                GateHost {
+                    SonoraAppShell(
+                        widthSizeClass = windowSize.widthSizeClass,
+                        defaultTab = LibraryTab.fromStartPage(settings.defaultStartPage),
+                    )
+                }
             }
         }
     }

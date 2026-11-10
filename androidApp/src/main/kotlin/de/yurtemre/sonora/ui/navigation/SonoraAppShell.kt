@@ -2,6 +2,23 @@ package de.yurtemre.sonora.ui.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.yurtemre.sonora.R
+import de.yurtemre.sonora.playback.api.PlaybackConnection
+import de.yurtemre.sonora.ui.components.MiniPlayer
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -23,6 +40,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -65,9 +83,41 @@ private fun NavBackStack<NavKey>.switchTab(tab: LibraryTab) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab) {
+fun SonoraAppShell(
+    widthSizeClass: WindowWidthSizeClass,
+    defaultTab: LibraryTab,
+    onOpenNowPlaying: (() -> Unit)? = null,
+) {
     val backStack = rememberNavBackStack(Library(defaultTab))
     val nowPlaying = rememberNowPlayingSlotState()
+    val controller = rememberNowPlayingController(nowPlaying)
+    val openNowPlaying: () -> Unit = onOpenNowPlaying ?: controller::expand
+    val playback: PlaybackConnection = koinInject()
+    val player by playback.player.collectAsStateWithLifecycle()
+    val position by playback.positionMs.collectAsStateWithLifecycle(0L)
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val closedMsg = stringResource(R.string.miniplayer_closed)
+    val undoLabel = stringResource(R.string.miniplayer_undo)
+    val mini: @Composable () -> Unit = {
+        if (player.currentSong != null) MiniPlayer(
+            state = player,
+            progress = { if (player.durationMs > 0) position.toFloat() / player.durationMs else 0f },
+            onOpen = openNowPlaying,
+            onTogglePlay = { if (player.isCompleted) { playback.seekTo(0); playback.play() } else playback.togglePlayPause() },
+            onNext = playback::skipToNext,
+            onPrevious = playback::skipToPrevious,
+            onClose = {
+                playback.closePlayer()
+                scope.launch {
+                    snackbar.currentSnackbarData?.dismiss()
+                    if (snackbar.showSnackbar(closedMsg, undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                        playback.undoClosePlayer()
+                    }
+                }
+            },
+        )
+    }
     val rootTab = (backStack.firstOrNull() as? Library)?.tab ?: defaultTab
     val showNav = backStack.size == 1
     val onTab: (LibraryTab) -> Unit = { backStack.switchTab(it) }
@@ -113,10 +163,12 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalNowPlayingController provides controller) { Box(Modifier.fillMaxSize()) {
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> Scaffold(
-                bottomBar = {
+                snackbarHost = { SnackbarHost(snackbar) },
+                bottomBar = { Column {
+                    mini()
                     if (showNav) ShortNavigationBar {
                         LibraryTab.entries.forEach { tab ->
                             ShortNavigationBarItem(
@@ -128,7 +180,7 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                             )
                         }
                     }
-                },
+                } },
             ) { padding -> display(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) }
 
             WindowWidthSizeClass.Medium -> Row(Modifier.fillMaxSize()) {
@@ -143,7 +195,10 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                         )
                     }
                 }
-                display(Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    display(Modifier.weight(1f))
+                    mini()
+                }
             }
 
             else -> Row(Modifier.fillMaxSize()) {
@@ -159,10 +214,16 @@ fun SonoraAppShell(widthSizeClass: WindowWidthSizeClass, defaultTab: LibraryTab)
                         )
                     }
                 }
-                display(Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    display(Modifier.weight(1f))
+                    mini()
+                }
             }
         }
-        NowPlayingSlot(nowPlaying)
-    }
+        if (widthSizeClass != WindowWidthSizeClass.Compact) {
+            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
+        }
+        NowPlayingSlot(nowPlaying, onNavigate = navigate)
+    } }
 }
 

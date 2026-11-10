@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="miniplayer_play">Play</string>
+    <string name="miniplayer_pause">Pause</string>
+    <string name="miniplayer_replay">Replay</string>
+    <string name="miniplayer_next">Next song</string>
+    <string name="miniplayer_open">Open Now Playing</string>
+    <string name="miniplayer_description">Now playing: %1$s by %2$s</string>
+    <string name="miniplayer_action_previous">Previous song</string>
+    <string name="miniplayer_action_close">Close player</string>
+    <string name="miniplayer_closed">Player closed</string>
+    <string name="miniplayer_undo">Undo</string>
+</resources>

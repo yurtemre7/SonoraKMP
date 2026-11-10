@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_step">Step %1$d of %2$d</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_fab_disabled">not available yet</string>
+    <string name="onboarding_welcome_title">Welcome to Sonora</string>
+    <string name="onboarding_welcome_body">Your music, played from your own files. Offline, private and quick to sync.</string>
+    <string name="onboarding_name_label">Your name (optional)</string>
+    <string name="onboarding_name_hint">Used for a greeting on the home screen. Leave it empty to skip.</string>
+    <string name="onboarding_permissions_title">A few permissions</string>
+    <string name="onboarding_permissions_body">Sonora reads audio files to build your library and shows playback controls in a notification.</string>
+    <string name="onboarding_permission_audio">Music and audio</string>
+    <string name="onboarding_permission_audio_body">Required to find and play your songs</string>
+    <string name="onboarding_permission_notifications">Notifications</string>
+    <string name="onboarding_permission_notifications_body">Controls on the lock screen and in the notification shade</string>
+    <string name="onboarding_permissions_allow">Allow access</string>
+    <string name="onboarding_status_granted">allowed</string>
+    <string name="onboarding_status_not_granted">not allowed</string>
+    <string name="onboarding_folder_title">Pick your music folder</string>
+    <string name="onboarding_folder_body">Choose the folder that holds your songs (MP3, FLAC, M4A and more). You can change it later in settings.</string>
+    <string name="onboarding_folder_selected">Music folder</string>
+    <string name="onboarding_folder_none">No folder chosen yet</string>
+    <string name="onboarding_folder_choose">Choose folder</string>
+    <string name="onboarding_folder_change">Change folder</string>
+    <string name="onboarding_folder_unsupported">That folder can\'t be used. Pick a folder on internal storage or an SD card.</string>
+    <string name="onboarding_scanning">Scanning your music</string>
+    <string name="onboarding_scanning_body">This can take a minute for large libraries.</string>
+    <string name="onboarding_folder_configured">Music folder set</string>
+    <plurals name="onboarding_folder_imported">
+        <item quantity="one">Music folder set. %1$d song imported.</item>
+        <item quantity="other">Music folder set. %1$d songs imported.</item>
+    </plurals>
+</resources>
