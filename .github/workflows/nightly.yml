@@ -156,7 +156,7 @@ jobs:
             echo
             if [[ -n "$PREV" ]]; then echo "### Changes since $PREV"; else echo "### Changes"; fi
             echo
-            cat dist/CHANGES.md
+            grep -v '^## \[' dist/CHANGES.md
           } > dist/NOTES.md
           cat dist/NOTES.md >> "$GITHUB_STEP_SUMMARY"
 
