@@ -97,6 +97,14 @@ def parse_plural(text):
     return cases
 
 
+# The native port's product name is "SonoraKMP" (the Flutter app stays "Sonora").
+PRODUCT_RE = re.compile(r"(?<![A-Za-z])Sonora(?![A-Za-z])")
+
+
+def brand(text):
+    return PRODUCT_RE.sub("SonoraKMP", text)
+
+
 def main():
     rows = []
     with open(TSV, encoding="utf-8") as f:
@@ -157,7 +165,7 @@ def main():
         d = os.path.join(RES, sub)
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "strings.xml"), "w", encoding="utf-8") as f:
-            f.write(head + "\n".join(body) + "\n</resources>\n")
+            f.write(brand(head + "\n".join(body) + "\n</resources>\n"))
     print("keys from tsv: %d, plurals: %d, extra: %d, ja overrides: %d"
           % (len(rows), n_plurals, len(EXTRA), len(overrides)))
 

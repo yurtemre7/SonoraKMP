@@ -1,10 +1,10 @@
-# Sonora
+# SonoraKMP
 
 [![CI](https://github.com/yurtemre7/SonoraKMP/actions/workflows/ci.yml/badge.svg)](https://github.com/yurtemre7/SonoraKMP/actions/workflows/ci.yml)
 [![Release](https://github.com/yurtemre7/SonoraKMP/actions/workflows/release.yml/badge.svg)](https://github.com/yurtemre7/SonoraKMP/actions/workflows/release.yml)
 
 A private music player for the music files you own. No account, no analytics,
-no uploads. Sonora reads your folders, plays them well, and keeps your
+no uploads. SonoraKMP reads your folders, plays them well, and keeps your
 playlists, favourites and listening stats on your phone.
 
 This is the native Kotlin rewrite of the [Flutter version of Sonora](https://github.com/yurtemre7/sonora),
@@ -145,7 +145,7 @@ user-visible text lives in string resources, in English and Japanese. See
 
 ## Privacy
 
-Sonora never uploads your music or data. The only network requests check
+SonoraKMP never uploads your music or data. The only network requests check
 GitHub for new releases and download an update when you ask for it.
 
 ## License

@@ -1,4 +1,4 @@
-# Sonora website
+# SonoraKMP website
 
 Static landing and download page, deployed to GitHub Pages by
 `.github/workflows/pages.yml` on every push to `main` that touches `site/**`.
@@ -16,7 +16,7 @@ Plain HTML, CSS and vanilla JS: no framework, no build step.
 ## Layout
 
 Hero: a shelf of decorative (`aria-hidden`) spines carrying real feature names in
-condensed type (`font-stretch: 75%`); the tallest reads "Sonora". They slide in
+condensed type (`font-stretch: 75%`); the tallest reads "SonoraKMP". They slide in
 once on load; `prefers-reduced-motion` turns that off. The `h1` is the headline
 beside them. Features are a grouped two-column list (Library / Playback / Yours);
 screenshots sit in phone frames on a flat band. Copy is sentence case, with no

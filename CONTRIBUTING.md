@@ -1,4 +1,4 @@
-# Contributing to Sonora
+# Contributing to SonoraKMP
 
 Thanks for helping out! This guide covers commits, pull requests, local checks, localization and releases.
 
@@ -63,11 +63,11 @@ Requires JDK 17+ and the Android SDK (the Gradle wrapper handles the rest).
 ./gradlew lintDebug testDebugUnitTest assembleDebug   # everything CI runs
 ```
 
-Debug builds install next to release builds (`.dev` application ID, "Sonora Dev" label).
+Debug builds install next to release builds (`.dev` application ID, "SonoraKMP Dev" label).
 
 ## Localization
 
-Sonora ships in English and Japanese. **No hardcoded user-visible strings** in Kotlin or XML:
+SonoraKMP ships in English and Japanese. **No hardcoded user-visible strings** in Kotlin or XML:
 every label, message, content description and notification text goes through string resources.
 
 To add a string:

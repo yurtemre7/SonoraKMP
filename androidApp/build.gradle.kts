@@ -78,7 +78,7 @@ android {
         debug {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            manifestPlaceholders["appName"] = "Sonora Dev"
+            manifestPlaceholders["appName"] = "SonoraKMP Dev"
         }
         release {
             isMinifyEnabled = true

@@ -172,7 +172,7 @@ jobs:
           git push origin :refs/tags/nightly 2>/dev/null || true
           gh release create nightly dist/*.apk dist/*.apk.sha256 \
             --target "$GITHUB_SHA" \
-            --title "Nightly $DATE ($SHORT)" \
+            --title "SonoraKMP nightly $DATE ($SHORT)" \
             --notes-file dist/NOTES.md \
             --prerelease \
             --latest=false

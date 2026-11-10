@@ -1,4 +1,4 @@
-/* Sonora landing page: language, theme and latest-release download link. No dependencies. */
+/* SonoraKMP landing page: language, theme and latest-release download link. No dependencies. */
 (function () {
   'use strict';
 
@@ -11,8 +11,8 @@
 
   var I18N = {
     en: {
-      title: "Sonora: play the music you own",
-      metaDescription: "Sonora is a music player for Android that plays the files on your phone. No account, no analytics, no uploads.",
+      title: "SonoraKMP: play the music you own",
+      metaDescription: "SonoraKMP is a music player for Android that plays the files on your phone. No account, no analytics, no uploads.",
       skip: "Skip to content",
       navLabel: "Main",
       navFeatures: "Features",
@@ -21,7 +21,7 @@
       langLabel: "Language",
       themeLabel: "Dark theme",
       heroTitle: "Play the music you own.",
-      heroLede: "Sonora is a music player for Android that plays the files on your phone. No account, no analytics, no uploads.",
+      heroLede: "SonoraKMP is a music player for Android that plays the files on your phone. No account, no analytics, no uploads.",
       download: "Download for Android",
       github: "Source on GitHub",
       releaseFallback: "Free and open source under the MIT License.",
@@ -30,7 +30,7 @@
       gPlay: "Playback",
       gYours: "Yours",
       f1t: "Local library and folder sync",
-      f1d: "Point Sonora at your music folders. Files are never copied, and re-scans skip anything unchanged.",
+      f1d: "Point SonoraKMP at your music folders. Files are never copied, and re-scans skip anything unchanged.",
       f8t: "Playlists and M3U",
       f8d: "Drag to reorder, swipe to remove, and import or export standard M3U files.",
       f9t: "Favourites and history",
@@ -52,7 +52,7 @@
       f13t: "Home screen widget",
       f13d: "See what’s playing and control it without opening the app.",
       f16t: "Private by design",
-      f16d: "No account, no analytics, no uploads. Sonora only talks to GitHub, for the changelog and updates.",
+      f16d: "No account, no analytics, no uploads. SonoraKMP only talks to GitHub, for the changelog and updates.",
       f11t: "Backup and restore",
       f11d: "Move playlists, favourites, stats and settings to a new phone with one JSON file.",
       f14t: "English and Japanese",
@@ -60,9 +60,9 @@
       f12t: "Your colours",
       f12d: "Sleeve by default, or Material You, colours from the album art, your own accent and pitch black.",
       f15t: "Updates from GitHub",
-      f15d: "Sonora checks GitHub releases and installs the right build for your device. No store needed.",
+      f15d: "SonoraKMP checks GitHub releases and installs the right build for your device. No store needed.",
       scrTitle: "How it looks",
-      altHome: "Sonora home screen with recently added albums and the mini player",
+      altHome: "SonoraKMP home screen with recently added albums and the mini player",
       altNow: "Now Playing screen with the song title running up the left edge beside the album sleeve",
       altLib: "Library screen showing an album grid with filter chips",
       altSet: "Settings screen with colour, theme and playback options",
@@ -71,11 +71,11 @@
       capLib: "Library",
       capSet: "Settings",
       dlTitle: "Download",
-      dlBody: "Download the APK from GitHub and open it on your phone. Android may ask you once to allow installs from your browser. After that, Sonora updates itself from inside the app.",
+      dlBody: "Download the APK from GitHub and open it on your phone. Android may ask you once to allow installs from your browser. After that, SonoraKMP updates itself from inside the app.",
       downloadApk: "Download APK",
       allReleases: "All releases",
       dlReq: "Needs Android 7.0 or newer.",
-      footLicense: "Sonora is free and open-source software, released under the <a href=\"https://github.com/yurtemre7/SonoraKMP/blob/main/LICENSE\">MIT License</a>.",
+      footLicense: "SonoraKMP is free and open-source software, released under the <a href=\"https://github.com/yurtemre7/SonoraKMP/blob/main/LICENSE\">MIT License</a>.",
       footSource: "Source code",
       footReleases: "Releases",
       footIssues: "Report an issue",
@@ -90,8 +90,8 @@
       relError: "Couldn’t reach GitHub just now. The button still opens the latest release page."
     },
     ja: {
-      title: "Sonora：手元の音楽を、そのまま聴く",
-      metaDescription: "Sonora は、スマートフォンの中の音楽ファイルを再生する Android 向けの音楽プレーヤーです。アカウント不要、トラッキングなし、アップロードなし。",
+      title: "SonoraKMP：手元の音楽を、そのまま聴く",
+      metaDescription: "SonoraKMP は、スマートフォンの中の音楽ファイルを再生する Android 向けの音楽プレーヤーです。アカウント不要、トラッキングなし、アップロードなし。",
       skip: "本文へスキップ",
       navLabel: "メイン",
       navFeatures: "機能",
@@ -100,7 +100,7 @@
       langLabel: "言語",
       themeLabel: "ダークテーマ",
       heroTitle: "手元の音楽を、そのまま聴く。",
-      heroLede: "Sonora は、スマートフォンの中の音楽ファイルを再生する Android 向けプレーヤーです。アカウント登録も、利用データの収集も、アップロードもありません。",
+      heroLede: "SonoraKMP は、スマートフォンの中の音楽ファイルを再生する Android 向けプレーヤーです。アカウント登録も、利用データの収集も、アップロードもありません。",
       download: "Android 版をダウンロード",
       github: "GitHub でソースを見る",
       releaseFallback: "MIT ライセンスの無料オープンソースです。",
@@ -141,7 +141,7 @@
       f15t: "GitHub からアップデート",
       f15d: "GitHub のリリースを確認し、お使いの端末に合ったビルドをインストールします。ストアは必要ありません。",
       scrTitle: "アプリの画面",
-      altHome: "最近追加したアルバムとミニプレーヤーが表示された Sonora のホーム画面",
+      altHome: "最近追加したアルバムとミニプレーヤーが表示された SonoraKMP のホーム画面",
       altNow: "アルバムジャケットの左側に曲名が縦に並ぶ再生画面",
       altLib: "アルバムのグリッドと絞り込みチップが表示されたライブラリ画面",
       altSet: "カラー、テーマ、再生のオプションが並ぶ設定画面",
@@ -154,7 +154,7 @@
       downloadApk: "APK をダウンロード",
       allReleases: "すべてのリリース",
       dlReq: "Android 7.0 以降に対応しています。",
-      footLicense: "Sonora は <a href=\"https://github.com/yurtemre7/SonoraKMP/blob/main/LICENSE\">MIT ライセンス</a>で公開されている、無料のオープンソースソフトウェアです。",
+      footLicense: "SonoraKMP は <a href=\"https://github.com/yurtemre7/SonoraKMP/blob/main/LICENSE\">MIT ライセンス</a>で公開されている、無料のオープンソースソフトウェアです。",
       footSource: "ソースコード",
       footReleases: "リリース一覧",
       footIssues: "不具合を報告",

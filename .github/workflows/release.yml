@@ -207,7 +207,7 @@ jobs:
         with:
           tag_name: ${{ needs.build.outputs.tag }}
           target_commitish: ${{ needs.build.outputs.sha }}
-          name: Sonora ${{ needs.build.outputs.version }}
+          name: SonoraKMP ${{ needs.build.outputs.version }}
           body_path: dist/RELEASE_NOTES.md
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
           make_latest: ${{ needs.build.outputs.prerelease == 'true' && 'false' || 'true' }}
