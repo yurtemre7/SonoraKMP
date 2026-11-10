@@ -146,6 +146,8 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
 
     implementation(libs.coil.compose)
+    implementation(libs.materialkolor)
+    implementation(libs.reorderable)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
