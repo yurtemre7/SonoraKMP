@@ -1,0 +1,59 @@
+# key	ja (arb syntax: {placeholder}; applied over docs/audit/strings.tsv by gen_strings.py)
+# Terminology: プレイリスト / キュー / お気に入り / シャッフル / リピート / 同期 / ライブラリ / フォルダ (not ディレクトリ) / プレーヤー
+albumCount	アルバム{count}枚
+artistCount	アーティスト{count}人
+playlistCount	プレイリスト{count}件
+trackCount	{count}トラック
+playsCount	{count}回再生
+listensCount	{count}回再生
+songsCountShort	{count}曲
+selectedCount	{count}曲を選択中
+syncDuration	（{duration} ms）
+batchAddedToPlayNext	{count}曲を次に再生します
+mfxSuperSlowed	スーパースロー
+mfxSlowed	スロー
+mfxPercentSlower	{percent}%遅く
+mfxPercentFaster	{percent}%速く
+mfxSpeedSubtitle	{speed}倍速
+mfxWarmth	ウォーム（リバーブ風）
+completeListens	最後まで再生
+restarts	最初から再生
+funFacts	豆知識
+uniqueSongsPlayed	再生した曲数（重複なし）
+shuffleSessions	シャッフル再生の回数
+mostActiveDay	よく聴く曜日
+noLyricsAvailable	歌詞はありません
+updateAvailableMessage	バージョン {version} が公開されました。
+privacyCardWakeLockTitle	スリープ防止（Wake Lock）
+setMusicDirectory	音楽フォルダを設定
+setupMusicDirectory	音楽フォルダを設定
+selectedDirectory	選択したフォルダ:
+searchSongsHint	曲名・アーティストで検索…
+searchAlbumsHint	アルバムを検索…
+searchArtistsHint	アーティストを検索…
+searchPlaylistsHint	プレイリストを検索…
+syncing	同期中…
+upNext	再生待ち
+upNextCaps	再生待ち
+audioPropertiesGroup	オーディオ情報
+allPermissionsGranted	すべての権限を許可済み
+neverSynced	未同期
+noPlaylistsYet	プレイリストはまだありません
+noPlaylistsYetSubtitle	プレイリストを作成して、同期した曲を好きなようにまとめましょう。
+noSongStatsYet	再生データはまだありません。\n音楽を聴くと、よく聴く曲がここに表示されます。
+noAlbumStatsYet	再生データはまだありません。\n音楽を聴くと、よく聴くアルバムがここに表示されます。
+noArtistStatsYet	再生データはまだありません。\n音楽を聴くと、よく聴くアーティストがここに表示されます。
+noPlaylistStatsYet	再生データはまだありません。\nプレイリストから再生すると、ここに表示されます。
+onboardingDescription	Material 3 Expressiveで仕立てた、オフラインで楽しむ上質な音楽プレーヤーです。\n\n途切れのないなめらかな再生と、高速なバックグラウンド同期をお楽しみください。
+appDescription	FlutterとMaterial 3 Expressiveで作られた、Android向けの美しいローカル音楽プレーヤーです。
+madeWithLove	yurtemreが❤️を込めて開発
+keepPlayingOnClose	アプリを閉じても再生を続ける
+finishCurrentSong	曲の終わりまで再生してから停止
+pauseOnDuck	通知音で一時停止
+pauseOnDuckSubtitle	通知が鳴ったとき、音量を下げずに再生を一時停止します
+resetApplicationSubtitle	3秒間長押しすると、すべてのデータを削除します
+thankYouMessage	Sonoraを応援していただき、本当にありがとうございます。使ってくださる皆さんの存在が、何よりの励みです。私が大好きなSonoraを、あなたにも楽しんでいただけたら嬉しいです。
+favoriteRemove	お気に入りから削除
+recentlyPlayedActivitySubtitle	最近聴いた曲を表示します
+mostPlayed	再生回数が多い順
+leastPlayed	再生回数が少ない順
