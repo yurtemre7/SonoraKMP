@@ -92,12 +92,10 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [ ] **P4-05** Sleep timer [PLAY-26, 27] — deps: [P2-08] — owns: `A/playback/sleep/**` — done when: timer driving reducer, finish-song poll 250 ms, notification channel `sleep_timer` id 8888 chronometer + actions to service.
 - [ ] **P4-06** Stats recorder & position ticker [STAT-01, PLAY-25] — deps: [P2-11, P3-09] — owns: `A/playback/{ListenStatsRecorder,PositionTicker}.kt` — done when: tracker wired to player events, 200 ms ticker with 1500 ms backward filter.
 - [ ] **P4-07** Persistence [PLAY-24] — deps: [P1-04, P2-05] — owns: `A/playback/PlaybackPersistence.kt` — done when: save triggers incl. 15 s periodic, restore paused at position, clear on close.
-- [ ] **P4-08** Artwork provider [AUTO-02] — deps: [P1-11, P1-05] — owns: `A/playback/ArtworkProvider.kt` — done when: `content://<appId>.artwork/{song,album,artist,playlist}/…` serves files read-only.
-- [ ] **P4-09** Auto browse tree [AUTO-01, 03–07] — deps: [P3-15] — owns: `A/playback/AutoBrowseTree.kt` — done when: tree ids, paging, getItem, search ≤ 20, play-from-id/search resolution returning (items, startIndex), localized labels.
 - [ ] **P4-10** Home-screen widget [WID-01..06] — deps: [P1-11, P1-03] — owns: `A/widget/**`, `AR/layout/widget_*.xml`, `AR/drawable/widget_*.xml`, `AR/values*/widget_{colors,dimens}.xml` — done when: small/large layouts, state store, renderer, PendingIntents to service, `WidgetUpdater` Player.Listener with dedupe.
 
 **P4b**
-- [ ] **P4-11** Playback service [PLAY-01, 20–23, 28; AUTO; WID] — deps: [P4-01..P4-10] — owns: `A/playback/{SonoraPlaybackService,SessionCommands,NotificationButtons}.kt` — done when: MediaLibrarySession with callback (custom commands for queue/MFX/timer/close), notification button preferences (D-08), task-removed, close/clear, `onPlaybackResumption`, ensure volume; plays a song from adb-started controller.
+- [ ] **P4-11** Playback service [PLAY-01, 20–23, 28; WID] — deps: [P4-01..P4-07, P4-10] — owns: `A/playback/{SonoraPlaybackService,SessionCommands,NotificationButtons}.kt` — done when: MediaLibrarySession with callback (custom commands for queue/MFX/timer/close), notification button preferences (D-08), task-removed, close/clear, `onPlaybackResumption`, ensure volume; plays a song from adb-started controller.
 
 **P4c**
 - [ ] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
@@ -199,7 +197,7 @@ App tests (`AT/`, Robolectric):
 - [ ] **P10-24** Song info UI test — deps: [P5-10] — owns: `AT/ui/SongInfoSheetTest.kt` — done when: metadata shown, selectable path, Copy path, tap value → snackbar, audio group hidden when empty.
 - [ ] **P10-25** Now Playing back test — deps: [P5-07] — owns: `AT/ui/NowPlayingBackTest.kt` — done when: back from Up Next returns to player; back from player collapses; album link collapses and pushes `Album`.
 - [ ] **P10-26** App smoke test — deps: [P5-01, P5-02] — owns: `AT/SmokeTest.kt` — done when: Robolectric launches `MainActivity` with fake repos → onboarding; with completed onboarding + fake library → Songs tab lists songs.
-- [ ] **P10-27** Final verification — deps: [P10-01..P10-26, P6-01, P7-05, P8-01] — owns: none (fixes go back to owning tasks) — done when: `BUILD_APP`, assembleRelease (R8), `LINT`, `TEST_SHARED`, `TEST_APP` green; manual device checklist passed: scan, play/gapless, notification + BT buttons, sleep timer, Auto (DHU), widget, backup import of a Flutter backup, language switch, danger zone, update flow.
+- [ ] **P10-27** Final verification — deps: [P10-01..P10-26, P6-01, P7-05, P8-01] — owns: none (fixes go back to owning tasks) — done when: `BUILD_APP`, assembleRelease (R8), `LINT`, `TEST_SHARED`, `TEST_APP` green; manual device checklist passed: scan, play/gapless, notification + BT buttons, sleep timer, widget, backup import of a Flutter backup, language switch, danger zone, update flow.
 
 ---
 
@@ -219,4 +217,5 @@ App tests (`AT/`, Robolectric):
 | 17-package file-manager `<queries>` list & generic chooser strategies | Reduced folder-opener strategies (D-31) |
 | Material You dynamic colors in the widget | Afterglow tokens (D-33) |
 | Legacy pref keys (`sort_by*`, `metadata_version`, `eq_*`, `dynamic_theme_color`, `mfx_is{Slowed,…}`, `mfx_preset`) | Read only when importing Flutter backups |
+| Android Auto (browse tree, artwork provider, voice search) | Not needed (D-52) |
 | Kept but limited: DevBadge (dev builds), Debug caches screen (debug builds only) | Developer aid |

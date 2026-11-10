@@ -39,11 +39,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Android Auto / Assistant voice search (AUTO-05) -->
-            <intent-filter>
-                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
 
         <!-- Playback (PLAY-01, AUTO-*) -->
@@ -95,14 +90,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Artwork for Android Auto / notification (AUTO-02) -->
-        <provider
-            android:name=".playback.ArtworkProvider"
-            android:authorities="${applicationId}.artwork"
-            android:exported="true"
-            android:grantUriPermissions="true"
-            tools:ignore="ExportedContentProvider" />
-
         <!-- Per-app language persistence (AppCompat) -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
@@ -112,11 +99,6 @@
                 android:name="autoStoreLocales"
                 android:value="true" />
         </service>
-
-        <!-- Android Auto -->
-        <meta-data
-            android:name="com.google.android.gms.car.application"
-            android:resource="@xml/automotive_app_desc" />
     </application>
 
     <!-- Reduced package visibility (D-31) -->

@@ -18,7 +18,7 @@ Lowercasing is always `lowercase(Locale.ROOT)`-equivalent (`lowercase()` in comm
 
 | Item | Value |
 |---|---|
-| Platform | Android only (phone, tablet, foldable, Android Auto). No iOS/Windows/desktop targets. |
+| Platform | Android only (phone, tablet, foldable). No iOS/Windows/desktop targets. |
 | SDK | minSdk 24, targetSdk 37, compileSdk 37, JDK toolchain 17 |
 | applicationId | `de.yurtemre.sonorakmp` (release), `de.yurtemre.sonorakmp.dev` (debug, versionName suffix `-dev`, label "Sonora Dev") |
 | namespace | app `de.yurtemre.sonora`, shared `de.yurtemre.sonora.shared` |
@@ -59,7 +59,7 @@ Lowercasing is always `lowercase(Locale.ROOT)`-equivalent (`lowercase()` in comm
 | Package | Contents |
 |---|---|
 | `di/` | `AppModule` aggregating feature modules |
-| `playback/` | `SonoraPlaybackService : MediaLibraryService`; `PlayerFactory` (ExoPlayer, audio attributes, wake mode); `SonoraForwardingPlayer` (fades, volume = user × fade × ReplayGain, repeat-one next/prev semantics, completed-state play); `QueueController` (shared `QueueState` ⇄ ExoPlayer window); `AudioEffects` (Equalizer on audio session id, speed/pitch); `AudioFocusController` (pause-on-duck); `NoisyAndReconnectHandler`; `SleepTimer` + `SleepTimerNotifier`; `AutoBrowseTree`; `ArtworkProvider` (ContentProvider for content:// art); `PlaybackConnection` (UI-side `MediaController` + StateFlows); `PositionTicker`; `ListenStatsRecorder` |
+| `playback/` | `SonoraPlaybackService : MediaLibraryService`; `PlayerFactory` (ExoPlayer, audio attributes, wake mode); `SonoraForwardingPlayer` (fades, volume = user × fade × ReplayGain, repeat-one next/prev semantics, completed-state play); `QueueController` (shared `QueueState` ⇄ ExoPlayer window); `AudioEffects` (Equalizer on audio session id, speed/pitch); `AudioFocusController` (pause-on-duck); `NoisyAndReconnectHandler`; `SleepTimer` + `SleepTimerNotifier`; `PlaybackConnection` (UI-side `MediaController` + StateFlows); `PositionTicker`; `ListenStatsRecorder` |
 | `widget/` | `NowPlayingWidgetProvider` (RemoteViews, small + large), `WidgetStateStore`, `WidgetRenderer` |
 | `update/` | `ApkDownloader` (progress, cancel), `Sha256Verifier`, `PackageInstallerHelper` (session install + result receiver), `InstallPermissionHelper`, `UpdateViewModel` |
 | `ui/theme/` | `SonoraTheme` (Afterglow, MaterialKolor, AMOLED, color sources), `Type.kt`, `Shapes.kt`, `Motion.kt` |
@@ -157,7 +157,7 @@ UI) for the licenses screen. Tests: JUnit4, kotlin-test, Turbine, Robolectric 4.
 | `NowPlayingWidgetProvider` + `NowPlayingWidget.kt` + layouts/colors/dimens | `widget/` port (WID-*) |
 | flutter_local_notifications boot/scheduled receivers | dropped (no scheduled notifications) |
 | FileProvider `${applicationId}.fileprovider` (external/cache/files/root) | FileProvider with `cache-path` (updates, share) + `files-path`; no root-path |
-| `automotive_app_desc.xml` + meta-data `com.google.android.gms.car.application` | same |
+| `automotive_app_desc.xml` + meta-data `com.google.android.gms.car.application` | dropped (D-52) |
 | `<queries>` for 17 file managers | reduced (§9 D-31) |
 | `LaunchTheme`/`NormalTheme` | `Theme.Sonora` + `Theme.SplashScreen` |
 | Permissions: READ_MEDIA_AUDIO, READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE, POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK), WAKE_LOCK, INTERNET, REQUEST_INSTALL_PACKAGES | same; `READ_EXTERNAL_STORAGE maxSdkVersion=32`; no cleartext traffic |
@@ -201,7 +201,7 @@ Format: **ID — feature**: behaviour (constants) → ✅ acceptance. "audit/x �
 
 | ID | Feature & behaviour | Acceptance |
 |---|---|---|
-| PLAY-01 | **Service & items.** `SonoraPlaybackService : MediaLibraryService`; MediaItem: `mediaId = "q:<uid>"` for queue items (`song:<id>` for browse), URI `file://` path (content URI `MediaStore.Audio.Media` by id preferred when id from MediaStore), metadata displayTitle/artist/album/duration, `artworkUri` = `content://${appId}.artwork/song/<id>` (AUTO-02), extras `songId`, ReplayGain (`rg_*`). | Notification, lock screen and Auto show title/art. |
+| PLAY-01 | **Service & items.** `SonoraPlaybackService : MediaLibraryService`; MediaItem: `mediaId = "q:<uid>"` for queue items (`song:<id>` for browse), URI `file://` path (content URI `MediaStore.Audio.Media` by id preferred when id from MediaStore), metadata displayTitle/artist/album/duration, artwork as embedded bitmap/`artworkData`, extras `songId`, ReplayGain (`rg_*`). | Notification and lock screen show title/art. |
 | PLAY-02 | **Load & play.** `playSong(song, list, playlistId?)`: request token, queue = copy, start at first index with that id (else 0), position 0, faded play; stale requests abort silently; `playlistId` stored for stats. | Rapid taps on 3 songs → only last plays. |
 | PLAY-03 | **Shuffle.** On: history + current unchanged, upcoming shuffled (Fisher–Yates, injectable `Random`), no interruption, stat `shuffleSessionStarts++`. Off: restore original order at current song (by entry uid), **live position**, no audible reload when possible (FIX D-11). `quickShuffle(list)`: shuffled copy, original = list, shuffled=true, stat++. Original-queue bookkeeping: add → append both; play-next → after current in original; remove → that entry (FIX D-03); reorder → original unchanged (parity). audit/playback §2.4. | QueueState tests: history preserved, unshuffle returns to original order with current kept. |
 | PLAY-04 | **Repeat.** Cycle off → all → one → off; not persisted (parity). ONE: next/previous restart current (seek 0) via ForwardingPlayer. ALL: wraps to logical index 0 (FIX D-12). OFF at end: completed; play/pause on completed restarts at index 0. | Unit test on ForwardingPlayer/QueueState rules. |
@@ -338,15 +338,7 @@ Format: **ID — feature**: behaviour (constants) → ✅ acceptance. "audit/x �
 
 ### 4.9 Android Auto (AUTO)
 
-| ID | Feature & behaviour | Acceptance |
-|---|---|---|
-| AUTO-01 | **Browse tree.** Root (`root`) → `root_songs` / `root_albums` / `root_artists` / `root_playlists` (browsable) → `album:<name>|||<artist>`, `artist:<name>`, `playlist:<id>` → playable `song:<id>`; recent root → `[]`. Children paged (`page`, `pageSize`). audit/playback §10. | Media3 `MediaBrowser` test against service in Robolectric. |
-| AUTO-02 | **Artwork.** `ArtworkProvider` (`${applicationId}.artwork`, exported read-only, `openFile` for `song/<id>`, `album/<key>`, `artist/<key>`, `playlist/<id>`); grants via `grantUriPermission` to `com.google.android.projection.gearhead`/Automotive or `android:grantUriPermissions` + public read of art only (FIX D-30). Album → first song art; artist → local image else first art; playlist → cover else first art. | DHU shows covers. |
-| AUTO-03 | **getItem** for categories, songs, groups. | |
-| AUTO-04 | **Search** case-insensitive substring title/artist/album, max 20. | |
-| AUTO-05 | **Play from id.** song → whole library from song (parity); album/artist/playlist → from 0. Via `onSetMediaItems` resolution (start index). | |
-| AUTO-06 | **Play from search.** artist (eq/contains) → album → song title → else **shuffle whole library** (empty query also → shuffle, FIX D-32), `isShuffled=true`. | |
-| AUTO-07 | **Labels.** Category titles & "N songs" from resources (`plurals song_count`) (FIX). | |
+Dropped (D-52).
 
 ### 4.10 Home-screen widget (WID)
 
@@ -697,7 +689,7 @@ weekday names for most-active-day; About footer.
 | D-27 | LRC `.5` = 5 ms; `[offset:]` ignored | Decimal fraction; offset applied |
 | D-28 | Changelog fetched from GitHub raw `main`, no offline | Bundled asset |
 | D-29 | Stats JSON non-atomic, one bad key resets all | Room transactions |
-| D-30 | Android Auto art via `file://` (not loadable in car process); English labels; flat unpaged Songs | content:// provider, localized, paged |
+| D-30 | Android Auto | Dropped (D-52) |
 | D-32 | Empty/unmatched voice search plays first artist | Shuffle whole library |
 | D-34 | System back in NP sub-views closes the whole sheet | Back → player view first |
 | D-35 | Album/Artist opened from NP as nested sheets; artist→album imperative push | Collapse NP + push route |
@@ -761,7 +753,6 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 | R-11 | GitHub unauthenticated rate limit 60/h/IP | 6 h throttle + reset-time persistence |
 | R-12 | Backup compat drift if Flutter changes schema after 1.28.1 | Fixture from 1.28.1 in tests |
 | R-13 | Palette seeds differ from Flutter mean colors | Accepted (D-41); ContrastTest fallback |
-| R-14 | Android Auto content:// art permissions (projection vs. Automotive) | Provider grants + DHU manual test |
 | R-15 | Per-app locale on API < 33 requires AppCompat + autoStoreLocales | MainActivity is AppCompatActivity |
 | R-16 | Visualizer remains fake (no RECORD_AUDIO) | Documented |
 
@@ -770,3 +761,7 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 - **Q-2 (open):** new signing key + applicationId; Flutter users install side by side and migrate via backup v1 import.
 - **Q-3 → D-50 (resolved):** all Japanese strings may be retranslated for natural, native phrasing (not literal).
 - **Q-4 → D-51 (resolved):** no "Skip this version" in the update sheet.
+
+### Decision log (post-plan)
+
+- **D-52 (2026-11-10):** Android Auto dropped at the maintainer's request: no browse tree, artwork provider, car descriptor or voice-search filter (AUTO-01..07 removed). The playback service stays a `MediaLibraryService` for system/controller access.
