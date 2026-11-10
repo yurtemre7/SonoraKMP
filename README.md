@@ -93,19 +93,26 @@ Navigation 3, Media3, Room, DataStore, Koin, Ktor, Coil.
 
 ## Release
 
-Releases are cut from tags; versions are never bumped by hand.
+Versions are never bumped by hand. A release is a commit on `main` whose
+subject is `release: <version>`:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git commit --allow-empty -m "release: 1.0.0"
+git push origin main
 ```
 
-The [release workflow](.github/workflows/release.yml) builds, signs and
-publishes `sonora-<version>.apk`, its `.sha256` checksum and an `.aab`, with
-release notes generated from the commit history by [git-cliff](cliff.toml)
-(grouped by type, with contributor credits and a link to the full diff).
-Versions with a hyphen (`v1.1.0-beta.1`) become pre-releases. The version code
-is derived from the version name.
+The [release workflow](.github/workflows/release.yml) then tags `v1.0.0` and
+builds, signs and publishes `sonora-<version>.apk`, its `.sha256` checksum and
+an `.aab`, with release notes generated from the commit history by
+[git-cliff](cliff.toml) (grouped by type, with contributor credits and a link
+to the full diff). Versions with a hyphen (`release: 1.1.0-beta.1`) become
+pre-releases. The version code is derived from the version name.
+
+**Nightly builds.** Every night, if `main` changed, the
+[nightly workflow](.github/workflows/nightly.yml) replaces the
+[nightly pre-release](https://github.com/yurtemre7/SonoraKMP/releases/tag/nightly)
+with a fresh signed APK. Nightlies install over a release but are never
+offered by the in-app updater.
 
 To check a release without publishing it, run the workflow manually
 (*Actions → Release → Run workflow*) with **dry run** checked. Artifacts and

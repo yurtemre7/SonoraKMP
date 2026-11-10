@@ -1,12 +1,14 @@
 name: Release
 
+# A release is cut by pushing a commit to main whose subject is "release: X.Y.Z"
+# (or "release: X.Y.Z-rc.1"). The workflow builds, tags vX.Y.Z and publishes.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (X.Y.Z or X.Y.Z-pre.N, no leading v). Defaults to the tag when run on a tag."
+        description: "Version to build (X.Y.Z or X.Y.Z-pre.N, no leading v)."
         required: false
         type: string
       dry_run:
@@ -25,6 +27,7 @@ permissions:
 jobs:
   build:
     name: Build release
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'release:')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
@@ -32,8 +35,9 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       dry_run: ${{ steps.version.outputs.dry_run }}
+      sha: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -42,33 +46,39 @@ jobs:
         env:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
           dry_run=false
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_DRY_RUN" == "true" ]]; then
             dry_run=true
           fi
-          if [[ -n "${INPUT_VERSION:-}" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            subject=$(printf '%s\n' "$COMMIT_MESSAGE" | head -n1)
+            version=$(printf '%s' "$subject" | sed -E 's/^release:[[:space:]]*v?//; s/[[:space:]]+$//')
+          elif [[ -n "${INPUT_VERSION:-}" ]]; then
             version="${INPUT_VERSION#v}"
-          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
           else
-            echo "::error::No version: run on a v* tag or pass the 'version' input."
+            echo "::error::Pass the 'version' input, or push a 'release: X.Y.Z' commit to main."
+            exit 1
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$dry_run" != "true" ]]; then
+            echo "::error::Manual runs are dry runs only. Publish by pushing a 'release: X.Y.Z' commit to main."
             exit 1
           fi
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::'$version' is not a valid version (expected X.Y.Z or X.Y.Z-pre.N)."
+            echo "::error::'$version' is not a valid version (expected 'release: X.Y.Z' or X.Y.Z-pre.N)."
             exit 1
           fi
           tag="v$version"
-          if [[ "$dry_run" == "false" && ( "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$tag" ) ]]; then
-            echo "::error::Publishing requires running on tag $tag (got $GITHUB_REF_TYPE '$GITHUB_REF_NAME'). Use dry_run to validate."
+          if [[ "$dry_run" == "false" ]] && git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::Tag $tag already exists. Bump the version in the release commit."
             exit 1
           fi
           prerelease=false
           [[ "$version" == *-* ]] && prerelease=true
-          if [[ "$dry_run" == "true" ]]; then ref=HEAD; else ref="$tag"; fi
-          prev=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${ref}^" 2>/dev/null || true)
+          ref=HEAD
+          prev=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
           {
             echo "version=$version"
             echo "tag=$tag"
@@ -79,12 +89,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Version $version (tag $tag, prerelease=$prerelease, dry_run=$dry_run, previous=${prev:-none})"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: true
 
@@ -170,7 +180,7 @@ jobs:
         run: cat dist/RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sonora-${{ steps.version.outputs.version }}
           path: dist/
@@ -188,14 +198,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sonora-${{ needs.build.outputs.version }}
           path: dist
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.build.outputs.tag }}
+          target_commitish: ${{ needs.build.outputs.sha }}
           name: Sonora ${{ needs.build.outputs.version }}
           body_path: dist/RELEASE_NOTES.md
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}

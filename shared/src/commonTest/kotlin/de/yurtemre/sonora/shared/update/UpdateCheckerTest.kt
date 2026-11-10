@@ -47,7 +47,10 @@ class UpdateCheckerTest {
     }
 
     @Test fun prereleaseListMode() = runTest {
-        val body = "[${rel("1.30.0-beta.2", draft = true)},${rel("1.30.0-beta.1")},${rel("1.29.0")}]"
+        // The rolling "nightly" pre-release (tag is not a version) must never be offered.
+        val nightly = """{"tag_name":"nightly","prerelease":true,"draft":false,"body":"","html_url":"https://x",
+            "assets":[{"name":"sonora-9.9.9-nightly.20991231.apk","browser_download_url":"https://d/n.apk","size":10}]}"""
+        val body = "[$nightly,${rel("1.30.0-beta.2", draft = true)},${rel("1.30.0-beta.1")},${rel("1.29.0")}]"
         val r = checker("1.29.0") { respond(body, HttpStatusCode.OK, json) }.check(true)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("1.30.0-beta.1", r.version.toString())

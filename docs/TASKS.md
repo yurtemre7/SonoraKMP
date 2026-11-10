@@ -151,7 +151,8 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 ## P8 CI/CD & repo docs
 
 - [x] **P8-01** CI workflow — deps: [P1-01] — owns: `.github/workflows/ci.yml` — done when: on PR/push runs lint, unit tests, debug build with Gradle cache, JDK 17. (Green on GitHub.)
-- [x] **P8-02** Release workflow — deps: [] — owns: `.github/workflows/release.yml`, `cliff.toml` — done when: tag `v*` (or dispatch with `dry_run`) builds signed `sonora-<v>.apk` + `.sha256` + `.aab`, versionCode derived from versionName, git-cliff notes (grouped, credits, compare link), prerelease iff `-`.
+- [x] **P8-02** Release workflow — deps: [] — owns: `.github/workflows/release.yml`, `cliff.toml` — done when: a `release: X.Y.Z` commit on main (or dispatch with `dry_run`) builds signed `sonora-<v>.apk` + `.sha256` + `.aab`, versionCode derived from versionName, git-cliff notes (grouped, credits, compare link), prerelease iff `-`; tags `vX.Y.Z`.
+- [x] **P8-08** Nightly workflow — owns: `.github/workflows/nightly.yml` — done when: daily build of main replaces the rolling `nightly` pre-release (skipped if unchanged), release-signed, ignored by the updater.
 - [x] **P8-03** Pages workflow — deps: [P9-01] — owns: `.github/workflows/pages.yml` — done when: deploys `/site` on changes under `site/**` (needs Pages enabled with source "GitHub Actions").
 - [ ] **P8-04** Bundled changelog — deps: [P1-01] — owns: `CHANGELOG.md`, `androidApp/build.gradle.kts` (asset task only) — done when: `CHANGELOG.md` generated with `git cliff` config and copied into generated assets so UI-36 shows it offline.
 - [x] **P8-05** CONTRIBUTING — deps: [P8-01] — owns: `CONTRIBUTING.md` — done when: commit convention, commands, release process (tag `vX.Y.Z`), strings process documented.

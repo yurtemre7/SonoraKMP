@@ -1,0 +1,182 @@
+name: Nightly
+
+# Builds main every night and replaces the rolling "nightly" pre-release.
+# Skipped when main has not changed since the last nightly.
+# The in-app updater never offers nightlies (the tag is not a version).
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Build even if main has not changed since the last nightly."
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    name: Build nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check for changes and derive version
+        id: version
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags
+          head=$(git rev-parse HEAD)
+          last=$(git rev-parse -q --verify "refs/tags/nightly^{commit}" 2>/dev/null || true)
+          if [[ "$head" == "$last" && "$FORCE" != "true" ]]; then
+            echo "main is unchanged since the last nightly ($head); skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Next patch after the latest release tag, else after gradle.properties' version.
+          latest=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+          if [[ -n "$latest" ]]; then
+            base="${latest#v}"; base="${base%%-*}"
+          else
+            base=$(grep -E '^sonora.versionName=' gradle.properties | cut -d= -f2)
+          fi
+          IFS=. read -r major minor patch <<< "$base"
+          date=$(date -u +%Y%m%d)
+          short=$(git rev-parse --short=7 HEAD)
+          version="$major.$minor.$((patch + 1))-nightly.$date+$short"
+          {
+            echo "skip=false"
+            echo "version=$version"
+            echo "file_version=$major.$minor.$((patch + 1))-nightly.$date"
+            echo "short=$short"
+            echo "date=$(date -u +%Y-%m-%d)"
+            echo "prev=$latest"
+          } >> "$GITHUB_OUTPUT"
+          echo "Nightly $version (after ${latest:-no release yet})"
+
+      - uses: actions/setup-java@v6
+        if: steps.version.outputs.skip != 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+        if: steps.version.outputs.skip != 'true'
+        with:
+          cache-read-only: true
+
+      - name: Set up signing
+        if: steps.version.outputs.skip != 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SONORA_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SONORA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SONORA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SONORA_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "::error::Missing signing secrets. Nightlies are signed with the release key so they install over releases."
+            exit 1
+          fi
+          keystore="$RUNNER_TEMP/sonora-release.jks"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          {
+            echo "SONORA_KEYSTORE_PATH=$keystore"
+            echo "SONORA_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "SONORA_KEY_ALIAS=$KEY_ALIAS"
+            echo "SONORA_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Test and build
+        if: steps.version.outputs.skip != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew testDebugUnitTest assembleRelease -Psonora.versionName="$VERSION" --stacktrace
+
+      - name: Collect artifacts
+        if: steps.version.outputs.skip != 'true'
+        env:
+          FILE_VERSION: ${{ steps.version.outputs.file_version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          apk=$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n1)
+          [[ -n "$apk" ]] || { echo "::error::Release APK not found."; exit 1; }
+          cp "$apk" "dist/sonora-$FILE_VERSION.apk"
+          (cd dist && sha256sum "sonora-$FILE_VERSION.apk" > "sonora-$FILE_VERSION.apk.sha256")
+          cat dist/*.sha256
+
+      - name: Prepare git-cliff arguments
+        if: steps.version.outputs.skip != 'true'
+        id: cliff_args
+        env:
+          PREV: ${{ steps.version.outputs.prev }}
+        run: |
+          if [[ -n "$PREV" ]]; then range="$PREV..HEAD"; else range="--unreleased"; fi
+          echo "args=--verbose --strip all $range" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changes since the last release
+        if: steps.version.outputs.skip != 'true'
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: ${{ steps.cliff_args.outputs.args }}
+        env:
+          OUTPUT: dist/CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write release notes
+        if: steps.version.outputs.skip != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHORT: ${{ steps.version.outputs.short }}
+          PREV: ${{ steps.version.outputs.prev }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Nightly build of \`main\` at [\`$SHORT\`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA), version \`$VERSION\`."
+            echo
+            echo "Untested development build. It installs over a regular release; the app does not offer nightlies as updates."
+            echo
+            if [[ -n "$PREV" ]]; then echo "### Changes since $PREV"; else echo "### Changes"; fi
+            echo
+            cat dist/CHANGES.md
+          } > dist/NOTES.md
+          cat dist/NOTES.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Replace the nightly release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATE: ${{ steps.version.outputs.date }}
+          SHORT: ${{ steps.version.outputs.short }}
+        run: |
+          set -euo pipefail
+          gh release delete nightly --cleanup-tag --yes 2>/dev/null || true
+          git push origin :refs/tags/nightly 2>/dev/null || true
+          gh release create nightly dist/*.apk dist/*.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Nightly $DATE ($SHORT)" \
+            --notes-file dist/NOTES.md \
+            --prerelease \
+            --latest=false
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sonora-release.jks"

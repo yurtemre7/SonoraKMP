@@ -766,3 +766,4 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 
 - **D-52 (2026-11-10):** Android Auto dropped at the maintainer's request: no browse tree, artwork provider, car descriptor or voice-search filter (AUTO-01..07 removed). The playback service stays a `MediaLibraryService` for system/controller access.
 - **D-53 (2026-11-10):** a lyrics sidecar containing only metadata tags counts as "no lyrics" (Flutter showed an empty lyrics view).
+- **D-54 (2026-11-10):** releases are triggered by a `release: X.Y.Z` commit on main (tag `vX.Y.Z` is created by the workflow); a nightly workflow publishes a rolling `nightly` pre-release (version `<next patch>-nightly.<date>+<sha>`) that the updater ignores because its tag is not a version. All GitHub Actions on their latest majors (Node 24).
