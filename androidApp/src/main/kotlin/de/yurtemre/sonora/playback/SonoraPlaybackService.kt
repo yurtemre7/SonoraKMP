@@ -313,6 +313,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                     while (gains.size < n) gains.add(0.0)
                     gains[band] = a.getFloat(C.ARG_VALUE).toDouble()
                     persist { setMfxCustomEqGains(gains) }
+                    setEqToggle(custom = true) // moving a band switches custom EQ on (player_mfx.dart:172)
                 }
             }
             C.APPLY_EQ_PRESET -> effects.eqInfo.value?.let { eq ->
@@ -340,13 +341,19 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     }
 
     /** One EQ effect at a time: enabling one disables the others. */
+    /**
+     * PLAY-14 (player_mfx.dart:142-180): bass boost, warmth and lo-fi exclude each other but leave
+     * custom EQ as is (precedence decides what is heard); enabling custom EQ turns the three off.
+     */
     private fun setEqToggle(bass: Boolean? = null, warmth: Boolean? = null, lofi: Boolean? = null, custom: Boolean? = null) =
         persist {
-            val enabling = listOf(bass, warmth, lofi, custom).any { it == true }
-            setMfxBassBoostEnabled(bass ?: (if (enabling) false else this@SonoraPlaybackService.settings.mfxBassBoostEnabled))
-            setMfxReverbEnabled(warmth ?: (if (enabling) false else this@SonoraPlaybackService.settings.mfxReverbEnabled))
-            setMfxLofiEnabled(lofi ?: (if (enabling) false else this@SonoraPlaybackService.settings.mfxLofiEnabled))
-            setMfxCustomEqEnabled(custom ?: (if (enabling) false else this@SonoraPlaybackService.settings.mfxCustomEqEnabled))
+            val s = this@SonoraPlaybackService.settings
+            val presetOn = listOf(bass, warmth, lofi).any { it == true }
+            val clearPresets = presetOn || custom == true
+            setMfxBassBoostEnabled(bass ?: (if (clearPresets) false else s.mfxBassBoostEnabled))
+            setMfxReverbEnabled(warmth ?: (if (clearPresets) false else s.mfxReverbEnabled))
+            setMfxLofiEnabled(lofi ?: (if (clearPresets) false else s.mfxLofiEnabled))
+            setMfxCustomEqEnabled(custom ?: s.mfxCustomEqEnabled)
         }
 
     private fun persist(block: suspend SettingsRepository.() -> Unit) {
