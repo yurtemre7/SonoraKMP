@@ -765,3 +765,4 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 ### Decision log (post-plan)
 
 - **D-52 (2026-11-10):** Android Auto dropped at the maintainer's request: no browse tree, artwork provider, car descriptor or voice-search filter (AUTO-01..07 removed). The playback service stays a `MediaLibraryService` for system/controller access.
+- **D-53 (2026-11-10):** a lyrics sidecar containing only metadata tags counts as "no lyrics" (Flutter showed an empty lyrics view).

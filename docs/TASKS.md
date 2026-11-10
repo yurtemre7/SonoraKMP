@@ -37,27 +37,27 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 ## P2 Core logic in shared (batch P2a → P2b), each with KDoc citing audit sections
 
 **P2a**
-- [ ] **P2-01** Artist parsing & grouping [LIB-09..11] — deps: [P1-02] — owns: `S/library/{ArtistParser,AlbumGrouper,ArtistGrouper}.kt` — done when: implements audit/data §5.1–5.3 incl. `buildAlbumGroup/buildArtistGroup` lookups; compiles.
-- [ ] **P2-02** Sorting & scroll sections [LIB-12, UI-07] — deps: [P1-02] — owns: `S/library/{LibrarySorter,ScrollSection}.kt` — done when: all sort enums/directions incl. artist `songs`, plays via activity view hook, favorites sort.
-- [ ] **P2-03** Search index [LIB-13] — deps: [P1-02] — owns: `S/library/LibrarySearchIndex.kt` — done when: AND-substring songs search + sorted cache keyed by sort/direction, album/artist/playlist filters.
-- [ ] **P2-04** Title, duration, color buckets [LIB-14, LIB-15, LIB-22] — deps: [P1-02] — owns: `S/library/{TitleFormatter,DurationFormat,SeedColorBuckets}.kt` — done when: displayTitle rules, `DurationParts`, Flutter-HSL bucket function implemented.
-- [ ] **P2-05** QueueState core [PLAY-02,05,06] — deps: [P1-02] — owns: `S/queue/{QueueState,QueueOps}.kt` — done when: load, playNext (LIFO), add, remove by uid, move with index bookkeeping, skipTo, entry-uid generation, original-queue bookkeeping.
-- [ ] **P2-06** ReplayGain reader [LIB-08] — deps: [P1-02] — owns: `S/audio/replaygain/**` — done when: 1:1 port of audit/data §9.1 over a `ByteSource` abstraction (ID3v2.2–2.4, FLAC, Ogg Vorbis/Opus R128, MP4), never throws, `failed` flag.
-- [ ] **P2-07** Audio math [PLAY-09,10,12–16] — deps: [P1-02] — owns: `S/audio/{ReplayGainMath,SpeedPresets,EqGains,FadeCurve}.kt` — done when: multiplier, preset table, EQ mode/BT/preset mapping, 20-step fade curve match SPEC constants.
-- [ ] **P2-08** Sleep timer reducer [PLAY-26] — deps: [P1-02] — owns: `S/audio/SleepTimerState.kt` — done when: pure reducer for start/tick/extend/stop/finish-song/fade volume outputs.
-- [ ] **P2-09** Lyrics parser [LIB-24] — deps: [P1-02] — owns: `S/lyrics/**` — done when: LRC (decimal fraction, offset, multi-stamp) + plain parser.
-- [ ] **P2-10** M3U codec [LIB-18, LIB-19] — deps: [P1-02] — owns: `S/playlist/**` — done when: encoder, decoder, exact-path/file-name matcher, name sanitizer, playlist-name-from-file.
-- [ ] **P2-11** Listen session tracker [STAT-01, STAT-02] — deps: [P1-02] — owns: `S/stats/ListenSessionTracker.kt` — done when: event-driven tracker emits `RecordRecent/RecordComplete/RecordSkip/RecordRestart/RecordShuffleSession` with milestone scheduling and pause nesting.
-- [ ] **P2-12** Stats aggregates [STAT-03, STAT-04] — deps: [P1-02] — owns: `S/stats/{StatsAggregates,ActivityView,StatsSnapshot}.kt` — done when: all aggregates of audit/data §11.2 over a `StatsSnapshot` + library.
-- [ ] **P2-13** Backup schema & codec [BAK-01, BAK-02, BAK-05] — deps: [P1-02] — owns: `S/backup/{BackupV1,BackupCodec,BackupError,SettingsWhitelist}.kt` — done when: encode/parse/validate with all error kinds, whitelist incl. import-only Flutter keys and legacy mappings.
-- [ ] **P2-14** Song matcher [BAK-03] — deps: [P1-02] — owns: `S/backup/SongMatcher.kt` — done when: 3-pass one-to-one matcher per audit/data §12.4.
-- [ ] **P2-15** SemVer & checksum [UPD-02, UPD-04] — deps: [P1-02] — owns: `S/update/{SemVer,ChecksumParser}.kt` — done when: semver.org ordering, `-dev` strip, `v` prefix, build ignored; sha256sum parser.
-- [ ] **P2-16** GitHub releases client [UPD-01, UPD-03] — deps: [P1-01] — owns: `S/update/{GitHubReleasesClient,Release,RateLimit}.kt` — done when: latest + list endpoints, headers, rate-limit header parsing, injected `HttpClient`.
+- [x] **P2-01** Artist parsing & grouping [LIB-09..11] — deps: [P1-02] — owns: `S/library/{ArtistParser,AlbumGrouper,ArtistGrouper}.kt` — done when: implements audit/data §5.1–5.3 incl. `buildAlbumGroup/buildArtistGroup` lookups; compiles.
+- [x] **P2-02** Sorting & scroll sections [LIB-12, UI-07] — deps: [P1-02] — owns: `S/library/{LibrarySorter,ScrollSection}.kt` — done when: all sort enums/directions incl. artist `songs`, plays via activity view hook, favorites sort.
+- [x] **P2-03** Search index [LIB-13] — deps: [P1-02] — owns: `S/library/LibrarySearchIndex.kt` — done when: AND-substring songs search + sorted cache keyed by sort/direction, album/artist/playlist filters.
+- [x] **P2-04** Title, duration, color buckets [LIB-14, LIB-15, LIB-22] — deps: [P1-02] — owns: `S/library/{TitleFormatter,DurationFormat,SeedColorBuckets}.kt` — done when: displayTitle rules, `DurationParts`, Flutter-HSL bucket function implemented.
+- [x] **P2-05** QueueState core [PLAY-02,05,06] — deps: [P1-02] — owns: `S/queue/{QueueState,QueueOps}.kt` — done when: load, playNext (LIFO), add, remove by uid, move with index bookkeeping, skipTo, entry-uid generation, original-queue bookkeeping.
+- [x] **P2-06** ReplayGain reader [LIB-08] — deps: [P1-02] — owns: `S/audio/replaygain/**` — done when: 1:1 port of audit/data §9.1 over a `ByteSource` abstraction (ID3v2.2–2.4, FLAC, Ogg Vorbis/Opus R128, MP4), never throws, `failed` flag.
+- [x] **P2-07** Audio math [PLAY-09,10,12–16] — deps: [P1-02] — owns: `S/audio/{ReplayGainMath,SpeedPresets,EqGains,FadeCurve}.kt` — done when: multiplier, preset table, EQ mode/BT/preset mapping, 20-step fade curve match SPEC constants.
+- [x] **P2-08** Sleep timer reducer [PLAY-26] — deps: [P1-02] — owns: `S/audio/SleepTimerState.kt` — done when: pure reducer for start/tick/extend/stop/finish-song/fade volume outputs.
+- [x] **P2-09** Lyrics parser [LIB-24] — deps: [P1-02] — owns: `S/lyrics/**` — done when: LRC (decimal fraction, offset, multi-stamp) + plain parser.
+- [x] **P2-10** M3U codec [LIB-18, LIB-19] — deps: [P1-02] — owns: `S/playlist/**` — done when: encoder, decoder, exact-path/file-name matcher, name sanitizer, playlist-name-from-file.
+- [x] **P2-11** Listen session tracker [STAT-01, STAT-02] — deps: [P1-02] — owns: `S/stats/ListenSessionTracker.kt` — done when: event-driven tracker emits `RecordRecent/RecordComplete/RecordSkip/RecordRestart/RecordShuffleSession` with milestone scheduling and pause nesting.
+- [x] **P2-12** Stats aggregates [STAT-03, STAT-04] — deps: [P1-02] — owns: `S/stats/{StatsAggregates,ActivityView,StatsSnapshot}.kt` — done when: all aggregates of audit/data §11.2 over a `StatsSnapshot` + library.
+- [x] **P2-13** Backup schema & codec [BAK-01, BAK-02, BAK-05] — deps: [P1-02] — owns: `S/backup/{BackupV1,BackupCodec,BackupError,SettingsWhitelist}.kt` — done when: encode/parse/validate with all error kinds, whitelist incl. import-only Flutter keys and legacy mappings.
+- [x] **P2-14** Song matcher [BAK-03] — deps: [P1-02] — owns: `S/backup/SongMatcher.kt` — done when: 3-pass one-to-one matcher per audit/data §12.4.
+- [x] **P2-15** SemVer & checksum [UPD-02, UPD-04] — deps: [P1-02] — owns: `S/update/{SemVer,ChecksumParser}.kt` — done when: semver.org ordering, `-dev` strip, `v` prefix, build ignored; sha256sum parser.
+- [x] **P2-16** GitHub releases client [UPD-01, UPD-03] — deps: [P1-01] — owns: `S/update/{GitHubReleasesClient,Release,RateLimit}.kt` — done when: latest + list endpoints, headers, rate-limit header parsing, injected `HttpClient`.
 
 **P2b**
-- [ ] **P2-17** Shuffle, repeat, navigation rules [PLAY-03, PLAY-04, PLAY-07] — deps: [P2-05] — owns: `S/queue/{Shuffle,QueueNavigation}.kt` — done when: shuffle on/off (injectable Random), quickShuffle, repeat cycle, next/previous with 3 s rule & repeat semantics.
-- [ ] **P2-18** Restore planner [BAK-04] — deps: [P2-13, P2-14] — owns: `S/backup/RestorePlanner.kt` — done when: pure plan (settings ops, favorites merge, playlist merge, stats remap) + result counts, idempotent.
-- [ ] **P2-19** Update checker [UPD-01..05] — deps: [P2-15, P2-16] — owns: `S/update/UpdateChecker.kt` — done when: returns `UpToDate/Available/Failed(reason)` incl. throttle decision helper (6 h, rate-limit reset) given injected clock & settings values.
+- [x] **P2-17** Shuffle, repeat, navigation rules [PLAY-03, PLAY-04, PLAY-07] — deps: [P2-05] — owns: `S/queue/{Shuffle,QueueNavigation}.kt` — done when: shuffle on/off (injectable Random), quickShuffle, repeat cycle, next/previous with 3 s rule & repeat semantics.
+- [x] **P2-18** Restore planner [BAK-04] — deps: [P2-13, P2-14] — owns: `S/backup/RestorePlanner.kt` — done when: pure plan (settings ops, favorites merge, playlist merge, stats remap) + result counts, idempotent.
+- [x] **P2-19** Update checker [UPD-01..05] — deps: [P2-15, P2-16] — owns: `S/update/UpdateChecker.kt` — done when: returns `UpToDate/Available/Failed(reason)` incl. throttle decision helper (6 h, rate-limit reset) given injected clock & settings values.
 
 ## P3 Android data (batch P3a → P3b → P3c)
 
@@ -169,20 +169,20 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 ## P10 Tests & final verification (all tasks in one batch, then P10-27)
 
 Shared unit tests (`ST/`):
-- [ ] **P10-01** ArtistParser/AlbumGrouper tests — deps: [P2-01] — owns: `ST/library/GroupingTest.kt` — done when: audit/data §5 examples (808, Greatest Hits, unknown artist, AC/DC) pass.
-- [ ] **P10-02** Sorter & search tests — deps: [P2-02, P2-03] — owns: `ST/library/SortSearchTest.kt` — done when: each sort option/direction + search examples of audit/data §6 pass.
-- [ ] **P10-03** Title & duration tests — deps: [P2-04] — owns: `ST/library/FormatTest.kt` — done when: Cosmos/Starlight, total-duration examples, `h:mm:ss`, bucket function.
-- [ ] **P10-04** QueueState tests — deps: [P2-17] — owns: `ST/queue/QueueStateTest.kt` — done when: shuffle history, unshuffle, LIFO play next, remove by uid, move bookkeeping, repeat cycle, 3 s previous rule.
-- [ ] **P10-05** ReplayGain reader tests — deps: [P2-06] — owns: `ST/audio/ReplayGainReaderTest.kt`, `shared/src/*Test/resources/rg/**` — done when: ID3v2.3/2.4, FLAC, Vorbis, Opus R128, MP4 fixtures and malformed inputs.
-- [ ] **P10-06** Audio math tests — deps: [P2-07] — owns: `ST/audio/AudioMathTest.kt` — done when: −6 dB ×0.501, clip guard, EQ ±15 dB pinned values, preset mapping N=5/10, fade steps.
-- [ ] **P10-07** Sleep timer tests — deps: [P2-08] — owns: `ST/audio/SleepTimerStateTest.kt` — done when: 6 pinned behaviours of audit/playback §14.
-- [ ] **P10-08** Lyrics & M3U tests — deps: [P2-09, P2-10] — owns: `ST/lyrics/LyricsParserTest.kt`, `ST/playlist/M3uCodecTest.kt` — done when: fraction/offset/multi-stamp/plain; export format, exact-name matching, sanitizing.
-- [ ] **P10-09** Listen tracker tests — deps: [P2-11] — owns: `ST/stats/ListenSessionTrackerTest.kt` — done when: 25 %/10–30 s and 80 % milestones under speed changes, seek reset, pause nesting.
-- [ ] **P10-10** Stats aggregates tests — deps: [P2-12] — owns: `ST/stats/StatsAggregatesTest.kt` — done when: top lists, most active day, activity views.
-- [ ] **P10-11** Backup codec tests — deps: [P2-13] — owns: `ST/backup/BackupCodecTest.kt`, `shared/src/*Test/resources/backup/**` — done when: real Flutter 1.28.1 backup fixture parses; every error kind; export validates under Flutter rules.
-- [ ] **P10-12** Matcher & planner tests — deps: [P2-18] — owns: `ST/backup/RestorePlannerTest.kt` — done when: 3 passes, 2000 ms window, merges, idempotence.
-- [ ] **P10-13** SemVer & checksum tests — deps: [P2-15] — owns: `ST/update/SemVerTest.kt` — done when: semver.org §11 example chain, `-dev` strip, `v`/`+build`, sha256sum formats.
-- [ ] **P10-14** UpdateChecker tests — deps: [P2-19] — owns: `ST/update/UpdateCheckerTest.kt` — done when: MockEngine 200 newer/older, prerelease list mode, 403/429 with reset, 500, offline, missing asset, 6 h throttle.
+- [x] **P10-01** ArtistParser/AlbumGrouper tests — deps: [P2-01] — owns: `ST/library/GroupingTest.kt` — done when: audit/data §5 examples (808, Greatest Hits, unknown artist, AC/DC) pass.
+- [x] **P10-02** Sorter & search tests — deps: [P2-02, P2-03] — owns: `ST/library/SortSearchTest.kt` — done when: each sort option/direction + search examples of audit/data §6 pass.
+- [x] **P10-03** Title & duration tests — deps: [P2-04] — owns: `ST/library/FormatTest.kt` — done when: Cosmos/Starlight, total-duration examples, `h:mm:ss`, bucket function.
+- [x] **P10-04** QueueState tests — deps: [P2-17] — owns: `ST/queue/QueueStateTest.kt` — done when: shuffle history, unshuffle, LIFO play next, remove by uid, move bookkeeping, repeat cycle, 3 s previous rule.
+- [x] **P10-05** ReplayGain reader tests — deps: [P2-06] — owns: `ST/audio/ReplayGainReaderTest.kt`, `shared/src/*Test/resources/rg/**` — done when: ID3v2.3/2.4, FLAC, Vorbis, Opus R128, MP4 fixtures and malformed inputs.
+- [x] **P10-06** Audio math tests — deps: [P2-07] — owns: `ST/audio/AudioMathTest.kt` — done when: −6 dB ×0.501, clip guard, EQ ±15 dB pinned values, preset mapping N=5/10, fade steps.
+- [x] **P10-07** Sleep timer tests — deps: [P2-08] — owns: `ST/audio/SleepTimerStateTest.kt` — done when: 6 pinned behaviours of audit/playback §14.
+- [x] **P10-08** Lyrics & M3U tests — deps: [P2-09, P2-10] — owns: `ST/lyrics/LyricsParserTest.kt`, `ST/playlist/M3uCodecTest.kt` — done when: fraction/offset/multi-stamp/plain; export format, exact-name matching, sanitizing.
+- [x] **P10-09** Listen tracker tests — deps: [P2-11] — owns: `ST/stats/ListenSessionTrackerTest.kt` — done when: 25 %/10–30 s and 80 % milestones under speed changes, seek reset, pause nesting.
+- [x] **P10-10** Stats aggregates tests — deps: [P2-12] — owns: `ST/stats/StatsAggregatesTest.kt` — done when: top lists, most active day, activity views.
+- [x] **P10-11** Backup codec tests — deps: [P2-13] — owns: `ST/backup/BackupCodecTest.kt`, `shared/src/*Test/resources/backup/**` — done when: real Flutter 1.28.1 backup fixture parses; every error kind; export validates under Flutter rules.
+- [x] **P10-12** Matcher & planner tests — deps: [P2-18] — owns: `ST/backup/RestorePlannerTest.kt` — done when: 3 passes, 2000 ms window, merges, idempotence.
+- [x] **P10-13** SemVer & checksum tests — deps: [P2-15] — owns: `ST/update/SemVerTest.kt` — done when: semver.org §11 example chain, `-dev` strip, `v`/`+build`, sha256sum formats.
+- [x] **P10-14** UpdateChecker tests — deps: [P2-19] — owns: `ST/update/UpdateCheckerTest.kt` — done when: MockEngine 200 newer/older, prerelease list mode, 403/429 with reset, 500, offline, missing asset, 6 h throttle.
 - [ ] **P10-15** Settings defaults test — deps: [P1-04] — owns: `ST/settings/SettingsRepositoryTest.kt` — done when: fresh DataStore yields every §5.3 default; setters round-trip; color-source legacy mirroring.
 
 App tests (`AT/`, Robolectric):

@@ -89,12 +89,13 @@ class ListenSessionTracker(
     }
 
     private fun rearm() {
-        if (!playing || songId == null || durationMs <= 0 || speed <= 0f) return schedule(null)
+        if (!playing || songId == null || durationMs <= 0) return schedule(null)
+        val rate = if (speed > 0f) speed else 1f // Flutter treats speed <= 0 as 1.0
         val next = listOfNotNull(
             recentMilestone(durationMs).takeIf { !recentDone },
             completeMilestone(durationMs).takeIf { !completeDone },
         ).minOrNull() ?: return schedule(null)
-        schedule(((next - positionMs).coerceAtLeast(0) / speed).roundToLong())
+        schedule(((next - positionMs).coerceAtLeast(0) / rate).roundToLong())
     }
 
     companion object {
