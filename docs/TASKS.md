@@ -100,16 +100,29 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 **P4c**
 - [x] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
 
-## P5 UI screens (batch P5a → P5b); each task also owns its `AR/values*/strings_<task>.xml`
+## P5 UI screens; each task also owns its `AR/values*/strings_<task>.xml`
 
-**P5a**
+### P5.1 Usable app (first installable build)
+Goal: open the app, grant access, pick a folder, see your songs, play them, control playback.
+
+**P5.1a** (parallel)
 - [ ] **P5-01** Startup gate [UI-01, LIB-02] — deps: [P1-12, P3-15] — owns: `A/ui/screens/gate/**`, `A/permissions/**` — done when: Loading/Slow/Error/Permission states with 15 s/30 s timers, clear-data retry, open-settings on permanent denial.
 - [ ] **P5-02** Onboarding [UI-02, LIB-01] — deps: [P1-12, P3-15] — owns: `A/ui/screens/onboarding/**` — done when: 3 pages, permission rows, folder picker, finish flow + snackbar; greeting only when a name is entered (D-64).
 - [ ] **P5-03** Home scaffold, header, search, sort sheet [UI-03..06] — deps: [P1-12, P2-02, P2-03] — owns: `A/ui/screens/home/{HomeScreen,HomeViewModel,HomeHeader,SearchHeader,SortSheet}.kt` — done when: greeting/actions/progress, shared query, per-tab buttons & counts, sort sheet with plays special case.
 - [ ] **P5-05** Fast scroller & multi-select [UI-07, UI-13] — deps: [P1-13] — owns: `A/ui/components/{FastScroller,MultiSelectActionBar,SelectionState}.kt` — done when: thumb/bubble/haptics; selection state holder + action bar with all actions & snackbars.
 - [ ] **P5-06** Mini player & Pulse button [UI-15] — deps: [P4-12, P1-13] — owns: `A/ui/components/{MiniPlayer,PulseButton}.kt` — done when: gestures (up/down+undo/left/right), progress hairline, morphing rotating cookie with reduce-motion check.
 - [ ] **P5-07** Now Playing overlay & player view [UI-16, UI-17, UI-22] — deps: [P4-12] — owns: `A/ui/screens/nowplaying/{NowPlayingOverlay,NowPlayingViewModel,PlayerView,ArtworkArea,ArtistPickerSheet}.kt`, `A/ui/components/{TintedBackdrop,Vinyl,Visualizer,MarqueeText}.kt` — done when: expand/collapse with predictive back, view switching with back-to-player, styles/immersive, chips, controls, collapse+push for album/artist.
-- [ ] **P5-08** Up Next, Lyrics, Related, seek bar [UI-18..21] — deps: [P4-12, P2-09] — owns: `A/ui/screens/nowplaying/{UpNextView,LyricsView,RelatedView}.kt`, `A/ui/components/WavySeekBar.kt` — done when: reorder/swipe-remove+undo, synced lyrics auto-scroll (4 s grace, tap-seek), related lists, wavy seek bar with h:mm:ss.
+- [ ] **P5-08a** Up Next & seek bar [UI-18, UI-21] — deps: [P4-12, P2-09] — owns: `A/ui/screens/nowplaying/UpNextView.kt`, `A/ui/components/WavySeekBar.kt` — done when: reorder/swipe-remove+undo, wavy seek bar with h:mm:ss.
+
+**P5.1b**
+- [ ] **P5-04a** Songs tab & sync banner [UI-08, UI-12] — deps: [P5-03, P5-05] — owns: `A/ui/screens/home/tabs/**` — done when: Songs tab list (tap plays the list from that song, song menu: play next / add to queue / favorite), empty/no-result states, pull-to-refresh sync, sync banner behaviours.
+- [ ] **P5-23** First usable nightly — deps: [P5.1 tasks] — owns: none (fixes go to owners) — done when: on the emulator, a fresh install goes onboarding → folder pick → scan → Songs tab → tap plays → mini player → Now Playing (seek, skip, shuffle, repeat, Up Next); nightly published; maintainer installs it on a phone.
+
+### P5.2 Everything else (built while the app is in daily use)
+
+**P5.2a** (parallel)
+- [ ] **P5-04b** Albums, Artists, Playlists tabs [UI-09..11] — deps: [P5-04a] — owns: `A/ui/screens/home/tabs/{Albums,Artists,Playlists}*.kt` — done when: 3 tab contents with sort, search, empty states and playlist menu actions.
+- [ ] **P5-08b** Lyrics & Related views [UI-19, UI-20] — deps: [P5-08a, P2-09] — owns: `A/ui/screens/nowplaying/{LyricsView,RelatedView}.kt` — done when: synced lyrics auto-scroll (4 s grace, tap-seek), plain lyrics, related lists.
 - [ ] **P5-09** Sleep timer & MFX sheets [UI-31, UI-32] — deps: [P4-12] — owns: `A/ui/screens/nowplaying/sheets/**` — done when: both sheets incl. custom EQ (vertical sliders, presets, hidden when unsupported).
 - [ ] **P5-10** Shared sheets & dialogs [UI-28..30] — deps: [P1-13, P3-15] — owns: `A/ui/sheets/**` — done when: song info, playlist selector (single/multi), rename/description/create/save-queue dialogs.
 - [ ] **P5-11** Album & Artist detail [UI-23, UI-24] — deps: [P1-12, P3-15] — owns: `A/ui/screens/album/**`, `A/ui/screens/artist/**` — done when: headers, play/shuffle/favorite, lists with menu & multi-select, not-found states.
@@ -117,8 +130,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [ ] **P5-13** Favorites & Recently played [UI-26, UI-27] — deps: [P1-12, P3-15] — owns: `A/ui/screens/favorites/**`, `A/ui/screens/recent/**` — done when: sections, auto-scroll carousel, favorites sort sheet, recent day grouping.
 - [ ] **P5-14** Statistics [STAT-05, STAT-06] — deps: [P1-12, P3-15] — owns: `A/ui/screens/stats/**` — done when: 5-page pager with nav, all cards, reset confirm.
 
-**P5b**
-- [ ] **P5-04** Home tabs & sync banner [UI-08..12] — deps: [P5-03, P5-05] — owns: `A/ui/screens/home/tabs/**` — done when: 4 tab contents, empty/no-result states, playlist menu actions, sync banner behaviours.
+**P5.2b** (parallel)
 - [ ] **P5-15** Settings root & language [SET-01, L10N-03] — deps: [P1-12] — owns: `A/ui/screens/settings/{SettingsScreen,SettingsViewModel,LibrarySyncCard,LanguageDialog}.kt`, `A/locale/**` — done when: sync card, stats link, language picker via AppCompat (System/English/日本語), sub-screen tiles, debug tile.
 - [ ] **P5-16** Appearance & formatting [SET-02, SET-03, UI-33] — deps: [P1-12] — owns: `A/ui/screens/settings/appearance/**`, `A/ui/screens/settings/formatting/**` — done when: all controls persist; swatch pie selector; live preview.
 - [ ] **P5-17** Playback & privacy settings [SET-04, SET-05] — deps: [P1-12, P4-12] — owns: `A/ui/screens/settings/playback/**`, `A/ui/screens/settings/privacy/**` — done when: every control persists and reaches the service immediately; privacy cards match manifest.
