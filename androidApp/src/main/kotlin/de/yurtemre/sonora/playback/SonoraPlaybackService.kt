@@ -4,7 +4,9 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.OptIn
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -30,6 +32,7 @@ import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.QueueState
+import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.queue.add
 import de.yurtemre.sonora.shared.queue.cleared
 import de.yurtemre.sonora.shared.queue.currentEntry
@@ -82,6 +85,9 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private var restoreJob: Job? = null
     /** A user load happened; a pending restore must not override it. */
     private var userLoaded = false
+    /** Items that failed in a row without anything playing in between (error skip, see [handlePlayerError]). */
+    private var consecutiveErrors = 0
+    private var lastError: C.PlaybackErrorEvent? = null
 
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
@@ -100,7 +106,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED) queue.onEnded()
         }
-        override fun onIsPlayingChanged(isPlaying: Boolean) = persistence.onIsPlayingChanged(isPlaying)
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) consecutiveErrors = 0
+            persistence.onIsPlayingChanged(isPlaying)
+        }
+        override fun onPlayerError(error: PlaybackException) = handlePlayerError(error)
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (playWhenReady) {
                 MediaVolume.ensureAudible(this@SonoraPlaybackService)
@@ -162,7 +172,10 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         recorder.start()
 
         scope.launch {
-            settingsRepo.settings.first().let { player.volumes.userVolume = it.volume }
+            settingsRepo.settings.first().let {
+                player.volumes.userVolume = it.volume
+                queue.restoreRepeat(it.repeatMode)
+            }
             settingsRepo.settings.collect { settings = it; queue.replayGainMode = it.replayGainMode }
         }
         scope.launch { queue.state.collect { publishExtras() } }
@@ -289,7 +302,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             }
             C.SET_SHUFFLE -> if (a.getBoolean(C.ARG_ENABLED) != s.isShuffled) toggleShuffle(s)
             C.TOGGLE_SHUFFLE -> toggleShuffle(s)
-            C.CYCLE_REPEAT -> queue.applyEdit(s.cycleRepeat())
+            C.CYCLE_REPEAT -> {
+                val next = s.cycleRepeat()
+                queue.applyEdit(next)
+                persist { setRepeatMode(next.repeat) }
+            }
             C.SKIP_NEXT -> player.seekToNext()
             C.SKIP_PREVIOUS -> player.seekToPrevious()
             C.SET_VOLUME -> {
@@ -381,9 +398,44 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         val s = session ?: return
         s.setSessionExtras(
             C.toBundle(
-                C.Extras(queue.state.value, sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value),
+                C.Extras(
+                    queue.state.value, sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value,
+                    lastError,
+                ),
             ),
         )
+    }
+
+    // ---- errors ----
+
+    /**
+     * An unplayable item (I/O, missing file, unparsable or undecodable media) is skipped instead of stopping
+     * playback (departs from Flutter). Playback stops only once every item in the loaded window failed in a row.
+     */
+    private fun handlePlayerError(error: PlaybackException) {
+        val songId = queue.state.value.currentEntry?.songId
+        val skippable = error.errorCode in 2000..4999 // IO_*, PARSING_*, DECODING_* / DECODER_*
+        consecutiveErrors++
+        val q = queue.state.value
+        // Last logical item: only repeat-all wraps; otherwise this ends like a normal queue end (queue kept).
+        val atEnd = q.currentIndex >= q.entries.size - 1 && q.repeat != RepeatMode.All
+        val stop = !skippable || atEnd || consecutiveErrors >= exo.mediaItemCount.coerceAtLeast(1)
+        Log.w(TAG, "Playback error ${error.errorCodeName} on song $songId (${consecutiveErrors} in a row, " +
+            if (stop) "stopping)" else "skipping)", error)
+        lastError = C.PlaybackErrorEvent((lastError?.id ?: 0L) + 1, songId, error.errorCode, stop)
+        publishExtras()
+        if (stop) {
+            consecutiveErrors = 0
+            player.pauseImmediately()
+            return
+        }
+        // Next in the window; past the window edge the queue reloads around the next logical item (repeat-all wraps).
+        val next = exo.currentMediaItemIndex + 1
+        if (next < exo.mediaItemCount) exo.seekTo(next, 0)
+        else if (q.repeat == RepeatMode.All && exo.mediaItemCount == q.entries.size) exo.seekTo(0, 0)
+        else queue.skipNext()
+        exo.prepare()
+        exo.playWhenReady = true
     }
 
     // ---- persistence ----
@@ -410,7 +462,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             if (saved.songId !in known || userLoaded) return
             val ids = saved.queueIds.filter { it in known }.ifEmpty { listOf(saved.songId) }
             val orig = saved.originalQueueIds.filter { it in known }.ifEmpty { ids }
-            val base = QueueState().load(orig, saved.songId)
+            val base = QueueState(repeat = settingsRepo.settings.first().repeatMode).load(orig, saved.songId)
             var next = base.nextUid
             val state = if (saved.isShuffled) {
                 val pool = HashMap<Long, ArrayDeque<QueueEntry>>()
@@ -430,5 +482,6 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     companion object {
         const val CHANNEL_ID = "playback"
         const val SLEEP_EXTEND_SEC = 60L
+        private const val TAG = "SonoraPlayback"
     }
 }

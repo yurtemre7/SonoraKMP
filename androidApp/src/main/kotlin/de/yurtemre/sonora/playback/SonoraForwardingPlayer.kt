@@ -94,9 +94,8 @@ class SonoraForwardingPlayer(
         }
     }
 
-    /** Back to full fade factor; quirk: a user volume ≤ 0.05 comes back as 1.0. */
+    /** Back to full fade factor; the user volume is never touched by a fade (departs from Flutter). */
     private fun finishFade() {
-        volumes.userVolume = FadeCurve.restoreVolume(volumes.userVolume)
         volumes.fade = 1.0
     }
 }

@@ -17,6 +17,8 @@ data class Song(
     val sampleRate: Int? = null,
     val lastModifiedMs: Long? = null,
     val fileSize: Long? = null,
+    /** When the file entered the library (MediaStore DATE_ADDED / first seen); drives "recent" sorts. */
+    val dateAddedMs: Long? = null,
     val hasLyrics: Boolean = false,
     val seedColor: Int? = null,
     val trackNumber: Int? = null,

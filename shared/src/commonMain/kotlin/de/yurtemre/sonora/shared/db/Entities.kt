@@ -20,6 +20,7 @@ data class SongEntity(
     val bitrate: Int? = null,
     @ColumnInfo(name = "sample_rate") val sampleRate: Int? = null,
     @ColumnInfo(name = "last_modified_ms") val lastModifiedMs: Long? = null,
+    @ColumnInfo(name = "date_added_ms") val dateAddedMs: Long? = null,
     @ColumnInfo(name = "file_size") val fileSize: Long? = null,
     @ColumnInfo(name = "has_lyrics") val hasLyrics: Boolean = false,
     @ColumnInfo(name = "seed_color") val seedColor: Int? = null,

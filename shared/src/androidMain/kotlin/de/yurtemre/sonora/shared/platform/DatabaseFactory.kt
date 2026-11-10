@@ -9,5 +9,8 @@ import de.yurtemre.sonora.shared.db.buildSonora
 fun createSonoraDatabase(context: Context): SonoraDatabase {
     val ctx = context.applicationContext
     return Room.databaseBuilder<SonoraDatabase>(ctx, ctx.getDatabasePath(SonoraDatabase.FILE_NAME).path)
+        // Pre-1.0 only: the library cache is rescannable, so a schema change just wipes the DB.
+        // TODO(before 1.0.0): remove and write real migrations from schema 1
+        .fallbackToDestructiveMigration(dropAllTables = true)
         .buildSonora()
 }

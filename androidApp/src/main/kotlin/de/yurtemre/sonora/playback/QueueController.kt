@@ -135,6 +135,13 @@ class QueueController(
         }
     }
 
+    /** Applies the persisted repeat mode (service start); no reload, the queue is otherwise untouched. */
+    fun restoreRepeat(mode: RepeatMode) {
+        if (_state.value.repeat == mode) return
+        _state.value = _state.value.copy(repeat = mode)
+        player.wrappedPlayer.repeatMode = mode.toPlayer()
+    }
+
     override fun skipNext() = navigate(_state.value.next())
     override fun skipPrevious(positionMs: Long) = navigate(_state.value.previous(positionMs))
 

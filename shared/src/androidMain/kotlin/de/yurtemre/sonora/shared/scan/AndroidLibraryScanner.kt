@@ -3,6 +3,8 @@ package de.yurtemre.sonora.shared.scan
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import de.yurtemre.sonora.shared.library.TrackNumbers
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.platform.TreeUriPaths
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
@@ -99,7 +101,9 @@ class AndroidLibraryScanner(
             known.filterValues { it != null }.mapValues { it.value!! }
         }
 
+        val cachedByPath = cached.associateBy { it.filePath }
         val songs = rows.map { r ->
+            val (disc, track) = TrackNumbers.split(r.trackNumber)
             Song(
                 id = r.id,
                 title = r.title.trim().ifEmpty { File(r.filePath).nameWithoutExtension },
@@ -112,9 +116,11 @@ class AndroidLibraryScanner(
                 lastModifiedMs = r.lastModifiedMs,
                 fileSize = r.fileSize,
                 hasLyrics = r.hasLyrics || LyricsLocator.hasLyrics(r.filePath, index),
-                // LIB-03: TRACK stays raw (disc×1000+track); disc/genre/bitrate/sampleRate null.
-                trackNumber = r.trackNumber.takeIf { it > 0 },
-                discNumber = null,
+                dateAddedMs = r.dateAddedMs.takeIf { it > 0 } ?: r.lastModifiedMs,
+                // TRACK is disc×1000+track; genre/bitrate/sampleRate stay null.
+                trackNumber = track,
+                discNumber = disc,
+                albumArtist = r.albumArtist ?: albumArtistFromTag(r, cachedByPath),
                 year = r.year.takeIf { it > 0 },
                 albumId = r.albumId.takeIf { it > 0 },
                 replayGainScanned = false,
@@ -122,6 +128,17 @@ class AndroidLibraryScanner(
         }
         runCatching { artworkCache.prune(albumIds) }
         return ScanResult(songs, artistImages(songs, root, index))
+    }
+
+    /**
+     * API < 30 has no public ALBUM_ARTIST column: read the tag (no picture) only for new/changed files;
+     * unchanged files keep the cached value.
+     */
+    private fun albumArtistFromTag(r: MediaStoreRow, cachedByPath: Map<String, Song>): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return null
+        val old = cachedByPath[r.filePath]
+        if (old != null && old.lastModifiedMs == r.lastModifiedMs && old.fileSize == r.fileSize) return old.albumArtist
+        return runCatching { TagReader.read(File(r.filePath), withPicture = false).albumArtist }.getOrNull()
     }
 
     private fun Song.withLyrics(index: TreeSidecarIndex): Song {

@@ -18,6 +18,10 @@ data class MediaStoreRow(
     val trackNumber: Int,
     val year: Int,
     val lastModifiedMs: Long,
+    /** DATE_ADDED (s → ms); 0 when unknown. */
+    val dateAddedMs: Long = 0,
+    /** ALBUM_ARTIST (API 30+ column); null when absent/blank. */
+    val albumArtist: String? = null,
     val fileSize: Long,
     val hasLyrics: Boolean,
 )
@@ -31,8 +35,10 @@ class MediaStoreScanner(private val resolver: ContentResolver) {
             MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.ALBUM_ID, MediaStore.Audio.Media.TRACK, MediaStore.Audio.Media.YEAR,
-            MediaStore.Audio.Media.DATE_MODIFIED, MediaStore.Audio.Media.SIZE,
+            MediaStore.Audio.Media.DATE_MODIFIED, MediaStore.Audio.Media.SIZE, MediaStore.Audio.Media.DATE_ADDED,
         )
+        // ALBUM_ARTIST is a public column from API 30; older devices fall back to the file tag.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) projection.add(MediaStore.Audio.Media.ALBUM_ARTIST)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) projection.add(MediaStore.Audio.Media.COMPOSER)
 
         val variants = folderVariants(folderPath)
@@ -53,6 +59,9 @@ class MediaStoreScanner(private val resolver: ContentResolver) {
                 val yearCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
                 val modCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
                 val sizeCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val addedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+                val albumArtistCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                    c.getColumnIndex(MediaStore.Audio.Media.ALBUM_ARTIST) else -1
                 val out = ArrayList<MediaStoreRow>(c.count.coerceAtLeast(0))
                 while (c.moveToNext()) {
                     val path = c.getString(dataCol)
@@ -73,6 +82,9 @@ class MediaStoreScanner(private val resolver: ContentResolver) {
                         year = c.getInt(yearCol),
                         lastModifiedMs = c.getLong(modCol) * 1000L,
                         fileSize = c.getLong(sizeCol),
+                        dateAddedMs = c.getLong(addedCol) * 1000L,
+                        albumArtist = if (albumArtistCol >= 0) c.getString(albumArtistCol)?.trim()
+                            ?.takeIf { it.isNotEmpty() && it != UNKNOWN } else null,
                         hasLyrics = LyricsLocator.hasLyrics(path),
                     )
                 }

@@ -46,15 +46,18 @@ class DirectoryScanner(private val context: Context) {
         var nextId = maxOf(minNextId, (existing.maxOfOrNull { it.id } ?: 0L) + 1)
         val out = ArrayList<Song>(listing.audio.size)
         var reparsed = 0
+        val now = System.currentTimeMillis()
         for ((path, saf) in listing.audio) {
             val (mtime, size) = listing.stats[path] ?: (0L to 0L)
             val cached = byPath[path]
+            // "Added" = first time this path was seen (persisted on the song row); first scan / legacy rows use mtime.
+            val added = cached?.dateAddedMs ?: if (cached != null || existing.isEmpty()) mtime else now
             if (cached != null && cached.lastModifiedMs == mtime && cached.fileSize == size &&
                 cached.artist != "Local Audio" && cached.album != "Synced Folder" && cached.format != null
-            ) { out += cached; continue }
+            ) { out += if (cached.dateAddedMs == added) cached else cached.copy(dateAddedMs = added); continue }
             val id = cached?.id ?: nextId++
             out += parse(path, saf?.uri, id, root, listing.covers, mtime, size).copy(isFavorite = cached?.isFavorite ?: false,
-                favoriteDateMs = cached?.favoriteDateMs, seedColor = null)
+                favoriteDateMs = cached?.favoriteDateMs, seedColor = null, dateAddedMs = added)
             reparsed++
         }
         pruneArt(out.mapTo(HashSet()) { it.id })
@@ -115,6 +118,7 @@ class DirectoryScanner(private val context: Context) {
             filePath = path, artworkPath = art, format = tags.format, bitrate = tags.bitrate,
             sampleRate = tags.sampleRate, lastModifiedMs = mtime, fileSize = size,
             hasLyrics = LyricsLocator.hasLyrics(path), trackNumber = track, discNumber = tags.discNumber,
+            albumArtist = tags.albumArtist?.trim()?.ifEmpty { null },
             genre = tags.genre, year = tags.year,
         )
     }

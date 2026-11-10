@@ -198,6 +198,7 @@ App tests (`AT/`, Robolectric):
 - [ ] **P10-24** Song info UI test — deps: [P5-10] — owns: `AT/ui/SongInfoSheetTest.kt` — done when: metadata shown, selectable path, Copy path, tap value → snackbar, audio group hidden when empty.
 - [ ] **P10-25** Now Playing back test — deps: [P5-07] — owns: `AT/ui/NowPlayingBackTest.kt` — done when: back from Up Next returns to player; back from player collapses; album link collapses and pushes `Album`.
 - [ ] **P10-26** App smoke test — deps: [P5-01, P5-02] — owns: `AT/SmokeTest.kt` — done when: Robolectric launches `MainActivity` with fake repos → onboarding; with completed onboarding + fake library → Songs tab lists songs.
+- [ ] **P10-28** Room migrations before 1.0 — deps: [] — owns: `SA/platform/**`, `shared/schemas/**` — done when: `fallbackToDestructiveMigration` is removed, the released schema is frozen as version 1 (or bumped with a migration), and a migration test covers every later schema change.
 - [ ] **P10-27** Final verification — deps: [P10-01..P10-26, P6-01, P7-05, P8-01] — owns: none (fixes go back to owning tasks) — done when: `BUILD_APP`, assembleRelease (R8), `LINT`, `TEST_SHARED`, `TEST_APP` green; manual device checklist passed: scan, play/gapless, notification + BT buttons, sleep timer, widget, backup import of a Flutter backup, language switch, danger zone, update flow.
 
 ---

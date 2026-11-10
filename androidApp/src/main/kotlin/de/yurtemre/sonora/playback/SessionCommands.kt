@@ -77,6 +77,10 @@ object SessionCommands {
     private const val X_EQ_CENTERS = "x.eq.centers"
     private const val X_EQ_MIN = "x.eq.min"
     private const val X_EQ_MAX = "x.eq.max"
+    private const val X_ERR_ID = "x.err.id"
+    private const val X_ERR_SONG = "x.err.song"
+    private const val X_ERR_CODE = "x.err.code"
+    private const val X_ERR_STOPPED = "x.err.stopped"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -89,9 +93,21 @@ object SessionCommands {
         val sleep: SleepTimerUiState = SleepTimerUiState.Inactive,
         val eqSupported: Boolean = false,
         val eq: AudioEffects.EqInfo? = null,
+        /** Last unplayable-item event; a new [PlaybackErrorEvent.id] means "show once". */
+        val playbackError: PlaybackErrorEvent? = null,
     )
 
+    /**
+     * One-shot playback error: [songId] failed ([errorCode] = Media3 `PlaybackException` code).
+     * [stopped] = every item in the loaded window failed, so playback stopped instead of skipping.
+     */
+    data class PlaybackErrorEvent(val id: Long, val songId: Long?, val errorCode: Int, val stopped: Boolean)
+
     fun toBundle(e: Extras): Bundle = Bundle().apply {
+        e.playbackError?.let { err ->
+            putLong(X_ERR_ID, err.id); err.songId?.let { putLong(X_ERR_SONG, it) }
+            putInt(X_ERR_CODE, err.errorCode); putBoolean(X_ERR_STOPPED, err.stopped)
+        }
         putString(X_QUEUE, encodeQueue(e.queue))
         when (val s = e.sleep) {
             SleepTimerUiState.Inactive -> putInt(X_SLEEP_KIND, 0)
@@ -120,6 +136,10 @@ object SessionCommands {
             else -> SleepTimerUiState.Inactive
         }
         val eq = b.getIntArray(X_EQ_CENTERS)?.let { AudioEffects.EqInfo(it.toList(), b.getInt(X_EQ_MIN), b.getInt(X_EQ_MAX)) }
-        return Extras(decodeQueue(b.getString(X_QUEUE)) ?: QueueState(), sleep, b.getBoolean(X_EQ_SUPPORTED), eq)
+        val err = if (b.containsKey(X_ERR_ID)) PlaybackErrorEvent(
+            b.getLong(X_ERR_ID), if (b.containsKey(X_ERR_SONG)) b.getLong(X_ERR_SONG) else null,
+            b.getInt(X_ERR_CODE), b.getBoolean(X_ERR_STOPPED),
+        ) else null
+        return Extras(decodeQueue(b.getString(X_QUEUE)) ?: QueueState(), sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err)
     }
 }

@@ -115,7 +115,8 @@ class LibraryRepositoryImpl(
             val old = byPath[s.filePath] ?: return@map s
             val unchanged = old.lastModifiedMs == s.lastModifiedMs && old.fileSize == s.fileSize &&
                 (s.artworkPath == null || s.artworkPath == old.artworkPath)
-            if (unchanged) old.copy(id = s.id, albumId = s.albumId ?: old.albumId, isFavorite = false, favoriteDateMs = null)
+            if (unchanged) old.copy(id = s.id, albumId = s.albumId ?: old.albumId, dateAddedMs = s.dateAddedMs ?: old.dateAddedMs,
+                trackNumber = s.trackNumber, discNumber = s.discNumber, albumArtist = s.albumArtist ?: old.albumArtist, isFavorite = false, favoriteDateMs = null)
             else s.copy(seedColor = s.seedColor ?: old.seedColor.takeIf { s.artworkPath == old.artworkPath })
         }
     }

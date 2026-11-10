@@ -57,13 +57,16 @@ class FadeTest {
         assertTrue(exo.playWhenReady)
     }
 
-    @Test fun lowUserVolumeIsRestoredToFullAfterFade() {
+    @Test fun lowUserVolumeIsRestoredExactlyAfterFade() {
         player.volume = 0.04f
         player.play(); repeat(FadeCurve.STEPS) { step() }
+        assertEquals(0.04f, exo.volume, 1e-6f)
         player.pause(); repeat(FadeCurve.STEPS) { step() }
         assertFalse(exo.playWhenReady)
-        assertEquals(1f, player.volume, 0f)
-        assertEquals(1f, exo.volume, 0f)
+        assertEquals(0.04f, player.volume, 1e-6f)
+        assertEquals(0.04f, exo.volume, 1e-6f)
+        player.play(); repeat(FadeCurve.STEPS) { step() }
+        assertEquals(0.04f, exo.volume, 1e-6f)
     }
 
     @Test fun volumeComposesUserFadeAndReplayGainCappedAtOne() {

@@ -22,7 +22,7 @@ object LibrarySorter {
         val base: Comparator<Song> = when (sort) {
             SongSort.Artist -> compareBy<Song> { it.artistLower }.thenBy { it.titleLower }
             SongSort.Duration -> compareBy<Song> { it.durationMs }.thenBy { it.titleLower }
-            SongSort.Recent -> compareByDescending<Song> { it.lastModifiedMs ?: 0L }.thenBy { it.titleLower }
+            SongSort.Recent -> compareByDescending<Song> { it.addedMs }.thenBy { it.titleLower }
             else -> compareBy { it.titleLower }
         }
         return base.thenBy { it.id }.dir(ascending)
@@ -45,7 +45,10 @@ object LibrarySorter {
         else -> currentAscending
     }
 
-    fun latestModifiedMs(album: AlbumGroup): Long = album.songs.maxOfOrNull { it.lastModifiedMs ?: 0L } ?: 0L
+    private val Song.addedMs: Long get() = dateAddedMs ?: lastModifiedMs ?: 0L
+
+    /** Most recent "added" date of the album (falls back to mtime for rows scanned before dateAddedMs). */
+    fun latestModifiedMs(album: AlbumGroup): Long = album.songs.maxOfOrNull { it.addedMs } ?: 0L
 
     fun sortAlbums(albums: List<AlbumGroup>, sort: AlbumSort, ascending: Boolean): List<AlbumGroup> {
         val c: Comparator<AlbumGroup> = when (sort) {
