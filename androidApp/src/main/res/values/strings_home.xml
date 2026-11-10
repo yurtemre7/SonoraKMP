@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_search_hint">Search your library</string>
+    <string name="home_search_clear">Clear search</string>
+    <string name="home_sort_button">Sort %1$s</string>
+    <string name="home_count_with_duration">%1$s, %2$s</string>
+    <string name="home_sort_sheet_title">Sort %1$s by</string>
+    <string name="home_sort_ascending">Ascending</string>
+    <string name="home_sort_descending">Descending</string>
+    <string name="home_sort_most_played">Most played</string>
+    <string name="home_sort_least_played">Least played</string>
+    <string name="home_sort_opt_title">Title</string>
+    <string name="home_sort_opt_artist">Artist</string>
+    <string name="home_sort_opt_duration">Duration</string>
+    <string name="home_sort_opt_recent">Recently added</string>
+    <string name="home_sort_opt_plays">Play count</string>
+    <string name="home_sort_opt_name">Name</string>
+    <string name="home_sort_opt_tracks">Track count</string>
+    <string name="home_sort_opt_albums">Album count</string>
+    <string name="home_sort_opt_songs">Song count</string>
+    <string name="home_sort_saved">Saved per tab and kept for next time.</string>
+    <string name="home_action_recently_played">Recently played</string>
+    <string name="home_action_favorites">Favorites</string>
+    <string name="home_action_settings">Settings</string>
+</resources>
