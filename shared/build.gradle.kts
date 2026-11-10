@@ -84,3 +84,10 @@ tasks.withType<Test>().configureEach {
         hostSqliteDir.get().asFile.resolve("natives/$hostSqlitePlatform").absolutePath,
     )
 }
+
+// Let the usual `./gradlew testDebugUnitTest` (CI, release, nightly) also run the shared tests.
+tasks.register("testDebugUnitTest") {
+    group = "verification"
+    description = "Runs the shared module's host tests (alias of testAndroidHostTest)."
+    dependsOn("testAndroidHostTest")
+}
