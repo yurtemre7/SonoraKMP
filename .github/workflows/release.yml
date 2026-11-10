@@ -1,0 +1,207 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (X.Y.Z or X.Y.Z-pre.N, no leading v). Defaults to the tag when run on a tag."
+        required: false
+        type: string
+      dry_run:
+        description: "Build and generate notes only; upload as workflow artifacts instead of publishing."
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      dry_run: ${{ steps.version.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          dry_run=false
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_DRY_RUN" == "true" ]]; then
+            dry_run=true
+          fi
+          if [[ -n "${INPUT_VERSION:-}" ]]; then
+            version="${INPUT_VERSION#v}"
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            echo "::error::No version: run on a v* tag or pass the 'version' input."
+            exit 1
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$version' is not a valid version (expected X.Y.Z or X.Y.Z-pre.N)."
+            exit 1
+          fi
+          tag="v$version"
+          if [[ "$dry_run" == "false" && ( "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$tag" ) ]]; then
+            echo "::error::Publishing requires running on tag $tag (got $GITHUB_REF_TYPE '$GITHUB_REF_NAME'). Use dry_run to validate."
+            exit 1
+          fi
+          prerelease=false
+          [[ "$version" == *-* ]] && prerelease=true
+          if [[ "$dry_run" == "true" ]]; then ref=HEAD; else ref="$tag"; fi
+          prev=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${ref}^" 2>/dev/null || true)
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "prerelease=$prerelease"
+            echo "dry_run=$dry_run"
+            echo "ref=$ref"
+            echo "prev=$prev"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version $version (tag $tag, prerelease=$prerelease, dry_run=$dry_run, previous=${prev:-none})"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Set up signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SONORA_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SONORA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SONORA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SONORA_KEY_PASSWORD }}
+          DRY_RUN: ${{ steps.version.outputs.dry_run }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "$KEYSTORE_BASE64" ]] || missing+=(SONORA_KEYSTORE_BASE64)
+          [[ -n "$KEYSTORE_PASSWORD" ]] || missing+=(SONORA_KEYSTORE_PASSWORD)
+          [[ -n "$KEY_ALIAS" ]] || missing+=(SONORA_KEY_ALIAS)
+          [[ -n "$KEY_PASSWORD" ]] || missing+=(SONORA_KEY_PASSWORD)
+          if (( ${#missing[@]} )); then
+            if [[ "$DRY_RUN" == "true" ]]; then
+              echo "::warning::Signing secrets missing (${missing[*]}); dry run falls back to debug signing."
+              exit 0
+            fi
+            echo "::error::Missing signing secrets: ${missing[*]}. Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          keystore="$RUNNER_TEMP/sonora-release.jks"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          {
+            echo "SONORA_KEYSTORE_PATH=$keystore"
+            echo "SONORA_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "SONORA_KEY_ALIAS=$KEY_ALIAS"
+            echo "SONORA_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Test and build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew testDebugUnitTest assembleRelease bundleRelease -Psonora.versionName="$VERSION" --stacktrace
+
+      - name: Collect artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          apk=$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n1)
+          aab=$(find androidApp/build/outputs/bundle/release -name '*.aab' | head -n1)
+          [[ -n "$apk" && -n "$aab" ]] || { echo "::error::Release APK/AAB not found."; exit 1; }
+          cp "$apk" "dist/sonora-$VERSION.apk"
+          cp "$aab" "dist/sonora-$VERSION.aab"
+          (cd dist && sha256sum "sonora-$VERSION.apk" > "sonora-$VERSION.apk.sha256")
+          cat "dist/sonora-$VERSION.apk.sha256"
+          ls -l dist
+
+      - name: Prepare git-cliff arguments
+        id: cliff_args
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          REF: ${{ steps.version.outputs.ref }}
+          PREV: ${{ steps.version.outputs.prev }}
+          DRY_RUN: ${{ steps.version.outputs.dry_run }}
+        run: |
+          set -euo pipefail
+          args="--verbose --strip header --tag $TAG"
+          if [[ -n "$PREV" ]]; then
+            args="$args $PREV..$REF"
+          elif [[ "$DRY_RUN" == "true" ]]; then
+            args="$args --unreleased"
+          fi
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: ${{ steps.cliff_args.outputs.args }}
+        env:
+          OUTPUT: dist/RELEASE_NOTES.md
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show release notes
+        run: cat dist/RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonora-${{ steps.version.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sonora-release.jks"
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    if: needs.build.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sonora-${{ needs.build.outputs.version }}
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Sonora ${{ needs.build.outputs.version }}
+          body_path: dist/RELEASE_NOTES.md
+          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.build.outputs.prerelease == 'true' && 'false' || 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/sonora-${{ needs.build.outputs.version }}.apk
+            dist/sonora-${{ needs.build.outputs.version }}.apk.sha256
+            dist/sonora-${{ needs.build.outputs.version }}.aab
