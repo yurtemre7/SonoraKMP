@@ -158,7 +158,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [ ] **P8-04** Bundled changelog — deps: [P1-01] — owns: `CHANGELOG.md`, `androidApp/build.gradle.kts` (asset task only) — done when: `CHANGELOG.md` generated with `git cliff` config and copied into generated assets so UI-36 shows it offline.
 - [x] **P8-05** CONTRIBUTING — deps: [P8-01] — owns: `CONTRIBUTING.md` — done when: commit convention, commands, release process (tag `vX.Y.Z`), strings process documented.
 - [ ] **P8-06** README — deps: [P8-02] — owns: `README.md` — done when: features, install (side-by-side with Flutter app, backup migration), build, release, one-time secrets setup, Pages setup, privacy, links.
-- [ ] **P8-07** Release dry run — deps: [P8-02, P1-12] — owns: none — done when: `release.yml` dispatched with `dry_run` produces apk/sha256/aab artifacts and notes.
+- [x] **P8-07** Release dry run — deps: [P8-02] — owns: none — done when: `release.yml` dispatched with `dry_run` produces apk/sha256/aab artifacts and notes. (Run 42814606411: signed with release key, checksum matches.)
 
 ## P9 Website (`/site`)
 

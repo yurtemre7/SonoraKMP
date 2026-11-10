@@ -754,7 +754,7 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 | R-04 | Large queues (10k+) over MediaSession binder | Sliding window kept (PLAY-08); test with 10k items |
 | R-05 | SAF tree URI → filesystem path conversion for SD cards/OEM volumes | Fallback DocumentFile scan; store both path & URI |
 | R-06 | jaudiotagger speed/compat on large libraries; `File` access to non-media files on API 30+ | MediaStore primary; fallback only when MediaStore empty |
-| R-07 | Song id = MediaStore `_ID` may change on re-index → playlists/stats lose refs | Backup matcher; favorites relink by path (D-26); playlists/stats not relinked (Q-1) |
+| R-07 | Song id = MediaStore `_ID` may change on re-index → playlists/stats lose refs | Backup matcher; favorites relink by path (D-26); playlists, stats and favorites relink by file path (D-49) |
 | R-08 | Material3 1.5.0-rc01 API churn (expressive) | Pin; isolate expressive usages in `ui/components/` |
 | R-09 | Navigation 3 + predictive back + shared elements maturity | Keep NP overlay outside NavDisplay |
 | R-10 | PackageInstaller flows differ by OEM; first install of KMP build over Flutter impossible (different id) | Browser fallback; README explains side-by-side |
@@ -766,7 +766,7 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 | R-16 | Visualizer remains fake (no RECORD_AUDIO) | Documented |
 
 ### Open questions
-- **Q-1** Should playlist entries and stats also relink by file path when MediaStore ids change (like favorites)? Spec: no (parity), revisit.
-- **Q-2** Release signing key for KMP builds is new; Flutter users can never in-place upgrade. Confirm product wants side-by-side permanently.
-- **Q-3** Japanese translations for new strings (§8.3) need native review.
-- **Q-4** Should "Skip this version" exist in the update sheet? Not specified; omitted.
+- **Q-1 → D-49 (resolved 2026-11-10):** when MediaStore ids change on re-index, playlist entries, stats and favorites relink by file path.
+- **Q-2 (open):** new signing key + applicationId; Flutter users install side by side and migrate via backup v1 import.
+- **Q-3 → D-50 (resolved):** all Japanese strings may be retranslated for natural, native phrasing (not literal).
+- **Q-4 → D-51 (resolved):** no "Skip this version" in the update sheet.
