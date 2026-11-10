@@ -7,11 +7,20 @@ Plain HTML, CSS and vanilla JS: no framework, no build step.
 | File | Purpose |
 | --- | --- |
 | `index.html` | Markup. English copy is inline so the page works without JS. |
-| `styles.css` | Afterglow tokens (docs/DESIGN.md §1) as CSS custom properties, light/dark, layout. |
+| `styles.css` | Sleeve tokens (docs/DESIGN.md §1, §9) as flat CSS custom properties, light/dark, layout. No gradients, glows or blur. |
 | `app.js` | EN/JA dictionary, theme toggle, latest-release lookup, screenshot fallback. |
-| `favicon.svg` | 9-sided cookie (Pulse button) icon. |
-| `assets/fonts/*.woff2` | Bricolage Grotesque and Figtree, Latin subset (see below). |
-| `assets/screenshots/` | Phone screenshots (placeholders for now). |
+| `favicon.svg` | Flat Cobalt sleeve with two spines (Fog, Label). |
+| `assets/fonts/bricolage-grotesque-latin.woff2` | Bricolage Grotesque, the only family; Latin subset (see below). |
+| `assets/screenshots/` | Phone screenshots (flat typographic-sleeve SVG placeholders for now). |
+
+## Layout
+
+Hero: a shelf of decorative (`aria-hidden`) spines carrying real feature names in
+condensed type (`font-stretch: 75%`); the tallest reads "Sonora". They slide in
+once on load; `prefers-reduced-motion` turns that off. The `h1` is the headline
+beside them. Features are a grouped two-column list (Library / Playback / Yours);
+screenshots sit in phone frames on a flat band. Copy is sentence case, with no
+all-caps labels, no middle-dot meta strings and no arrows on links.
 
 ## Preview locally
 
@@ -49,32 +58,27 @@ a choice is stored in `localStorage` (`sonora-lang`) and sets `<html lang>`.
 
 ### Japanese phrases for the maintainer to review
 
-The Japanese is written to read naturally rather than as a literal translation.
-Please check these in particular:
-
-- `heroTitle` あなたの音楽は、あなただけのもの。 ("Your music. Nobody else's.")
-- `featTitle` 音楽ライブラリに必要なものを、必要なだけ。
-- `scrTitle` 夜の静けさに、あたたかな灯りを。 (free rendering of "Warm light on deep ink")
+- `heroTitle` 手元の音楽を、そのまま聴く。 ("Play the music you own.")
+- `gYours` あなたのもの (group heading "Yours")
+- `featTitle` できること / `scrTitle` アプリの画面
+- `f12t` 好きな色で, `f17t` ギャップレス再生
 - `heroLede` "no analytics" is rendered as 利用データの収集もありません.
-- `f15t` GitHub から自動アップデート: the app checks and offers updates; confirm "自動" is accurate.
-- `f16t` プライバシーを最優先に and `f5d` (ReplayGain wording).
-- `dlTitle` Sonora を手に入れる (alternative: Sonora をダウンロード).
 - `dlReq` Android 7.0 以降に対応しています (minSdk 24).
 
 ## Fonts
 
-The woff2 files were generated from `androidApp/src/main/res/font/*.ttf` with
-fontTools (`pip install fonttools brotli`):
+The woff2 was generated from `androidApp/src/main/res/font/bricolage_grotesque.ttf`
+with fontTools (`pip install fonttools brotli`), keeping `wdth` 75–100 (condensed
+spines and titles) and `wght` 400–800:
 
 ```sh
-python -m fontTools.varLib.instancer bricolage_grotesque.ttf opsz=48 wdth=85:100 wght=500:800 -o brico.ttf
+python -m fontTools.varLib.instancer bricolage_grotesque.ttf opsz=48 wdth=75:100 wght=400:800 -o brico.ttf
 U="U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2190-2193,U+2212,U+2215"
 pyftsubset brico.ttf --unicodes="$U" --flavor=woff2 --layout-features='kern,liga,tnum,lnum' --output-file=assets/fonts/bricolage-grotesque-latin.woff2
-pyftsubset figtree.ttf --unicodes="$U" --flavor=woff2 --layout-features='kern,liga,tnum,lnum' --output-file=assets/fonts/figtree-latin.woff2
 ```
 
 Japanese text falls back to the system CJK font (Hiragino / Noto Sans JP).
-Both fonts are OFL-licensed.
+The font is OFL-licensed.
 
 ## Deploying
 
