@@ -8,7 +8,7 @@ fun SongEntity.toModel(favorite: FavoriteSongEntity? = null): Song = Song(
     id = id, title = title, artist = artist, album = album, durationMs = durationMs, filePath = filePath,
     artworkPath = artworkPath, format = format, bitrate = bitrate, sampleRate = sampleRate,
     lastModifiedMs = lastModifiedMs, fileSize = fileSize, hasLyrics = hasLyrics, seedColor = seedColor,
-    trackNumber = trackNumber, discNumber = discNumber, genre = genre, year = year, albumId = albumId,
+    trackNumber = trackNumber, discNumber = discNumber, albumArtist = albumArtist, genre = genre, year = year, albumId = albumId,
     replayGain = if (rgTrackGain == null && rgAlbumGain == null && rgTrackPeak == null && rgAlbumPeak == null) null
     else ReplayGainInfo(rgTrackGain, rgAlbumGain, rgTrackPeak, rgAlbumPeak),
     replayGainScanned = rgScanned,
@@ -20,7 +20,7 @@ fun Song.toEntity(): SongEntity = SongEntity(
     id = id, title = title, artist = artist, album = album, durationMs = durationMs, filePath = filePath,
     artworkPath = artworkPath, format = format, bitrate = bitrate, sampleRate = sampleRate,
     lastModifiedMs = lastModifiedMs, fileSize = fileSize, hasLyrics = hasLyrics, seedColor = seedColor,
-    trackNumber = trackNumber, discNumber = discNumber, genre = genre, year = year, albumId = albumId,
+    trackNumber = trackNumber, discNumber = discNumber, albumArtist = albumArtist, genre = genre, year = year, albumId = albumId,
     rgTrackGain = replayGain?.trackGain, rgAlbumGain = replayGain?.albumGain,
     rgTrackPeak = replayGain?.trackPeak, rgAlbumPeak = replayGain?.albumPeak, rgScanned = replayGainScanned,
 )

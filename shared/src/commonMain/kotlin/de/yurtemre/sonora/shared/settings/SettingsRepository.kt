@@ -49,6 +49,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSleepTimerDefaultMinutes(v: Int) = put { it[K.SLEEP_TIMER_DEFAULT_MINUTES] = v }
     suspend fun setSleepTimerFadeOutSeconds(v: Int) = put { it[K.SLEEP_TIMER_FADE_OUT_SECONDS] = v }
     suspend fun setSleepTimerFinishSong(v: Boolean) = put { it[K.SLEEP_TIMER_FINISH_SONG] = v }
+    suspend fun setRepeatMode(v: RepeatMode) = put { it[K.REPEAT_MODE] = v.storageName }
     suspend fun setVolume(v: Double) = put { it[K.VOLUME] = v }
     suspend fun setSpeed(v: Double) = put { it[K.SPEED] = v }
     suspend fun setMfxPreset(v: MfxPreset?) = put {
@@ -159,6 +160,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 sleepTimerDefaultMinutes = p[K.SLEEP_TIMER_DEFAULT_MINUTES] ?: d.sleepTimerDefaultMinutes,
                 sleepTimerFadeOutSeconds = p[K.SLEEP_TIMER_FADE_OUT_SECONDS] ?: d.sleepTimerFadeOutSeconds,
                 sleepTimerFinishSong = p[K.SLEEP_TIMER_FINISH_SONG] ?: d.sleepTimerFinishSong,
+                repeatMode = RepeatMode.fromStorage(p[K.REPEAT_MODE]),
                 filterTitleFeatures = p[K.FILTER_TITLE_FEATURES] ?: d.filterTitleFeatures,
                 filterTitleArtist = p[K.FILTER_TITLE_ARTIST] ?: d.filterTitleArtist,
                 autoCheckUpdates = p[K.AUTO_CHECK_UPDATES] ?: d.autoCheckUpdates,

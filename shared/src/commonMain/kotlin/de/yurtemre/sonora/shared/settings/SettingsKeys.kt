@@ -36,6 +36,8 @@ object SettingsKeys {
     val SLEEP_TIMER_DEFAULT_MINUTES = intPreferencesKey("sleep_timer_default_minutes")
     val SLEEP_TIMER_FADE_OUT_SECONDS = intPreferencesKey("sleep_timer_fade_out_seconds")
     val SLEEP_TIMER_FINISH_SONG = booleanPreferencesKey("sleep_timer_finish_song")
+    /** Native-only: persisted repeat mode (`off`/`all`/`one`). */
+    val REPEAT_MODE = stringPreferencesKey("repeat_mode")
     val FILTER_TITLE_FEATURES = booleanPreferencesKey("filter_title_features")
     val FILTER_TITLE_ARTIST = booleanPreferencesKey("filter_title_artist")
     val AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")

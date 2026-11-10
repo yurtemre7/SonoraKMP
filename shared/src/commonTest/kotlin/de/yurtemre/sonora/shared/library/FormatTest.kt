@@ -14,7 +14,8 @@ class FormatTest {
     }
 
     @Test fun totalDurationParts() {
-        assertEquals(DurationParts(null, 1, null, 0), DurationFormat.totalParts(3_600_000))
+        assertEquals(DurationParts(null, 1, 0, 0), DurationFormat.totalParts(3_600_000))
+        assertEquals(DurationParts(null, 1, 0, 5), DurationFormat.totalParts(3_605_000))
         assertEquals(DurationParts(null, null, 1, 30), DurationFormat.totalParts(90_000))
         assertEquals(DurationParts(null, null, 0, 5), DurationFormat.totalParts(5_000))
         assertEquals(DurationParts(1, 2, 3, 4), DurationFormat.totalParts((93_784L) * 1000))

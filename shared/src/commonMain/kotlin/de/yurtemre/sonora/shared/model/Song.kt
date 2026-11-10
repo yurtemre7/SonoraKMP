@@ -21,6 +21,8 @@ data class Song(
     val seedColor: Int? = null,
     val trackNumber: Int? = null,
     val discNumber: Int? = null,
+    /** Album-artist tag; groups albums when present (departs from Flutter). */
+    val albumArtist: String? = null,
     val genre: String? = null,
     val year: Int? = null,
     val albumId: Long? = null,

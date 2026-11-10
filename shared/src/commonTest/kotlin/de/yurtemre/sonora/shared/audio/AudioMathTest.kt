@@ -27,6 +27,7 @@ class AudioMathTest {
         assertEquals(1.25, m, 1e-9)
         assertEquals(1.0, ReplayGainMath.effectiveVolume(1.0, m))
         assertEquals(1.0 / 0.9, ReplayGainMath.multiplier(ReplayGainInfo(trackGain = 6.0, albumPeak = 0.9), ReplayGainMode.Track), 1e-9)
+        assertEquals(1.0 / 0.9, ReplayGainMath.multiplier(ReplayGainInfo(albumGain = 6.0, trackPeak = 0.5, albumPeak = 0.9), ReplayGainMode.Album), 1e-9)
     }
 
     @Test fun speedPresets() {

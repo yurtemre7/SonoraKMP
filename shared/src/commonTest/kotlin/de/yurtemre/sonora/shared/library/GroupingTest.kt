@@ -6,7 +6,10 @@ import kotlin.test.assertEquals
 class GroupingTest {
     @Test fun parsesIndividualArtists() {
         assertEquals(listOf("Drake", "Future", "Young Thug"), ArtistParser.parse("Drake feat. Future & Young Thug"))
-        assertEquals(listOf("AC", "DC"), ArtistParser.parse("AC/DC"))
+        assertEquals(listOf("AC/DC"), ArtistParser.parse("AC/DC"))
+        assertEquals(listOf("Simon&Garfunkel"), ArtistParser.parse("Simon&Garfunkel"))
+        assertEquals(listOf("Simon", "Garfunkel"), ArtistParser.parse("Simon & Garfunkel"))
+        assertEquals(listOf("A", "B", "C"), ArtistParser.parse("A\\B;C"))
         assertEquals(listOf("Earth", "Wind", "Fire"), ArtistParser.parse("Earth, Wind & Fire"))
         assertEquals(listOf("Unknown Artist"), ArtistParser.parse("  "))
         assertEquals(listOf("A", "B"), ArtistParser.parse("A x (B) & a"))
@@ -29,9 +32,15 @@ class GroupingTest {
         assertEquals(listOf("Queen", "Guns N Roses"), albums.map { it.artist })
     }
 
-    @Test fun unknownArtistGoesToUnknownAlbum() {
+    @Test fun unknownArtistKeepsAlbumAndAlbumArtistGroups() {
         val albums = AlbumGrouper.build(listOf(song(1, artist = "", album = "Some Album")))
-        assertEquals("Unknown Album", albums.single().name)
+        assertEquals("Some Album", albums.single().name)
+        val va = AlbumGrouper.build(listOf(
+            song(1, artist = "X", album = "Hits").copy(albumArtist = "Various"),
+            song(2, artist = "Y", album = "Hits").copy(albumArtist = "Various"),
+        ))
+        assertEquals("Various", va.single().artist)
+        assertEquals(Pair(2, 5), TrackNumbers.split(2005)); assertEquals(Pair(null, 7), TrackNumbers.split(7))
     }
 
     @Test fun tracksSortedByDiscThenTrack() {

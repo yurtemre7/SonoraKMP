@@ -32,10 +32,12 @@ class ListenSessionTrackerTest {
         assertEquals(2, events.size)
     }
 
-    @Test fun seekForwardPastCompleteCounts() {
+    @Test fun seekForwardAddsNoListenedTime() {
         t.onItemStarted(1, 100_000, null); t.onPlayingChanged(true, 0)
         t.onSeek(0, 90_000)
-        assertEquals(listOf(RecordRecent(1, 42), RecordComplete(1, 42, null)), events)
+        assertTrue(events.isEmpty()); assertEquals(25_000, delay)
+        t.onTimerFired(100_000) // only 10 s actually listened
+        assertTrue(events.isEmpty()); assertEquals(10_000, t.listenedMs)
     }
 
     @Test fun pausedNeverCountsAndZeroDuration() {
@@ -51,7 +53,7 @@ class ListenSessionTrackerTest {
         t.onTimerFired(25_000)
         t.onSeek(26_000, 1_000)
         assertEquals(listOf(RecordRecent(1, 42), RecordRestart(1)), events)
-        t.onTimerFired(25_000)
+        t.onTimerFired(26_000)
         assertEquals(RecordRecent(1, 42), events.last()); assertEquals(3, events.size)
         t.onSeek(2_000, 1_000) // from < 3 s: no restart
         assertEquals(3, events.size)

@@ -21,10 +21,11 @@ class QueueStateTest {
         assertEquals(q.entries.map { it.uid }.toSet().size, 10)
     }
 
-    @Test fun playNextIsLifo() {
+    @Test fun playNextIsFifo() {
         val q = base(1).playNext(listOf(100)).playNext(listOf(200))
-        assertEquals(listOf(1L, 200, 100, 2), q.ids().take(4))
-        assertEquals(listOf(1L, 200, 100, 2), q.original.map { it.songId }.take(4))
+        assertEquals(listOf(1L, 100, 200, 2), q.ids().take(4))
+        assertEquals(listOf(1L, 100, 200, 2), q.original.map { it.songId }.take(4))
+        assertEquals(listOf(100L, 300, 200), q.skipTo(1).playNext(listOf(300)).ids().subList(1, 4)) // anchor resets
     }
 
     @Test fun addAppendsBoth() {

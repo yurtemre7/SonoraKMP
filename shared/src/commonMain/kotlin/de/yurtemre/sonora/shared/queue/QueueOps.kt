@@ -15,17 +15,27 @@ fun QueueState.load(songIds: List<Long>, startSongId: Long? = null, playlistCont
     )
 }
 
-/** PLAY-05: insert directly after current (LIFO stacking); original gets them after the current entry. */
+/**
+ * PLAY-05, FIFO (departs from Flutter's LIFO): consecutive "play next" calls queue up in the order
+ * they were added, after the current entry. The anchor resets once the current entry changes.
+ */
 fun QueueState.playNext(songIds: List<Long>): QueueState {
     if (songIds.isEmpty()) return this
     val (created, uid) = allocate(songIds)
-    val at = (currentIndex + 1).coerceIn(0, entries.size)
-    val newEntries = entries.toMutableList().apply { addAll(at, created) }
     val cur = currentEntry
-    val origAt = cur?.let { c -> original.indexOfFirst { it.uid == c.uid } }?.takeIf { it >= 0 }?.plus(1) ?: original.size
+    val anchor = playNextAnchorUid?.takeIf { cur != null && playNextForUid == cur.uid }
+    val anchorIdx = anchor?.let { a -> entries.indexOfFirst { it.uid == a } }?.takeIf { it > currentIndex }
+    val at = anchorIdx?.plus(1) ?: (currentIndex + 1).coerceIn(0, entries.size)
+    val newEntries = entries.toMutableList().apply { addAll(at, created) }
+    val origAnchor = anchor?.let { a -> original.indexOfFirst { it.uid == a } }?.takeIf { it >= 0 }
+    val origAt = origAnchor?.plus(1)
+        ?: cur?.let { c -> original.indexOfFirst { it.uid == c.uid } }?.takeIf { it >= 0 }?.plus(1) ?: original.size
     val newOriginal = original.toMutableList().apply { addAll(origAt, created) }
     val newIndex = if (currentIndex < 0) 0 else currentIndex
-    return copy(entries = newEntries, original = newOriginal, currentIndex = newIndex, nextUid = uid)
+    return copy(
+        entries = newEntries, original = newOriginal, currentIndex = newIndex, nextUid = uid,
+        playNextAnchorUid = created.last().uid, playNextForUid = newEntries[newIndex].uid,
+    )
 }
 
 /** PLAY-05: append to both the play order and the original order. */

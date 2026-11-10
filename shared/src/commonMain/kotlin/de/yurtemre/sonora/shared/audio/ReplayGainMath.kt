@@ -12,7 +12,8 @@ object ReplayGainMath {
         val gain = if (mode == ReplayGainMode.Album) info.albumGain ?: info.trackGain
         else info.trackGain ?: info.albumGain
         if (gain == null || !gain.isFinite()) return 1.0
-        val peak = info.trackPeak ?: info.albumPeak
+        val peak = if (mode == ReplayGainMode.Album) info.albumPeak ?: info.trackPeak
+        else info.trackPeak ?: info.albumPeak
         var m = 10.0.pow(gain / 20.0)
         if (peak != null && peak > 0 && m * peak > 1.0) m = 1.0 / peak
         return m

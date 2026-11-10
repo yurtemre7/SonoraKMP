@@ -33,7 +33,7 @@ object DurationFormat {
         return DurationParts(
             days = days.takeIf { it > 0 },
             hours = h.takeIf { it > 0 },
-            minutes = m.takeIf { it > 0 || (days == 0L && hoursTotal == 0L) },
+            minutes = m.takeIf { it > 0 || days == 0L || h > 0 }, // never drop minutes under hours (departs from Flutter)
             seconds = totalSec % 60,
         )
     }

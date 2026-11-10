@@ -39,6 +39,8 @@ class SortSearchTest {
         assertEquals(listOf(1L), index.searchSongs("opera").map { it.id })
         assertEquals(listOf(2L), index.searchSongs("eagles calif").map { it.id })
         assertTrue(index.searchSongs("zzz").isEmpty())
+        val folded = LibrarySearchIndex(listOf(song(9, title = "カタカナ ＡＢＣ", artist = "Beyoncé")))
+        assertEquals(1, folded.searchSongs("beyonce かたかな abc").size)
     }
 
     @Test fun albumAndArtistSearchAndSort() {

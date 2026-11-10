@@ -31,6 +31,7 @@ data class AppSettings(
     val sleepTimerDefaultMinutes: Int = 5,
     val sleepTimerFadeOutSeconds: Int = 10,
     val sleepTimerFinishSong: Boolean = false,
+    val repeatMode: RepeatMode = RepeatMode.Off,
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,
     val autoCheckUpdates: Boolean = true,

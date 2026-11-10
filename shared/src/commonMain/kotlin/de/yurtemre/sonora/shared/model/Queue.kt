@@ -16,4 +16,7 @@ data class QueueState(
     val repeat: RepeatMode = RepeatMode.Off,
     val playlistContext: String? = null,
     val nextUid: Long = 0,
+    /** FIFO play-next: uid of the last play-next entry, valid while [playNextForUid] is still current. */
+    val playNextAnchorUid: Long? = null,
+    val playNextForUid: Long? = null,
 )

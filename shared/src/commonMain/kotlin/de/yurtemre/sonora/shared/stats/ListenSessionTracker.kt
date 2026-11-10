@@ -17,6 +17,9 @@ sealed interface StatsEvent {
  * Event-driven listen-session tracker (STAT-01/02, audit/data §11.1, audit/playback §7.2).
  * The host feeds player events with current positions, owns the one-shot timer via [schedule]
  * (delay ms, or null = cancel) and calls [onTimerFired] with the then-current position.
+ *
+ * Departs from Flutter: milestones count accumulated *listened* media time (forward progress while
+ * playing), so seeking forward never adds time; a backward seek below 3 s starts a new session.
  */
 class ListenSessionTracker(
     private val clock: Clock,
@@ -29,6 +32,7 @@ class ListenSessionTracker(
     private var playing = false
     private var speed = 1f
     private var positionMs = 0L
+    private var listened = 0L
     private var recentDone = false
     private var completeDone = false
     private var pauseDepth = 0
@@ -44,14 +48,15 @@ class ListenSessionTracker(
         this.positionMs = positionMs; resetSession(); rearm()
     }
 
-    fun onPlayingChanged(playing: Boolean, positionMs: Long) { this.playing = playing; this.positionMs = positionMs; check() }
+    fun onPlayingChanged(playing: Boolean, positionMs: Long) { advance(positionMs); this.playing = playing; check() }
 
-    fun onSpeedChanged(speed: Float, positionMs: Long) { this.speed = speed; this.positionMs = positionMs; rearm() }
+    fun onSpeedChanged(speed: Float, positionMs: Long) { advance(positionMs); this.speed = speed; check() }
 
     /** Seek: < 3 s from > 3 s counts a restart; any landing < 3 s resets the session. */
     fun onSeek(fromMs: Long, toMs: Long) {
         if (toMs < RESTART_MS && fromMs > RESTART_MS) record { StatsEvent.RecordRestart(it) }
-        positionMs = toMs
+        advance(fromMs)
+        positionMs = toMs // the jump itself is not listened time
         if (toMs < RESTART_MS) resetSession()
         check()
     }
@@ -64,9 +69,17 @@ class ListenSessionTracker(
 
     fun onShuffleSessionStarted() { if (pauseDepth == 0) emit(StatsEvent.RecordShuffleSession) }
 
-    fun onTimerFired(positionMs: Long) { this.positionMs = positionMs; check() }
+    fun onTimerFired(positionMs: Long) { advance(positionMs); check() }
 
-    private fun resetSession() { recentDone = false; completeDone = false }
+    /** Media time listened in the current session. */
+    val listenedMs: Long get() = listened
+
+    private fun advance(toMs: Long) {
+        if (playing && toMs > positionMs) listened += toMs - positionMs
+        positionMs = toMs
+    }
+
+    private fun resetSession() { recentDone = false; completeDone = false; listened = 0 }
 
     private inline fun record(make: (Long) -> StatsEvent) {
         val id = songId ?: return
@@ -76,7 +89,7 @@ class ListenSessionTracker(
     private fun check() {
         val id = songId
         if (playing && id != null && durationMs > 0) {
-            val reached = positionMs + TOLERANCE_MS
+            val reached = listened + TOLERANCE_MS
             val now = clock.nowMs()
             if (!recentDone && reached >= recentMilestone(durationMs)) {
                 recentDone = true; record { StatsEvent.RecordRecent(it, now) }
@@ -95,7 +108,7 @@ class ListenSessionTracker(
             recentMilestone(durationMs).takeIf { !recentDone },
             completeMilestone(durationMs).takeIf { !completeDone },
         ).minOrNull() ?: return schedule(null)
-        schedule(((next - positionMs).coerceAtLeast(0) / rate).roundToLong())
+        schedule(((next - listened).coerceAtLeast(0) / rate).roundToLong())
     }
 
     companion object {

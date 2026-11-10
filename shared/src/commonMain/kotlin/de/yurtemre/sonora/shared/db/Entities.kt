@@ -25,6 +25,7 @@ data class SongEntity(
     @ColumnInfo(name = "seed_color") val seedColor: Int? = null,
     @ColumnInfo(name = "track_number") val trackNumber: Int? = null,
     @ColumnInfo(name = "disc_number") val discNumber: Int? = null,
+    @ColumnInfo(name = "album_artist") val albumArtist: String? = null,
     val genre: String? = null,
     val year: Int? = null,
     @ColumnInfo(name = "album_id") val albumId: Long? = null,
