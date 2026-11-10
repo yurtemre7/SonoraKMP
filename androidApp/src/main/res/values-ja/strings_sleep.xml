@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_timer_channel_name">スリープタイマー</string>
+    <string name="sleep_timer_channel_description">スリープタイマーの残り時間を表示します</string>
+    <string name="sleep_timer_notification_title">スリープタイマー</string>
+    <string name="sleep_timer_notification_finishing">この曲の再生後に停止します</string>
+    <string name="sleep_timer_action_extend">+1分</string>
+    <string name="sleep_timer_action_end">タイマーを終了</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_timer_channel_name">Sleep timer</string>
+    <string name="sleep_timer_channel_description">Shows the remaining time of the sleep timer</string>
+    <string name="sleep_timer_notification_title">Sleep timer</string>
+    <string name="sleep_timer_notification_finishing">Stopping after this song</string>
+    <string name="sleep_timer_action_extend">+1 min</string>
+    <string name="sleep_timer_action_end">End timer</string>
+</resources>
