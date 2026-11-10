@@ -36,6 +36,12 @@ class AudioEffects(
     /** Number of device EQ bands (0 until created). */
     val bandCount: StateFlow<Int> = _bandCount.asStateFlow()
 
+    /** Device EQ band layout (centers in Hz, level range in mB); null until created. */
+    data class EqInfo(val centersHz: List<Int>, val minMb: Int, val maxMb: Int)
+
+    private val _eqInfo = MutableStateFlow<EqInfo?>(null)
+    val eqInfo: StateFlow<EqInfo?> = _eqInfo.asStateFlow()
+
     private var equalizer: Equalizer? = null
     private var current: AppSettings? = null
     private var job: Job? = null
@@ -69,6 +75,8 @@ class AudioEffects(
         equalizer = try {
             Equalizer(0, sessionId).also {
                 _bandCount.value = it.numberOfBands.toInt()
+                val r = it.bandLevelRange
+                _eqInfo.value = EqInfo(List(it.numberOfBands.toInt()) { b -> it.getCenterFreq(b.toShort()) / 1000 }, r[0].toInt(), r[1].toInt())
                 _isEqualizerSupported.value = true
             }
         } catch (t: Throwable) {

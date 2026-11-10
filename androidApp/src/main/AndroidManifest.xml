@@ -23,6 +23,7 @@
     <application
         android:name=".SonoraApplication"
         android:allowBackup="false"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="${appName}"
         android:supportsRtl="true"

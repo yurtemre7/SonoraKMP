@@ -4,6 +4,8 @@ import android.content.ContentUris
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -22,6 +24,7 @@ import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +37,7 @@ import kotlinx.coroutines.withContext
  * never trimmed. Repeat-all loads the whole queue so ExoPlayer's REPEAT_MODE_ALL wraps gaplessly.
  * All calls on the player's application thread.
  */
+@OptIn(UnstableApi::class)
 class QueueController(
     private val player: SonoraForwardingPlayer,
     private val scope: CoroutineScope,
@@ -73,9 +77,9 @@ class QueueController(
     fun release() = player.wrappedPlayer.removeListener(listener)
 
     /** Replaces the queue and loads a window around its current entry. */
-    fun setQueue(newState: QueueState, startPositionMs: Long = 0, playWhenReady: Boolean = true) {
+    fun setQueue(newState: QueueState, startPositionMs: Long = 0, playWhenReady: Boolean = true): Job {
         val t = ++token
-        scope.launch {
+        return scope.launch {
             val idx = newState.currentIndex.coerceIn(0, (newState.entries.size - 1).coerceAtLeast(0))
             var start = (idx - PREPEND).coerceAtLeast(0)
             var end = (idx + APPEND).coerceAtMost(newState.entries.size)
@@ -203,16 +207,22 @@ class QueueController(
         val missing = slice.map { it.songId }.filter { it !in songCache }.distinct()
         if (missing.isNotEmpty()) songCache.putAll(songs(missing))
         return withContext(io) {
-            slice.map { e -> songCache[e.songId]?.let { toMediaItem(e.uid, it) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build() }
+            slice.map { e -> songCache[e.songId]?.let { toMediaItem(e.uid, it, s.playlistContext) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build() }
         }
     }
 
-    private fun toMediaItem(uid: Long, song: Song): MediaItem {
-        val uri = if (song.id > 0) ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
-        else Uri.fromFile(File(song.filePath))
+    /** Cached song for a song id (loaded by the last window build). */
+    fun cachedSong(songId: Long): Song? = songCache[songId]
+
+    private fun toMediaItem(uid: Long, song: Song, playlistId: String?): MediaItem {
+        // Folder-scan songs also have positive ids, so only fall back to MediaStore when the file is unreadable.
+        val file = File(song.filePath)
+        val uri = if (file.canRead() || song.id <= 0) Uri.fromFile(file)
+        else ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
         val art = song.artworkPath?.let(::File)?.takeIf { it.isFile }
-        val extras = song.replayGain?.let { rg ->
-            Bundle().apply {
+        val extras = Bundle().apply {
+            playlistId?.let { putString(ListenStatsRecorder.EXTRA_PLAYLIST_ID, it) }
+            song.replayGain?.let { rg ->
                 rg.trackGain?.let { putDouble("rg_track_gain", it) }
                 rg.albumGain?.let { putDouble("rg_album_gain", it) }
                 rg.trackPeak?.let { putDouble("rg_track_peak", it) }
@@ -231,11 +241,8 @@ class QueueController(
             .setIsBrowsable(false)
             .setExtras(extras)
             .apply {
-                if (art != null) {
-                    setArtworkUri(Uri.fromFile(art))
-                    runCatching { art.readBytes() }.getOrNull()
-                        ?.let { setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER) }
-                }
+                // URI only: Media3's bitmap loader fetches on demand (bytes for a whole repeat-all queue would blow memory).
+                if (art != null) setArtworkUri(Uri.fromFile(art))
             }
             .build()
         return MediaItem.Builder().setMediaId("$ID_PREFIX$uid").setUri(uri).setMediaMetadata(meta).build()

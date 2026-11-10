@@ -1,6 +1,8 @@
 package de.yurtemre.sonora.playback
 
+import androidx.annotation.OptIn
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.Player
 import de.yurtemre.sonora.shared.audio.FadeCurve
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +21,7 @@ interface QueueNavigator {
  * (PLAY-09), composed volume (PLAY-10) and Sonora's transport rules (PLAY-04).
  * Must be used on the player's application thread; [scope] should run on that thread.
  */
+@OptIn(UnstableApi::class)
 class SonoraForwardingPlayer(
     player: Player,
     private val scope: CoroutineScope,
