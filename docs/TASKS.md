@@ -85,20 +85,20 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 ## P4 Playback, Auto, widget (batch P4a → P4b → P4c)
 
 **P4a**
-- [ ] **P4-01** Player & ForwardingPlayer [PLAY-04, 09, 10, 11] — deps: [P2-07, P2-17] — owns: `A/playback/{PlayerFactory,SonoraForwardingPlayer,VolumeComposer}.kt` — done when: ExoPlayer (audio attrs, `WAKE_MODE_LOCAL`), fades via coroutine, volume = user × fade × RG, repeat-one next/prev = seek 0, completed play restarts at 0.
-- [ ] **P4-02** Queue controller [PLAY-02..08] — deps: [P2-05, P2-17] — owns: `A/playback/QueueController.kt` — done when: window 10/30, slide 20/15, edits mirrored, repeat-all gapless wrap, request tokens, `onMediaItemTransition` → current index + RG before broadcast.
-- [ ] **P4-03** Audio effects [PLAY-12..16] — deps: [P2-07] — owns: `A/playback/AudioEffects.kt` — done when: Equalizer bound to session id (recreated on change), modes/BT patch/custom bands, speed/pitch application, unsupported → flag.
-- [ ] **P4-04** Focus, noisy, reconnect [PLAY-17..19] — deps: [P1-04] — owns: `A/playback/{AudioFocusController,NoisyAndReconnectHandler}.kt` — done when: pause-on-duck custom focus, noisy honours setting, device-callback resume.
-- [ ] **P4-05** Sleep timer [PLAY-26, 27] — deps: [P2-08] — owns: `A/playback/sleep/**` — done when: timer driving reducer, finish-song poll 250 ms, notification channel `sleep_timer` id 8888 chronometer + actions to service.
-- [ ] **P4-06** Stats recorder & position ticker [STAT-01, PLAY-25] — deps: [P2-11, P3-09] — owns: `A/playback/{ListenStatsRecorder,PositionTicker}.kt` — done when: tracker wired to player events, 200 ms ticker with 1500 ms backward filter.
-- [ ] **P4-07** Persistence [PLAY-24] — deps: [P1-04, P2-05] — owns: `A/playback/PlaybackPersistence.kt` — done when: save triggers incl. 15 s periodic, restore paused at position, clear on close.
-- [ ] **P4-10** Home-screen widget [WID-01..06] — deps: [P1-11, P1-03] — owns: `A/widget/**`, `AR/layout/widget_*.xml`, `AR/drawable/widget_*.xml`, `AR/values*/widget_{colors,dimens}.xml` — done when: small/large layouts, state store, renderer, PendingIntents to service, `WidgetUpdater` Player.Listener with dedupe.
+- [x] **P4-01** Player & ForwardingPlayer [PLAY-04, 09, 10, 11] — deps: [P2-07, P2-17] — owns: `A/playback/{PlayerFactory,SonoraForwardingPlayer,VolumeComposer}.kt` — done when: ExoPlayer (audio attrs, `WAKE_MODE_LOCAL`), fades via coroutine, volume = user × fade × RG, repeat-one next/prev = seek 0, completed play restarts at 0.
+- [x] **P4-02** Queue controller [PLAY-02..08] — deps: [P2-05, P2-17] — owns: `A/playback/QueueController.kt` — done when: window 10/30, slide 20/15, edits mirrored, repeat-all gapless wrap, request tokens, `onMediaItemTransition` → current index + RG before broadcast.
+- [x] **P4-03** Audio effects [PLAY-12..16] — deps: [P2-07] — owns: `A/playback/AudioEffects.kt` — done when: Equalizer bound to session id (recreated on change), modes/BT patch/custom bands, speed/pitch application, unsupported → flag.
+- [x] **P4-04** Focus, noisy, reconnect [PLAY-17..19] — deps: [P1-04] — owns: `A/playback/{AudioFocusController,NoisyAndReconnectHandler}.kt` — done when: pause-on-duck custom focus, noisy honours setting, device-callback resume.
+- [x] **P4-05** Sleep timer [PLAY-26, 27] — deps: [P2-08] — owns: `A/playback/sleep/**` — done when: timer driving reducer, finish-song poll 250 ms, notification channel `sleep_timer` id 8888 chronometer + actions to service.
+- [x] **P4-06** Stats recorder & position ticker [STAT-01, PLAY-25] — deps: [P2-11, P3-09] — owns: `A/playback/{ListenStatsRecorder,PositionTicker}.kt` — done when: tracker wired to player events, 200 ms ticker with 1500 ms backward filter.
+- [x] **P4-07** Persistence [PLAY-24] — deps: [P1-04, P2-05] — owns: `A/playback/PlaybackPersistence.kt` — done when: save triggers incl. 15 s periodic, restore paused at position, clear on close.
+- [x] **P4-10** Home-screen widget [WID-01..06] — deps: [P1-11, P1-03] — owns: `A/widget/**`, `AR/layout/widget_*.xml`, `AR/drawable/widget_*.xml`, `AR/values*/widget_{colors,dimens}.xml` — done when: small/large layouts, state store, renderer, PendingIntents to service, `WidgetUpdater` Player.Listener with dedupe.
 
 **P4b**
-- [ ] **P4-11** Playback service [PLAY-01, 20–23, 28; WID] — deps: [P4-01..P4-07, P4-10] — owns: `A/playback/{SonoraPlaybackService,SessionCommands,NotificationButtons}.kt` — done when: MediaLibrarySession with callback (custom commands for queue/MFX/timer/close), notification button preferences (D-08), task-removed, close/clear, `onPlaybackResumption`, ensure volume; plays a song from adb-started controller.
+- [x] **P4-11** Playback service [PLAY-01, 20–23, 28; WID] — deps: [P4-01..P4-07, P4-10] — owns: `A/playback/{SonoraPlaybackService,SessionCommands,NotificationButtons}.kt` — done when: MediaLibrarySession with callback (custom commands for queue/MFX/timer/close), notification button preferences (D-08), task-removed, close/clear, `onPlaybackResumption`, ensure volume; plays a song from adb-started controller.
 
 **P4c**
-- [ ] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
+- [x] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
 
 ## P5 UI screens (batch P5a → P5b); each task also owns its `AR/values*/strings_<task>.xml`
 
@@ -188,8 +188,8 @@ Shared unit tests (`ST/`):
 
 App tests (`AT/`, Robolectric):
 - [x] **P10-16** DAO tests — deps: [P1-05, P3-07] — owns: `AT/data/DaoTest.kt` — done when: playlist add dedupe/remove-all/reorder, favorites relink, stats transaction, clearAll.
-- [ ] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
-- [ ] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
+- [x] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
+- [x] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
 - [ ] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
 - [ ] **P10-20** Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Sleeve/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
 - [ ] **P10-21** Sync banner UI test — deps: [P5-04] — owns: `AT/ui/SyncBannerTest.kt` — done when: 3 cases of audit/ui §2.9.
