@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.material3.Text
@@ -80,7 +82,10 @@ fun HomeScreen(
             )
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding()).nestedScroll(pull)) {
+        Column(
+            Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())
+                .windowInsetsPadding(de.yurtemre.sonora.ui.components.SonoraInsets.horizontal).imePadding().nestedScroll(pull),
+        ) {
             tabContent(tab, state)
         }
     }

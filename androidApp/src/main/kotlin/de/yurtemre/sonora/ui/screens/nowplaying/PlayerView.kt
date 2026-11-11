@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -93,7 +96,36 @@ fun PlayerView(
     onSkipTo: (Long) -> Unit = {},
 ) {
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
-    Column(modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+    if (maxWidth > maxHeight && view == NowPlayingView.Player) {
+        // Landscape: the sleeve takes the full safe height on the left, controls on the right, so nothing overflows
+        // the safe area (the portrait column would push the square sleeve past the bottom edge).
+        Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
+            Spacer(Modifier.width(8.dp))
+            ArtworkArea(
+                song, immersive, actions.onToggleImmersive,
+                Modifier.fillMaxHeight().padding(bottom = 16.dp).aspectRatio(1f, matchHeightConstraintsFirst = true),
+                queue, onSkipTo,
+            )
+            Spacer(Modifier.width(24.dp))
+            Column(
+                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (!immersive) MetaChips(song, actions, horizontal = true)
+                seekBar()
+                Transport(state, actions)
+                if (!immersive) {
+                    SecondaryRow(state, isFavorite, actions)
+                    ViewSwitcher(view, onViewChange)
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+        return@BoxWithConstraints
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         if (view != NowPlayingView.Player) {
             Column(Modifier.weight(1f).fillMaxWidth()) {
                 when (view) {
@@ -106,7 +138,12 @@ fun PlayerView(
         } else if (horizontalSpine) {
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Spine(song.title)
-                ArtworkArea(song, immersive, actions.onToggleImmersive, Modifier.weight(1f, fill = false), queue, onSkipTo)
+                ArtworkArea(
+                    song, immersive, actions.onToggleImmersive,
+                    // Square, but never taller than the slot left after Spine + chips, so it can't overlap them.
+                    Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true),
+                    queue, onSkipTo,
+                )
                 if (!immersive) MetaChips(song, actions)
             }
         } else {
@@ -129,11 +166,17 @@ fun PlayerView(
         }
         Spacer(Modifier.height(16.dp))
     }
+    }
 }
 
 @Composable
-private fun MetaChips(song: Song, actions: PlayerActions) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun MetaChips(song: Song, actions: PlayerActions, horizontal: Boolean = false) {
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    val container: @Composable (@Composable () -> Unit) -> Unit = { content ->
+        if (horizontal) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+        else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { content() }
+    }
+    container {
         val artistLabel = stringResource(R.string.np_open_artist, song.artist)
         AssistChip(
             onClick = { actions.onOpenArtist(song) },

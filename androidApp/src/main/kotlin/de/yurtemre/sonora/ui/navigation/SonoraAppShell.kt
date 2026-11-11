@@ -17,6 +17,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.ui.components.MiniPlayer
+import de.yurtemre.sonora.ui.components.bottomSafePadding
+import de.yurtemre.sonora.ui.components.padAndConsume
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.Row
@@ -175,7 +186,7 @@ fun SonoraAppShell(
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> Scaffold(
                 snackbarHost = { SnackbarHost(snackbar) },
-                bottomBar = { Column {
+                bottomBar = { Column(if (showNav) Modifier else Modifier.bottomSafePadding()) {
                     mini()
                     if (showNav) ShortNavigationBar {
                         LibraryTab.entries.forEach { tab ->
@@ -189,10 +200,13 @@ fun SonoraAppShell(
                         }
                     }
                 } },
-            ) { padding -> display(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) }
+            ) { padding -> display(Modifier.fillMaxSize().padAndConsume(PaddingValues(bottom = padding.calculateBottomPadding()))) }
 
             WindowWidthSizeClass.Medium -> Row(Modifier.fillMaxSize()) {
-                NavigationRail {
+                NavigationRail(
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
+                    windowInsets = WindowInsets(0),
+                ) {
                     LibraryTab.entries.forEach { tab ->
                         NavigationRailItem(
                             colors = NavigationRailItemDefaults.colors(selectedTextColor = MaterialTheme.colorScheme.onSurface),
@@ -203,14 +217,15 @@ fun SonoraAppShell(
                         )
                     }
                 }
-                Column(Modifier.weight(1f)) {
-                    display(Modifier.weight(1f))
-                    mini()
-                }
+                RailContent(hasMini = player.currentSong != null, display = display, mini = mini)
             }
 
             else -> Row(Modifier.fillMaxSize()) {
-                WideNavigationRail {
+                WideNavigationRail(
+                    state = androidx.compose.material3.rememberWideNavigationRailState(androidx.compose.material3.WideNavigationRailValue.Expanded),
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
+                    windowInsets = WindowInsets(0),
+                ) {
                     LibraryTab.entries.forEach { tab ->
                         WideNavigationRailItem(
                             colors = WideNavigationRailItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
@@ -222,14 +237,15 @@ fun SonoraAppShell(
                         )
                     }
                 }
-                Column(Modifier.weight(1f)) {
-                    display(Modifier.weight(1f))
-                    mini()
-                }
+                RailContent(hasMini = player.currentSong != null, display = display, mini = mini)
             }
         }
         if (widthSizeClass != WindowWidthSizeClass.Compact) {
-            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
+            SnackbarHost(
+                snackbar,
+                Modifier.align(Alignment.BottomCenter).bottomSafePadding()
+                    .padding(bottom = if (player.currentSong != null) 72.dp else 0.dp),
+            )
         }
         NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
         // Automatic launch update check + update sheet (UPD-05); placed once.
@@ -237,3 +253,16 @@ fun SonoraAppShell(
     } }
 }
 
+
+/**
+ * Content column beside a navigation rail. The rail already pads the start side; the mini player keeps clear of the
+ * navigation bar itself and, when shown, consumes the bottom inset so screens above it don't pad for it twice.
+ */
+@Composable
+private fun RowScope.RailContent(hasMini: Boolean, display: @Composable (Modifier) -> Unit, mini: @Composable () -> Unit) {
+    val navBottom = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
+    Column(Modifier.weight(1f).consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))) {
+        display(Modifier.weight(1f).then(if (hasMini) Modifier.consumeWindowInsets(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) else Modifier))
+        if (hasMini) Box(Modifier.windowInsetsPadding(navBottom)) { mini() }
+    }
+}

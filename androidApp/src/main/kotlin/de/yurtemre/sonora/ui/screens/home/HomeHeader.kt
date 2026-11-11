@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
@@ -97,7 +97,7 @@ fun HomeHeader(
     onSettings: () -> Unit,
 ) {
     BackHandler(enabled = searchOpen, onBack = onCloseSearch)
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).statusBarsPadding()) {
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).windowInsetsPadding(de.yurtemre.sonora.ui.components.SonoraInsets.top)) {
         AnimatedContent(
             targetState = searchOpen,
             transitionSpec = {
