@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_detail_no_description">Add a description</string>
+    <string name="playlist_detail_count_time">%1$s · %2$s</string>
+    <string name="playlist_detail_play">Play</string>
+    <string name="playlist_detail_shuffle">Shuffle</string>
+    <string name="playlist_detail_more">More options</string>
+    <string name="playlist_detail_rename">Rename</string>
+    <string name="playlist_detail_change_cover">Change cover</string>
+    <string name="playlist_detail_remove_cover">Remove cover</string>
+    <string name="playlist_detail_export">Export as M3U</string>
+    <string name="playlist_detail_delete">Delete playlist</string>
+    <string name="playlist_detail_delete_title">Delete this playlist?</string>
+    <string name="playlist_detail_delete_message">“%1$s” will be deleted. Your songs stay in the library.</string>
+    <string name="playlist_detail_delete_confirm">Delete</string>
+    <string name="playlist_detail_deleted">Deleted %1$s</string>
+    <string name="playlist_detail_export_failed">Couldn\'t export the playlist</string>
+    <string name="playlist_detail_cover_failed">Couldn\'t use that image</string>
+    <string name="playlist_detail_add_songs">Add songs</string>
+    <string name="playlist_detail_empty_title">This playlist is empty</string>
+    <string name="playlist_detail_empty_subtitle">Add songs here, or long-press any song in your library.</string>
+    <string name="playlist_detail_not_found">This playlist no longer exists</string>
+    <string name="playlist_detail_removed">Removed %1$s</string>
+    <plurals name="playlist_detail_removed_many">
+        <item quantity="one">Removed %d song</item>
+        <item quantity="other">Removed %d songs</item>
+    </plurals>
+    <string name="playlist_detail_undo">Undo</string>
+    <string name="playlist_detail_remove">Remove from playlist</string>
+    <string name="playlist_detail_drag_handle">Reorder</string>
+    <string name="playlist_detail_move_up">Move up</string>
+    <string name="playlist_detail_move_down">Move down</string>
+    <string name="playlist_detail_back">Back</string>
+    <string name="playlist_detail_cover_desc">Cover of %1$s</string>
+    <string name="playlist_add_title">Add songs</string>
+    <string name="playlist_add_search">Search your library</string>
+    <plurals name="playlist_add_confirm">
+        <item quantity="one">Add %d song</item>
+        <item quantity="other">Add %d songs</item>
+    </plurals>
+    <string name="playlist_add_none">No songs to add</string>
+    <plurals name="playlist_added">
+        <item quantity="one">Added %d song</item>
+        <item quantity="other">Added %d songs</item>
+    </plurals>
+</resources>

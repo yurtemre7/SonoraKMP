@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sheets_info_title">曲の情報</string>
+    <string name="sheets_info_group_metadata">メタデータ</string>
+    <string name="sheets_info_group_file">ファイル</string>
+    <string name="sheets_info_group_audio">オーディオ</string>
+    <string name="sheets_info_title_label">タイトル</string>
+    <string name="sheets_info_artist_label">アーティスト</string>
+    <string name="sheets_info_album_label">アルバム</string>
+    <string name="sheets_info_album_artist_label">アルバムアーティスト</string>
+    <string name="sheets_info_track_label">トラック</string>
+    <string name="sheets_info_disc_label">ディスク</string>
+    <string name="sheets_info_genre_label">ジャンル</string>
+    <string name="sheets_info_year_label">年</string>
+    <string name="sheets_info_duration_label">再生時間</string>
+    <string name="sheets_info_path_label">パス</string>
+    <string name="sheets_info_size_label">サイズ</string>
+    <string name="sheets_info_modified_label">更新日時</string>
+    <string name="sheets_info_added_label">追加日時</string>
+    <string name="sheets_info_format_label">形式</string>
+    <string name="sheets_info_bitrate_label">ビットレート</string>
+    <string name="sheets_info_sample_rate_label">サンプルレート</string>
+    <string name="sheets_info_rg_track_label">トラックゲイン</string>
+    <string name="sheets_info_rg_album_label">アルバムゲイン</string>
+    <string name="sheets_info_rg_track_peak_label">トラックピーク</string>
+    <string name="sheets_info_rg_album_peak_label">アルバムピーク</string>
+    <string name="sheets_info_bitrate_value">%1$d kbps</string>
+    <string name="sheets_info_sample_rate_value">%1$s kHz</string>
+    <string name="sheets_info_gain_value">%1$s dB</string>
+    <string name="sheets_info_open_folder">フォルダを開く</string>
+    <string name="sheets_info_copy_path">パスをコピー</string>
+    <string name="sheets_info_share">ファイルを共有</string>
+    <string name="sheets_info_copied">クリップボードにコピーしました</string>
+    <string name="sheets_info_open_folder_failed">フォルダを開けませんでした</string>
+    <string name="sheets_info_share_failed">このファイルを共有できませんでした</string>
+    <string name="sheets_info_copy_action">%1$sをコピー</string>
+
+    <string name="sheets_selector_title">プレイリストに追加</string>
+    <plurals name="sheets_selector_title_multi">
+        <item quantity="other">%d曲をプレイリストに追加</item>
+    </plurals>
+    <string name="sheets_selector_new">新しいプレイリスト</string>
+    <string name="sheets_selector_empty">プレイリストはまだありません。作成して始めましょう。</string>
+    <string name="sheets_selector_added">%1$sに追加しました</string>
+    <string name="sheets_selector_removed">%1$sから削除しました</string>
+    <plurals name="sheets_selector_batch_added">
+        <item quantity="other">%1$d曲を%2$sに追加しました</item>
+    </plurals>
+    <string name="sheets_selector_contains">プレイリストに追加済み</string>
+    <string name="sheets_selector_not_contains">プレイリストに未追加</string>
+
+    <string name="sheets_dialog_create_title">新しいプレイリスト</string>
+    <string name="sheets_dialog_rename_title">プレイリスト名を変更</string>
+    <string name="sheets_dialog_description_title">説明を編集</string>
+    <string name="sheets_dialog_save_queue_title">キューをプレイリストとして保存</string>
+    <string name="sheets_dialog_name_label">名前</string>
+    <string name="sheets_dialog_description_label">説明</string>
+    <string name="sheets_dialog_description_hint">空欄にすると説明を削除します</string>
+    <string name="sheets_dialog_create">作成</string>
+    <string name="sheets_dialog_save">保存</string>
+    <string name="sheets_dialog_cancel">キャンセル</string>
+    <string name="sheets_dialog_saved_queue">%1$sを保存しました</string>
+    <string name="sheets_dialog_default_queue_name">キュー %1$s</string>
+
+    <string name="sheets_actions_play_next">次に再生</string>
+    <string name="sheets_actions_add_to_queue">キューに追加</string>
+    <string name="sheets_actions_add_to_playlist">プレイリストに追加</string>
+    <string name="sheets_actions_favorite">お気に入りに追加</string>
+    <string name="sheets_actions_unfavorite">お気に入りから削除</string>
+    <string name="sheets_actions_go_to_album">アルバムへ移動</string>
+    <string name="sheets_actions_go_to_artist">アーティストへ移動</string>
+    <string name="sheets_actions_info">曲の情報</string>
+    <string name="sheets_actions_share">共有</string>
+    <string name="sheets_actions_snack_play_next">次に「%1$s」を再生します</string>
+    <string name="sheets_actions_snack_queued">「%1$s」をキューに追加しました</string>
+    <string name="sheets_actions_snack_favorited">お気に入りに追加しました</string>
+    <string name="sheets_actions_snack_unfavorited">お気に入りから削除しました</string>
+</resources>

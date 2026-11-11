@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Song info sheet (UI-28) -->
+    <string name="sheets_info_title">Song info</string>
+    <string name="sheets_info_group_metadata">Metadata</string>
+    <string name="sheets_info_group_file">File</string>
+    <string name="sheets_info_group_audio">Audio</string>
+    <string name="sheets_info_title_label">Title</string>
+    <string name="sheets_info_artist_label">Artist</string>
+    <string name="sheets_info_album_label">Album</string>
+    <string name="sheets_info_album_artist_label">Album artist</string>
+    <string name="sheets_info_track_label">Track</string>
+    <string name="sheets_info_disc_label">Disc</string>
+    <string name="sheets_info_genre_label">Genre</string>
+    <string name="sheets_info_year_label">Year</string>
+    <string name="sheets_info_duration_label">Duration</string>
+    <string name="sheets_info_path_label">Path</string>
+    <string name="sheets_info_size_label">Size</string>
+    <string name="sheets_info_modified_label">Modified</string>
+    <string name="sheets_info_added_label">Added</string>
+    <string name="sheets_info_format_label">Format</string>
+    <string name="sheets_info_bitrate_label">Bitrate</string>
+    <string name="sheets_info_sample_rate_label">Sample rate</string>
+    <string name="sheets_info_rg_track_label">Track gain</string>
+    <string name="sheets_info_rg_album_label">Album gain</string>
+    <string name="sheets_info_rg_track_peak_label">Track peak</string>
+    <string name="sheets_info_rg_album_peak_label">Album peak</string>
+    <string name="sheets_info_bitrate_value">%1$d kbps</string>
+    <string name="sheets_info_sample_rate_value">%1$s kHz</string>
+    <string name="sheets_info_gain_value">%1$s dB</string>
+    <string name="sheets_info_open_folder">Open folder</string>
+    <string name="sheets_info_copy_path">Copy path</string>
+    <string name="sheets_info_share">Share file</string>
+    <string name="sheets_info_copied">Copied to clipboard</string>
+    <string name="sheets_info_open_folder_failed">Couldn\'t open the folder</string>
+    <string name="sheets_info_share_failed">Couldn\'t share this file</string>
+    <string name="sheets_info_copy_action">Copy %1$s</string>
+
+    <!-- Playlist selector (UI-29) -->
+    <string name="sheets_selector_title">Add to playlist</string>
+    <plurals name="sheets_selector_title_multi">
+        <item quantity="one">Add %d song to a playlist</item>
+        <item quantity="other">Add %d songs to a playlist</item>
+    </plurals>
+    <string name="sheets_selector_new">New playlist</string>
+    <string name="sheets_selector_empty">No playlists yet. Create one to get started.</string>
+    <string name="sheets_selector_added">Added to %1$s</string>
+    <string name="sheets_selector_removed">Removed from %1$s</string>
+    <plurals name="sheets_selector_batch_added">
+        <item quantity="one">Added %1$d song to %2$s</item>
+        <item quantity="other">Added %1$d songs to %2$s</item>
+    </plurals>
+    <string name="sheets_selector_contains">In playlist</string>
+    <string name="sheets_selector_not_contains">Not in playlist</string>
+
+    <!-- Dialogs (UI-30) -->
+    <string name="sheets_dialog_create_title">New playlist</string>
+    <string name="sheets_dialog_rename_title">Rename playlist</string>
+    <string name="sheets_dialog_description_title">Edit description</string>
+    <string name="sheets_dialog_save_queue_title">Save queue as playlist</string>
+    <string name="sheets_dialog_name_label">Name</string>
+    <string name="sheets_dialog_description_label">Description</string>
+    <string name="sheets_dialog_description_hint">Leave empty to remove it</string>
+    <string name="sheets_dialog_create">Create</string>
+    <string name="sheets_dialog_save">Save</string>
+    <string name="sheets_dialog_cancel">Cancel</string>
+    <string name="sheets_dialog_saved_queue">Saved %1$s</string>
+    <string name="sheets_dialog_default_queue_name">Queue %1$s</string>
+
+    <!-- Song actions sheet -->
+    <string name="sheets_actions_play_next">Play next</string>
+    <string name="sheets_actions_add_to_queue">Add to queue</string>
+    <string name="sheets_actions_add_to_playlist">Add to playlist</string>
+    <string name="sheets_actions_favorite">Add to favourites</string>
+    <string name="sheets_actions_unfavorite">Remove from favourites</string>
+    <string name="sheets_actions_go_to_album">Go to album</string>
+    <string name="sheets_actions_go_to_artist">Go to artist</string>
+    <string name="sheets_actions_info">Song info</string>
+    <string name="sheets_actions_share">Share</string>
+    <string name="sheets_actions_snack_play_next">%1$s plays next</string>
+    <string name="sheets_actions_snack_queued">Added %1$s to the queue</string>
+    <string name="sheets_actions_snack_favorited">Added to favourites</string>
+    <string name="sheets_actions_snack_unfavorited">Removed from favourites</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_detail_no_description">説明を追加</string>
+    <string name="playlist_detail_count_time">%1$s · %2$s</string>
+    <string name="playlist_detail_play">再生</string>
+    <string name="playlist_detail_shuffle">シャッフル</string>
+    <string name="playlist_detail_more">その他のオプション</string>
+    <string name="playlist_detail_rename">名前を変更</string>
+    <string name="playlist_detail_change_cover">カバーを変更</string>
+    <string name="playlist_detail_remove_cover">カバーを削除</string>
+    <string name="playlist_detail_export">M3Uとして書き出す</string>
+    <string name="playlist_detail_delete">プレイリストを削除</string>
+    <string name="playlist_detail_delete_title">このプレイリストを削除しますか？</string>
+    <string name="playlist_detail_delete_message">「%1$s」を削除します。曲はライブラリに残ります。</string>
+    <string name="playlist_detail_delete_confirm">削除</string>
+    <string name="playlist_detail_deleted">%1$sを削除しました</string>
+    <string name="playlist_detail_export_failed">プレイリストを書き出せませんでした</string>
+    <string name="playlist_detail_cover_failed">この画像は使用できません</string>
+    <string name="playlist_detail_add_songs">曲を追加</string>
+    <string name="playlist_detail_empty_title">このプレイリストは空です</string>
+    <string name="playlist_detail_empty_subtitle">ここから曲を追加するか、ライブラリの曲を長押ししてください。</string>
+    <string name="playlist_detail_not_found">このプレイリストは存在しません</string>
+    <string name="playlist_detail_removed">「%1$s」を削除しました</string>
+    <plurals name="playlist_detail_removed_many">
+        <item quantity="other">%d曲を削除しました</item>
+    </plurals>
+    <string name="playlist_detail_undo">元に戻す</string>
+    <string name="playlist_detail_remove">プレイリストから削除</string>
+    <string name="playlist_detail_drag_handle">並べ替え</string>
+    <string name="playlist_detail_move_up">上へ移動</string>
+    <string name="playlist_detail_move_down">下へ移動</string>
+    <string name="playlist_detail_back">戻る</string>
+    <string name="playlist_detail_cover_desc">%1$sのカバー</string>
+    <string name="playlist_add_title">曲を追加</string>
+    <string name="playlist_add_search">ライブラリを検索</string>
+    <plurals name="playlist_add_confirm">
+        <item quantity="other">%d曲を追加</item>
+    </plurals>
+    <string name="playlist_add_none">追加できる曲はありません</string>
+    <plurals name="playlist_added">
+        <item quantity="other">%d曲を追加しました</item>
+    </plurals>
+</resources>
