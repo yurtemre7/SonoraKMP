@@ -118,6 +118,13 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [x] **P5-04a** Songs tab & sync banner [UI-08, UI-12] — deps: [P5-03, P5-05] — owns: `A/ui/screens/home/tabs/**` — done when: Songs tab list (tap plays the list from that song, song menu: play next / add to queue / favorite), empty/no-result states, pull-to-refresh sync, sync banner behaviours.
 - [ ] **P5-23** First usable nightly (emulator walkthrough ✅, nightly published ✅, waiting on the maintainer's phone install) — deps: [P5.1 tasks] — owns: none (fixes go to owners) — done when: on the emulator, a fresh install goes onboarding → folder pick → scan → Songs tab → tap plays → mini player → Now Playing (seek, skip, shuffle, repeat, Up Next); nightly published; maintainer installs it on a phone.
 
+### P5.1 feedback (maintainer, 2026-11-11, after using the nightly) — fix before/within P5.2
+"Feels good, but resembles the old app a bit; missing the gestures and snappiness; the progress/seek bar looks hacky, not really M3 Expressive."
+- [ ] **P5-24** Seek bar rebuild — owns: `A/ui/components/WavySeekBar.kt` — done when: uses the M3 Expressive slider/wavy progress components as intended (no custom Slider + overlay hack): proper expressive thumb, track gap and stop indicator, wave tied to playback, smooth drag with haptics, time labels; reviewed in light/dark against M3 Expressive references.
+- [ ] **P5-25** Gestures — owns: `A/ui/components/MiniPlayer.kt`, `A/ui/screens/nowplaying/**`, `A/ui/navigation/NowPlayingSlot.kt` — done when: mini player drag-to-expand follows the finger into Now Playing (shared element sleeve/title), Now Playing drag-down to dismiss, horizontal swipe on the artwork to skip with a peek of the next/previous cover, swipe-to-dismiss and long-press menus in lists, predictive back on every overlay.
+- [ ] **P5-26** Snappiness pass — owns: fixes in owning files — done when: tap → visible response < 100 ms everywhere (optimistic UI for play/pause, skip, favourite), spring motion from MotionScheme.expressive() on all transitions, no jank in lists (baseline profile + stable keys), measured with a JankStats/macrobenchmark smoke run.
+- [ ] **P5-27** Identity check vs Flutter — owns: none (review) — done when: side-by-side review of Home, Now Playing and mini player against the Flutter app; anything that still looks like the old layout is redesigned per DESIGN.md (Spine, sleeves, docked bar) and the changes are listed in DESIGN.md.
+
 ### P5.2 Everything else (built while the app is in daily use)
 
 **P5.2a** (parallel)
