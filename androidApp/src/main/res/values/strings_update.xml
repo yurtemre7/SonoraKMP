@@ -22,7 +22,6 @@
     <string name="update_error_unknown">Update check failed</string>
     <string name="update_rate_limit_title">Rate limit reached</string>
     <string name="update_rate_limit_message">GitHub allows a limited number of anonymous requests per hour. You can check again after %1$s, or open the releases page now.</string>
-    <string name="update_download_pending">Downloading updates in the app is coming soon. Opening the release page instead.</string>
     <string name="update_channel_title">Update channel</string>
     <string name="update_channel_stable">Stable</string>
     <string name="update_channel_stable_desc">Tested releases only</string>

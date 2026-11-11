@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update2_downloading">Downloading… %1$s of %2$s</string>
+    <string name="update2_downloading_unknown">Downloading… %1$s</string>
+    <string name="update2_verifying">Checking the download…</string>
+    <string name="update2_installing">Installing… Confirm the system prompt to finish.</string>
+    <string name="update2_installed">Update installed</string>
+    <string name="update2_cancel">Cancel</string>
+    <string name="update2_permission_title">Allow SonoraKMP to install updates</string>
+    <string name="update2_permission_message">Turn on \"Allow from this source\" in the settings that opened, then come back. The download starts automatically.</string>
+    <string name="update2_open_settings">Open settings</string>
+    <string name="update2_err_no_network">The download failed. Check your connection and try again.</string>
+    <string name="update2_err_http">The download failed (error %1$d).</string>
+    <string name="update2_err_no_asset">This release is missing its checksum file, so it can\'t be verified.</string>
+    <string name="update2_err_checksum">The download was corrupted (checksum mismatch) and has been deleted.</string>
+    <string name="update2_err_cancelled">Update cancelled</string>
+    <string name="update2_err_conflict">Couldn\'t install: the update is signed differently from the installed app.</string>
+    <string name="update2_err_incompatible">Couldn\'t install: this update isn\'t compatible with your device.</string>
+    <string name="update2_err_storage">Couldn\'t install: not enough free storage.</string>
+    <string name="update2_err_install">Couldn\'t install the update (error %1$d).</string>
+    <string name="update2_dev_disabled">Updates are disabled in development builds</string>
+    <string name="update2_open_release">Open release page</string>
+    <string name="update2_state_downloading">Downloading version %1$s…</string>
+    <string name="update2_state_permission">Waiting for permission to install</string>
+    <string name="update2_cd_progress">Download progress</string>
+</resources>

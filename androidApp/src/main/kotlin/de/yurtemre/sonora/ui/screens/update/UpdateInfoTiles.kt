@@ -74,11 +74,17 @@ fun UpdateCheckTile(modifier: Modifier = Modifier, viewModel: UpdateViewModel = 
         UpdateUiState.UpToDate -> stringResource(R.string.update_state_up_to_date)
         is UpdateUiState.Available -> stringResource(R.string.update_state_available, s.update.version.toString())
         is UpdateUiState.Failed -> failureText(s.reason)
+        is UpdateUiState.NeedsPermission -> stringResource(R.string.update2_state_permission)
+        is UpdateUiState.Downloading -> stringResource(R.string.update2_state_downloading, s.update.version.toString())
+        is UpdateUiState.Verifying -> stringResource(R.string.update2_verifying)
+        is UpdateUiState.ReadyToInstall, is UpdateUiState.Installing -> stringResource(R.string.update2_installing)
+        is UpdateUiState.Installed -> stringResource(R.string.update2_installed)
+        is UpdateUiState.InstallFailed -> installErrorText(s.error)
     }
     val icon = when (state) {
         UpdateUiState.UpToDate -> Icons.Rounded.CheckCircle
         is UpdateUiState.Available -> Icons.Rounded.NewReleases
-        is UpdateUiState.Failed -> Icons.Rounded.ErrorOutline
+        is UpdateUiState.Failed, is UpdateUiState.InstallFailed -> Icons.Rounded.ErrorOutline
         else -> Icons.Rounded.SystemUpdate
     }
     val cs = MaterialTheme.colorScheme
@@ -90,18 +96,23 @@ fun UpdateCheckTile(modifier: Modifier = Modifier, viewModel: UpdateViewModel = 
                 icon, null,
                 tint = when (state) {
                     is UpdateUiState.Available -> cs.primary
-                    is UpdateUiState.Failed -> cs.error
+                    is UpdateUiState.Failed, is UpdateUiState.InstallFailed -> cs.error
+                    is UpdateUiState.Install -> cs.primary
                     else -> cs.onSurfaceVariant
                 },
             )
         },
-        trailingContent = { if (state == UpdateUiState.Checking) LoadingIndicator(Modifier.size(32.dp)) },
+        trailingContent = {
+            val s = state
+            if (s is UpdateUiState.Downloading && s.fraction != null) {
+                androidx.compose.material3.CircularWavyProgressIndicator(progress = { s.fraction ?: 0f }, modifier = Modifier.size(32.dp))
+            } else if (s == UpdateUiState.Checking || s is UpdateUiState.Verifying || s is UpdateUiState.Installing) LoadingIndicator(Modifier.size(32.dp)) },
         colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         modifier = modifier.semantics(mergeDescendants = true) { role = Role.Button }.then(
             Modifier.clickable(enabled = state != UpdateUiState.Checking) {
                 haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                 when (val s = state) {
-                    is UpdateUiState.Available -> viewModel.showSheet()
+                    is UpdateUiState.Available, is UpdateUiState.Install -> viewModel.showSheet()
                     is UpdateUiState.Failed -> {
                         val r = s.reason
                         if (r is UpdateFailure.RateLimited && r.resetAtMs > System.currentTimeMillis()) {

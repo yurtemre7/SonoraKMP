@@ -119,7 +119,7 @@ fun HomeHeader(
                 }
             }
         }
-        if (isSyncing) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
+        if (isSyncing) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
     }
 }
 

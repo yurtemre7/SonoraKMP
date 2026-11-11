@@ -99,7 +99,7 @@ fun SettingsBackupRoute(onBack: () -> Unit) {
         topBarBottom = {
             AnimatedVisibility(busy != null) {
                 Column {
-                    LinearWavyProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                    LinearWavyProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
                     Text(
                         stringResource(
                             if (busy == BackupBusy.Restoring) R.string.settings_backup_restoring else R.string.settings_backup_exporting,

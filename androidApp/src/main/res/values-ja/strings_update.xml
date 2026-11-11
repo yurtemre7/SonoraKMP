@@ -22,7 +22,6 @@
     <string name="update_error_unknown">アップデートの確認に失敗しました</string>
     <string name="update_rate_limit_title">リクエスト上限に達しました</string>
     <string name="update_rate_limit_message">GitHubでは匿名のリクエスト数が1時間ごとに制限されています。%1$s以降に再確認するか、今すぐリリースページを開いてください。</string>
-    <string name="update_download_pending">アプリ内でのダウンロードは近日対応予定です。代わりにリリースページを開きます。</string>
     <string name="update_channel_title">アップデートチャンネル</string>
     <string name="update_channel_stable">安定版</string>
     <string name="update_channel_stable_desc">テスト済みのリリースのみ</string>

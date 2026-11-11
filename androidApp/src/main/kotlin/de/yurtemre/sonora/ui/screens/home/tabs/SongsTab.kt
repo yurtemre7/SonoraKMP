@@ -116,7 +116,7 @@ fun SongsTab(
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (isSyncing) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (isSyncing) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth())
         if (showBanner) SyncBanner(
             enabled = !isSyncing,
             onSyncNow = sync,

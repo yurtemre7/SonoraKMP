@@ -73,7 +73,8 @@ class UpdateChecker(
 
     /** `/releases/latest`: Ok(null) when it is not a stable release. */
     private suspend fun stableCandidate(): FetchResult<Pair<Release, SemVer>?> = when (val r = client.latest()) {
-        is FetchResult.Err -> r
+        // 404: the repository has no stable release yet.
+        is FetchResult.Err -> if (r.reason == UpdateFailure.Server(404)) FetchResult.Ok(null) else r
         is FetchResult.Ok -> {
             val v = SemVer.parse(r.value.tagName)
             when {

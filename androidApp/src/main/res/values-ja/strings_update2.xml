@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update2_downloading">ダウンロード中… %1$s / %2$s</string>
+    <string name="update2_downloading_unknown">ダウンロード中… %1$s</string>
+    <string name="update2_verifying">ダウンロードを確認しています…</string>
+    <string name="update2_installing">インストール中… システムの確認画面で操作してください。</string>
+    <string name="update2_installed">アップデートをインストールしました</string>
+    <string name="update2_cancel">キャンセル</string>
+    <string name="update2_permission_title">SonoraKMP にアップデートのインストールを許可</string>
+    <string name="update2_permission_message">開いた設定画面で「この提供元のアプリを許可」をオンにしてから戻ってください。ダウンロードは自動で始まります。</string>
+    <string name="update2_open_settings">設定を開く</string>
+    <string name="update2_err_no_network">ダウンロードに失敗しました。接続を確認してもう一度お試しください。</string>
+    <string name="update2_err_http">ダウンロードに失敗しました（エラー %1$d）。</string>
+    <string name="update2_err_no_asset">このリリースにはチェックサムファイルがないため、検証できません。</string>
+    <string name="update2_err_checksum">ダウンロードしたファイルが破損していたため（チェックサム不一致）、削除しました。</string>
+    <string name="update2_err_cancelled">アップデートをキャンセルしました</string>
+    <string name="update2_err_conflict">インストールできません。インストール済みのアプリと署名が異なります。</string>
+    <string name="update2_err_incompatible">インストールできません。このアップデートはお使いの端末に対応していません。</string>
+    <string name="update2_err_storage">インストールできません。空き容量が足りません。</string>
+    <string name="update2_err_install">アップデートをインストールできませんでした（エラー %1$d）。</string>
+    <string name="update2_dev_disabled">開発版ビルドではアップデートを利用できません</string>
+    <string name="update2_open_release">リリースページを開く</string>
+    <string name="update2_state_downloading">バージョン %1$s をダウンロード中…</string>
+    <string name="update2_state_permission">インストールの許可を待っています</string>
+    <string name="update2_cd_progress">ダウンロードの進行状況</string>
+</resources>
