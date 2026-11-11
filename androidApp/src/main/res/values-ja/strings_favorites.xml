@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fav_title">お気に入り</string>
+    <string name="fav_section_songs">曲</string>
+    <string name="fav_section_albums">アルバム</string>
+    <string name="fav_section_artists">アーティスト</string>
+    <string name="fav_songs_summary">%1$s・%2$s</string>
+    <string name="fav_play">再生</string>
+    <string name="fav_shuffle">シャッフル</string>
+    <string name="fav_sort">お気に入りの曲を並べ替え</string>
+    <string name="fav_sort_title">お気に入りの曲の並び順</string>
+    <string name="fav_sort_name">名前</string>
+    <string name="fav_sort_duration">再生時間</string>
+    <string name="fav_sort_date">お気に入りに追加した日</string>
+    <string name="fav_sort_ascending">昇順</string>
+    <string name="fav_sort_descending">降順</string>
+    <string name="fav_remove">お気に入りから外す</string>
+    <string name="fav_removed">「%1$s」をお気に入りから外しました</string>
+    <string name="fav_undo">元に戻す</string>
+    <string name="fav_empty_title">お気に入りはまだありません</string>
+    <string name="fav_empty_subtitle">曲・アルバム・アーティストのハートをタップすると、ここに集まります。</string>
+    <string name="fav_swipe_hint">曲をスワイプするとお気に入りから外せます</string>
+    <plurals name="fav_song_count">
+        <item quantity="other">%d曲</item>
+    </plurals>
+    <string name="recent_title">最近再生した曲</string>
+    <string name="recent_shuffle">最近再生した曲をシャッフル</string>
+    <string name="recent_row_artist">%1$s・%2$s</string>
+    <plurals name="recent_plays">
+        <item quantity="other">%d回再生</item>
+    </plurals>
+    <string name="recent_empty_title">まだ何も再生していません</string>
+    <string name="recent_empty_subtitle">曲をしばらく聴くと、ここに表示されます。</string>
+    <string name="recent_empty_action">ライブラリに戻る</string>
+</resources>

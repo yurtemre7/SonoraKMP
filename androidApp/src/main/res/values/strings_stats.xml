@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">Statistics</string>
+    <string name="stats_tab_overview">Overview</string>
+    <string name="stats_tab_songs">Songs</string>
+    <string name="stats_tab_albums">Albums</string>
+    <string name="stats_tab_artists">Artists</string>
+    <string name="stats_tab_playlists">Playlists</string>
+    <string name="stats_complete_listens">Complete listens</string>
+    <string name="stats_songs_played">Songs played</string>
+    <string name="stats_albums_heard">Albums heard</string>
+    <string name="stats_artists_heard">Artists heard</string>
+    <string name="stats_playlists_played">Playlists played</string>
+    <string name="stats_shuffle_sessions">Shuffle sessions</string>
+    <string name="stats_skips">Skips</string>
+    <string name="stats_restarts">Restarts</string>
+    <string name="stats_most_active_day">Most active day</string>
+    <string name="stats_first_song">First song</string>
+    <string name="stats_first_song_since">Listening since %1$s</string>
+    <string name="stats_recently_played">Recently played</string>
+    <string name="stats_recently_played_sub">Every song you listened to, by day</string>
+    <string name="stats_top_songs">Top songs</string>
+    <string name="stats_top_albums">Top albums</string>
+    <string name="stats_top_artists">Top artists</string>
+    <string name="stats_top_playlists">Top playlists</string>
+    <string name="stats_rank">Number %1$d</string>
+    <string name="stats_song_detail">%1$s · %2$s skips · %3$s restarts</string>
+    <plurals name="stats_plays">
+        <item quantity="one">%d play</item>
+        <item quantity="other">%d plays</item>
+    </plurals>
+    <plurals name="stats_playlist_songs">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+    <string name="stats_none" translatable="false">—</string>
+    <string name="stats_page_empty">No plays here yet. Keep listening.</string>
+    <string name="stats_playlists_empty">Play music from a playlist and it shows up here.</string>
+    <string name="stats_empty_title">Nothing recorded yet</string>
+    <string name="stats_empty_subtitle">Listen to a song all the way through and your numbers start here.</string>
+    <string name="stats_reset">Reset statistics</string>
+    <string name="stats_reset_title">Reset statistics?</string>
+    <string name="stats_reset_message">All play counts, skips, top lists and your listening history are deleted. This can’t be undone.</string>
+    <string name="stats_reset_confirm">Reset</string>
+    <string name="stats_reset_done">Statistics reset</string>
+</resources>

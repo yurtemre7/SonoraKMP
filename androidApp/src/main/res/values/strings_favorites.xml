@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fav_title">Favorites</string>
+    <string name="fav_section_songs">Songs</string>
+    <string name="fav_section_albums">Albums</string>
+    <string name="fav_section_artists">Artists</string>
+    <string name="fav_songs_summary">%1$s · %2$s</string>
+    <string name="fav_play">Play</string>
+    <string name="fav_shuffle">Shuffle</string>
+    <string name="fav_sort">Sort favorite songs</string>
+    <string name="fav_sort_title">Sort favorite songs by</string>
+    <string name="fav_sort_name">Name</string>
+    <string name="fav_sort_duration">Duration</string>
+    <string name="fav_sort_date">Date added to favorites</string>
+    <string name="fav_sort_ascending">Ascending</string>
+    <string name="fav_sort_descending">Descending</string>
+    <string name="fav_remove">Remove from favorites</string>
+    <string name="fav_removed">Removed “%1$s” from favorites</string>
+    <string name="fav_undo">Undo</string>
+    <string name="fav_empty_title">No favorites yet</string>
+    <string name="fav_empty_subtitle">Tap the heart on a song, album or artist and it lands here.</string>
+    <string name="fav_swipe_hint">Swipe a song away to remove it</string>
+    <plurals name="fav_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+    <string name="recent_title">Recently played</string>
+    <string name="recent_shuffle">Shuffle recently played</string>
+    <string name="recent_row_artist">%1$s · %2$s</string>
+    <plurals name="recent_plays">
+        <item quantity="one">%d play</item>
+        <item quantity="other">%d plays</item>
+    </plurals>
+    <string name="recent_empty_title">Nothing played yet</string>
+    <string name="recent_empty_subtitle">Listen to a song for a little while and it shows up here.</string>
+    <string name="recent_empty_action">Back to the library</string>
+</resources>
