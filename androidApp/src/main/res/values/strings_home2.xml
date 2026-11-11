@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home2_search">Search</string>
+    <string name="home2_sort">Sort</string>
+    <string name="home2_shuffle">Shuffle</string>
+    <string name="home2_close_search">Close search</string>
+    <string name="home2_select">Select</string>
+    <string name="home2_undo">Undo</string>
+    <string name="home2_bin_this_week">This week</string>
+    <string name="home2_bin_this_month">This month</string>
+    <string name="home2_bin_earlier">Earlier</string>
+    <string name="home2_bin_minutes">%1$d–%2$d min</string>
+    <string name="home2_bin_minutes_open">%1$d+ min</string>
+    <string name="home2_bin_not_played">Not played yet</string>
+    <string name="home2_bin_plays">%1$d–%2$d plays</string>
+    <string name="home2_bin_plays_open">%1$d+ plays</string>
+    <string name="home2_bin_range">%1$d–%2$d</string>
+    <string name="home2_bin_range_open">%1$d+</string>
+    <string name="home2_index_label">Section index</string>
+</resources>

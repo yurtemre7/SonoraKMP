@@ -251,7 +251,7 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                             onClick = { if (!selection.onTap(song.id)) playback.playSong(song, ui.songs) },
                             onLongClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                selection.onLongPress(song.id)
+                                if (selection.active) selection.onLongPress(song.id) else actions.show(song)
                             },
                             onRemove = { removeWithUndo(FavoritesViewModel.songKey(song.id), song.title, song) },
                             onMore = { actions.show(song) },
@@ -266,6 +266,7 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,
+        onSelect = { selection.onLongPress(it.id) },
         onGoToAlbum = { onNavigate(albumKeyOf(it)) },
         onGoToArtist = { onNavigate(artistKeyOf(it)) },
     )

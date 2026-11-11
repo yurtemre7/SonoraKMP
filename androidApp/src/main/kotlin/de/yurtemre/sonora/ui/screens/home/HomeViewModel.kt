@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -142,6 +143,12 @@ class HomeViewModel(
     suspend fun sync(): SyncOutcome {
         _syncBanner.value = false
         return library.sync()
+    }
+
+    /** Library songs that appear in any playlist (header Shuffle on the Playlists tab). */
+    suspend fun playlistSongs(): List<Song> {
+        val ids = playlists.value.playlists.flatMapTo(HashSet()) { it.songIds }
+        return library.songs.first().filter { it.id in ids }
     }
 
     fun stateFor(tab: LibraryTab): StateFlow<HomeTabState> = when (tab) {

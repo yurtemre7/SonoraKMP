@@ -68,7 +68,14 @@ import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.ConfirmDialog
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.FastScroller
+import de.yurtemre.sonora.ui.components.BinDivider
+import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.binLabel
+import de.yurtemre.sonora.ui.components.binStarts
+import de.yurtemre.sonora.ui.components.binsOf
+import de.yurtemre.sonora.ui.components.countBand
+import de.yurtemre.sonora.ui.components.letterBin
+import de.yurtemre.sonora.shared.model.PlaylistSort
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.screens.home.HomeTabReselect
@@ -165,6 +172,14 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
             modifier = Modifier.fillMaxSize(),
         )
         else -> Box(Modifier.fillMaxSize()) {
+            val sort = PlaylistSort.fromStorage(state.sort.key)
+            val bins = remember(playlists, sort, state.librarySongIds) {
+                binsOf(playlists) {
+                    if (sort == PlaylistSort.Songs) countBand(it.songIds.count { id -> id in state.librarySongIds }) else letterBin(it.name)
+                }
+            }
+            val labels = bins.map { binLabel(it.key) }
+            val starts = remember(bins) { binStarts(bins, leading = 1) }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 item(key = "header") {
                     SectionHeader(
@@ -178,7 +193,9 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
                         },
                     )
                 }
-                items(playlists, key = { it.id }) { p ->
+                bins.forEachIndexed { bi, bin ->
+                stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                items(bin.items, key = { it.id }) { p ->
                     PlaylistRow(
                         playlist = p,
                         count = p.songIds.count { it in state.librarySongIds },
@@ -196,12 +213,9 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
                         onDelete = { dialog = PlaylistDialog.Delete(p) },
                     )
                 }
+                }
             }
-            FastScroller(
-                state = listState,
-                sectionAt = { i -> playlists.getOrNull(i - 1)?.let { ScrollSection.letterOf(it.name) } },
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
+            BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home2_search">検索</string>
+    <string name="home2_sort">並べ替え</string>
+    <string name="home2_shuffle">シャッフル</string>
+    <string name="home2_close_search">検索を閉じる</string>
+    <string name="home2_select">選択</string>
+    <string name="home2_undo">元に戻す</string>
+    <string name="home2_bin_this_week">今週</string>
+    <string name="home2_bin_this_month">今月</string>
+    <string name="home2_bin_earlier">それ以前</string>
+    <string name="home2_bin_minutes">%1$d〜%2$d分</string>
+    <string name="home2_bin_minutes_open">%1$d分以上</string>
+    <string name="home2_bin_not_played">未再生</string>
+    <string name="home2_bin_plays">%1$d〜%2$d回</string>
+    <string name="home2_bin_plays_open">%1$d回以上</string>
+    <string name="home2_bin_range">%1$d〜%2$d</string>
+    <string name="home2_bin_range_open">%1$d以上</string>
+    <string name="home2_index_label">セクション索引</string>
+</resources>

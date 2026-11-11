@@ -66,6 +66,7 @@ fun RelatedView(
                 SongRow(
                     title = s.title, artist = s.artist, durationMs = s.durationMs, trackNumber = s.trackNumber,
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick); onPlay(s, album) },
+                    swipeActions = de.yurtemre.sonora.ui.components.rememberQueueSwipeActions(s, null),
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -82,6 +83,7 @@ fun RelatedView(
                 SongRow(
                     title = s.title, artist = s.album, durationMs = s.durationMs, artwork = s.artworkPath, showArtwork = true,
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick); onPlay(s, artist) },
+                    swipeActions = de.yurtemre.sonora.ui.components.rememberQueueSwipeActions(s, null),
                     modifier = Modifier.animateItem(),
                 )
             }

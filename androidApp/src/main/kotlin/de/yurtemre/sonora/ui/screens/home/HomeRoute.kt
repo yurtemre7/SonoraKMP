@@ -22,6 +22,7 @@ import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.RecentlyPlayed
 import de.yurtemre.sonora.ui.navigation.Settings
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 
 /**
  * Home (library) route. The ViewModel is activity-scoped so the search query is shared across
@@ -40,6 +41,8 @@ fun HomeRoute(
     val stats = koinInject<de.yurtemre.sonora.shared.repo.api.StatsRepository>()
     val vm = viewModel(owner) { HomeViewModel(library, playlists, settings, stats) }
     val snackbar = remember { SnackbarHostState() }
+    val playback = koinInject<de.yurtemre.sonora.playback.api.PlaybackConnection>()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val header by vm.header.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val state by vm.stateFor(tab).collectAsStateWithLifecycle()
@@ -52,6 +55,10 @@ fun HomeRoute(
         onFavorites = { onNavigate(Favorites) },
         onSettings = { onNavigate(Settings) },
         snackbarHostState = snackbar,
+        onShuffle = {
+            if (tab == LibraryTab.Playlists) scope.launch { playback.playShuffled(vm.playlistSongs()) }
+            else playback.playShuffled(state.songs)
+        },
         tabContent = tabContent ?: { t, s ->
             when (t) {
                 LibraryTab.Songs -> SongsTab(s, vm, header.isSyncing, snackbar, onNavigate)

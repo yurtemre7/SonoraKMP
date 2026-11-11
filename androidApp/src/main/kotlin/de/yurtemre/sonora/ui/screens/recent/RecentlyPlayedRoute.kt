@@ -180,9 +180,11 @@ fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                             onClick = { if (!selection.onTap(song.id)) playback.playSong(song, ui.songs) },
                             onLongClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                selection.onLongPress(song.id)
+                                if (selection.active) selection.onLongPress(song.id) else actions.show(song)
                             },
                             onMoreClick = { actions.show(song) },
+                            swipeActions = de.yurtemre.sonora.ui.components.rememberQueueSwipeActions(song, snackbar),
+                            swipeEnabled = !selection.active,
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -193,6 +195,7 @@ fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,
+        onSelect = { selection.onLongPress(it.id) },
         onGoToAlbum = { onNavigate(albumKeyOf(it)) },
         onGoToArtist = { onNavigate(artistKeyOf(it)) },
     )

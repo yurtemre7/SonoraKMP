@@ -48,7 +48,14 @@ import de.yurtemre.sonora.shared.model.SongSort
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.FastScroller
+import de.yurtemre.sonora.ui.components.BinDivider
+import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.binLabel
+import de.yurtemre.sonora.ui.components.binStarts
+import de.yurtemre.sonora.ui.components.binsOf
+import de.yurtemre.sonora.ui.components.rememberQueueSwipeActions
+import de.yurtemre.sonora.ui.components.songBin
+import androidx.compose.foundation.lazy.items
 import de.yurtemre.sonora.ui.components.MultiSelectActionBar
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.components.SongRow
@@ -116,7 +123,7 @@ fun SongsTab(
             onSyncNow = sync,
             onLater = { vm.postponeSyncReminder(); snack(postponedMsg) },
         )
-        PullToRefreshBox(isRefreshing = isSyncing, onRefresh = sync, modifier = Modifier.weight(1f)) {
+        Box(Modifier.weight(1f)) {
             when {
                 !state.loaded -> Unit
                 state.totalCount == 0 -> EmptyState(
@@ -133,41 +140,33 @@ fun SongsTab(
                     modifier = Modifier.fillMaxSize(),
                 )
                 else -> Box(Modifier.fillMaxSize()) {
+                    val bins = remember(songs, sort, state.playCounts) {
+                        binsOf(songs) { songBin(it, sort) { s -> state.playCounts[s.id] ?: 0 } }
+                    }
+                    val labels = bins.map { binLabel(it.key) }
+                    val starts = remember(bins) { binStarts(bins) }
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        item(key = "header") {
-                            SectionHeader(
-                                text = stringResource(R.string.songs_header),
-                                trailing = {
-                                    TextButton(onClick = { playback.playShuffled(songs) }) {
-                                        Icon(Icons.Rounded.Shuffle, null)
-                                        Text(stringResource(R.string.songs_shuffle_all), Modifier.padding(start = 8.dp))
-                                    }
-                                },
-                            )
-                        }
-                        itemsIndexed(songs, key = { _, s -> s.id }) { _, song ->
-                            SongItem(
-                                song = song,
-                                subtitle = if (sort == SongSort.Plays) {
-                                    val n = state.playCounts[song.id] ?: 0
-                                    "${song.artist} · ${res.getQuantityString(R.plurals.songs_listens_count, n, n)}"
-                                } else song.artist,
-                                isPlaying = player.currentSong?.id == song.id,
-                                selected = selection.isSelected(song.id),
-                                onClick = { if (!selection.onTap(song.id)) playback.playSong(song, songs) },
-                                onLongClick = { selection.onLongPress(song.id) },
-                                onPlayNext = { playback.playNext(listOf(song)); snack(res.getString(R.string.songs_snack_play_next)) },
-                                onAddToQueue = { playback.addToQueue(listOf(song)); snack(res.getString(R.string.songs_snack_queued)) },
-                                onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
-                                onMore = { actions.show(song) },
-                            )
+                        bins.forEachIndexed { bi, bin ->
+                            stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                            items(bin.items, key = { it.id }, contentType = { "song" }) { song ->
+                                SongItem(
+                                    song = song,
+                                    subtitle = if (sort == SongSort.Plays) {
+                                        val n = state.playCounts[song.id] ?: 0
+                                        "${song.artist} · ${res.getQuantityString(R.plurals.songs_listens_count, n, n)}"
+                                    } else song.artist,
+                                    isPlaying = player.currentSong?.id == song.id,
+                                    selected = selection.isSelected(song.id),
+                                    selectionActive = selection.active,
+                                    snackbar = snackbar,
+                                    onClick = { if (!selection.onTap(song.id)) playback.playSong(song, songs) },
+                                    onLongClick = { if (selection.active) selection.onLongPress(song.id) else actions.show(song) },
+                                    onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
+                                )
+                            }
                         }
                     }
-                    FastScroller(
-                        state = listState,
-                        sectionAt = { i -> songs.getOrNull(i - 1)?.let { s -> ScrollSection.forSong(s, sort) { state.playCounts[it.id] ?: 0 } } },
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                    )
+                    BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
                 }
             }
         }
@@ -190,6 +189,7 @@ fun SongsTab(
         snackbarHostState = snackbar,
         onGoToAlbum = { onNavigate(albumKeyOf(it)) },
         onGoToArtist = { onNavigate(artistKeyOf(it)) },
+        onSelect = { selection.onLongPress(it.id) },
     )
     addToPlaylistIds?.let { ids ->
         PlaylistSelectorSheetHost(
@@ -206,35 +206,27 @@ private fun SongItem(
     subtitle: String,
     isPlaying: Boolean,
     selected: Boolean,
+    selectionActive: Boolean,
+    snackbar: SnackbarHostState,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onPlayNext: () -> Unit,
-    onAddToQueue: () -> Unit,
     onFavorite: () -> Unit,
-    onMore: () -> Unit,
 ) {
-    val playNext = stringResource(R.string.songs_play_next)
-    val addQueue = stringResource(R.string.songs_add_to_queue)
     val fav = stringResource(if (song.isFavorite) R.string.songs_unfavorite else R.string.songs_favorite)
-    Box {
-        SongRow(
-            title = song.title,
-            artist = subtitle,
-            durationMs = song.durationMs,
-            onClick = onClick,
-            artwork = song.artworkPath,
-            showArtwork = true,
-            isPlaying = isPlaying,
-            selected = selected,
-            onLongClick = onLongClick,
-            onMoreClick = onMore,
-            accessibilityActions = listOf(
-                SongRowAction(playNext, onPlayNext),
-                SongRowAction(addQueue, onAddToQueue),
-                SongRowAction(fav, onFavorite),
-            ),
-        )
-    }
+    SongRow(
+        title = song.title,
+        artist = subtitle,
+        durationMs = song.durationMs,
+        onClick = onClick,
+        artwork = song.artworkPath,
+        showArtwork = true,
+        isPlaying = isPlaying,
+        selected = selected,
+        onLongClick = onLongClick,
+        accessibilityActions = listOf(SongRowAction(stringResource(R.string.cd_more_options), onLongClick), SongRowAction(fav, onFavorite)),
+        swipeActions = rememberQueueSwipeActions(song, snackbar),
+        swipeEnabled = !selectionActive,
+    )
 }
 
 @Composable

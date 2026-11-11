@@ -59,7 +59,14 @@ import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.ArtSize
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.FastScroller
+import de.yurtemre.sonora.ui.components.BinDivider
+import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.addedBin
+import de.yurtemre.sonora.ui.components.binLabel
+import de.yurtemre.sonora.ui.components.binStarts
+import de.yurtemre.sonora.ui.components.binsOf
+import de.yurtemre.sonora.ui.components.countBand
+import de.yurtemre.sonora.ui.components.letterBin
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.screens.home.HomeTabReselect
@@ -99,6 +106,18 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
             modifier = Modifier.fillMaxSize(),
         )
         else -> Box(Modifier.fillMaxSize()) {
+            val bins = remember(albums, sort) {
+                binsOf(albums) {
+                    when (sort) {
+                        AlbumSort.Artist -> letterBin(it.artist)
+                        AlbumSort.Tracks -> countBand(it.songs.size)
+                        AlbumSort.Recent -> addedBin(it.songs.maxOfOrNull { s -> s.dateAddedMs ?: s.lastModifiedMs ?: 0L })
+                        else -> letterBin(it.name)
+                    }
+                }
+            }
+            val labels = bins.map { binLabel(it.key) }
+            val starts = remember(bins) { binStarts(bins) }
             // 160 dp minimum → 2 columns on phones, 3–4 on medium widths (DESIGN §7).
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(160.dp),
@@ -108,20 +127,9 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-                    SectionHeader(
-                        text = stringResource(R.string.library_albums_header),
-                        count = albums.size,
-                        modifier = Modifier.bleed(16.dp),
-                        trailing = {
-                            TextButton(onClick = { playback.playShuffled(state.songs) }) {
-                                Icon(Icons.Rounded.Shuffle, null)
-                                Text(stringResource(R.string.library_shuffle), Modifier.padding(start = 8.dp))
-                            }
-                        },
-                    )
-                }
-                items(albums, key = { it.key() }) { album ->
+                bins.forEachIndexed { bi, bin ->
+                stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi], Modifier.bleed(16.dp)) }
+                items(bin.items, key = { it.key() }) { album ->
                     val tracks = remember(album) { AlbumGrouper.sortTracks(album.songs) }
                     val fav = favAlbums.containsKey(album.key())
                     AlbumCell(
@@ -135,14 +143,9 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
                         onFavorite = { scope.launch { favorites.toggleAlbum(album.key()) } },
                     )
                 }
+                }
             }
-            FastScroller(
-                state = gridState,
-                sectionAt = { i ->
-                    albums.getOrNull(i - 1)?.let { ScrollSection.letterOf(if (sort == AlbumSort.Artist) it.artist else it.name) }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
+            BinIndexStrip(gridState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
 }

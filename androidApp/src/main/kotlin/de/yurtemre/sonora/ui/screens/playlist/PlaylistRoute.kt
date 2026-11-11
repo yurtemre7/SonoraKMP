@@ -1,5 +1,7 @@
 package de.yurtemre.sonora.ui.screens.playlist
 
+import androidx.compose.runtime.snapshotFlow
+import de.yurtemre.sonora.ui.components.rememberQueueSwipeActions
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -332,16 +334,29 @@ private fun PlaylistDetailScreen(
                 val song = entry.song
                 ReorderableItem(reorderState, key = entry.key) { dragging ->
                     val dismiss = rememberSwipeToDismissBoxState()
+                    // Per-screen swipes (DESIGN §6b.2): right = play next (springs back), left keeps "remove from playlist".
+                    val swipes = rememberQueueSwipeActions(song, snackbar)
+                    val swipeScope = rememberCoroutineScope()
+                    LaunchedEffect(dismiss) {
+                        snapshotFlow { dismiss.targetValue }.collect {
+                            if (it != SwipeToDismissBoxValue.Settled) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                        }
+                    }
                     SwipeToDismissBox(
                         state = dismiss,
-                        enableDismissFromStartToEnd = false,
                         gesturesEnabled = !selection.active,
-                        onDismiss = { if (it == SwipeToDismissBoxValue.EndToStart) removeIds(listOf(song.id), removedMsg(song)) },
+                        onDismiss = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) removeIds(listOf(song.id), removedMsg(song))
+                            else { swipes.right?.onSwipe?.invoke(); swipeScope.launch { dismiss.reset() } }
+                        },
                         backgroundContent = {
+                            val right = dismiss.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+                            val bg = if (right) swipes.right!!.container else MaterialTheme.colorScheme.errorContainer
+                            val fg = if (right) swipes.right!!.content else MaterialTheme.colorScheme.onErrorContainer
                             Box(
-                                Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 24.dp),
-                                contentAlignment = Alignment.CenterEnd,
-                            ) { Icon(Icons.Rounded.DeleteOutline, null, tint = MaterialTheme.colorScheme.onErrorContainer) }
+                                Modifier.fillMaxSize().background(bg).padding(horizontal = 24.dp),
+                                contentAlignment = if (right) Alignment.CenterStart else Alignment.CenterEnd,
+                            ) { Icon(if (right) swipes.right!!.icon else Icons.Rounded.DeleteOutline, null, tint = fg) }
                         },
                     ) {
                         Row(
@@ -361,10 +376,11 @@ private fun PlaylistDetailScreen(
                                 onClick = { if (!selection.onTap(song.id)) playback.playSong(song, songs, playlist.id) },
                                 onLongClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    selection.onLongPress(song.id)
+                                    if (selection.active) selection.onLongPress(song.id) else actions.show(song)
                                 },
                                 onMoreClick = if (selection.active) null else ({ actions.show(song) }),
                                 accessibilityActions = buildList {
+                                    add(SongRowAction(swipes.right!!.label, swipes.right!!.onSwipe))
                                     add(SongRowAction(removeLabel) { removeIds(listOf(song.id), removedMsg(song)) })
                                     if (index > 0) add(SongRowAction(upLabel) { moveTo(index, index - 1) })
                                     if (index < entries.lastIndex) add(SongRowAction(downLabel) { moveTo(index, index + 1) })
@@ -391,6 +407,7 @@ private fun PlaylistDetailScreen(
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,
+        onSelect = { selection.onLongPress(it.id) },
         onGoToAlbum = onNavigate?.let { nav -> { song: Song -> nav(de.yurtemre.sonora.ui.navigation.albumKeyOf(song)) } },
         onGoToArtist = onNavigate?.let { nav -> { song: Song -> nav(de.yurtemre.sonora.ui.navigation.artistKeyOf(song)) } },
         extraActions = { song ->

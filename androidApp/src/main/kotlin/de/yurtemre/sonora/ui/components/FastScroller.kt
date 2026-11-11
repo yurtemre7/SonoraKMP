@@ -5,16 +5,19 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -42,48 +44,17 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.library.ScrollSection
 import de.yurtemre.sonora.ui.theme.SleeveColors
+import de.yurtemre.sonora.ui.theme.tabular
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** Fast scroller (UI-07) overlay for a [LazyColumn]. Place in a Box over the list, aligned to end. */
-@Composable
-fun FastScroller(
-    state: LazyListState,
-    sectionAt: (index: Int) -> ScrollSection?,
-    modifier: Modifier = Modifier,
-) = FastScrollerImpl(
-    total = { state.layoutInfo.totalItemsCount },
-    first = { state.firstVisibleItemIndex },
-    visible = { state.layoutInfo.visibleItemsInfo.size },
-    scrolling = { state.isScrollInProgress },
-    scrollTo = { state.scrollToItem(it) },
-    sectionAt = sectionAt,
-    modifier = modifier,
-)
-
-/** Fast scroller (UI-07) overlay for a [LazyVerticalGrid]. */
-@Composable
-fun FastScroller(
-    state: LazyGridState,
-    sectionAt: (index: Int) -> ScrollSection?,
-    modifier: Modifier = Modifier,
-) = FastScrollerImpl(
-    total = { state.layoutInfo.totalItemsCount },
-    first = { state.firstVisibleItemIndex },
-    visible = { state.layoutInfo.visibleItemsInfo.size },
-    scrolling = { state.isScrollInProgress },
-    scrollTo = { state.scrollToItem(it) },
-    sectionAt = sectionAt,
-    modifier = modifier,
-)
-
-/** Localized bubble text for a [ScrollSection]. */
+/** Localized text for a shared [ScrollSection]. */
 @Composable
 fun scrollSectionLabel(section: ScrollSection): String = when (section) {
     is ScrollSection.Letter ->
@@ -95,123 +66,107 @@ fun scrollSectionLabel(section: ScrollSection): String = when (section) {
     is ScrollSection.PlayCount -> pluralStringResource(R.plurals.scroll_section_plays, section.count, section.count)
 }
 
-private val TouchWidth = 48.dp
-private val ThumbHeight = 48.dp
+/**
+ * Tab-strip index (DESIGN §6b.1) for a list split by [BinDivider]s. [starts] are the lazy indices of
+ * each divider, [labels] their texts. Dragging along the right edge jumps between dividers and
+ * highlights the current tab, with a haptic tick per change. Place in a Box over the list, aligned to end.
+ */
+@Composable
+fun BinIndexStrip(state: LazyListState, labels: List<String>, starts: List<Int>, modifier: Modifier = Modifier) =
+    BinIndexStripImpl(labels, starts, { state.firstVisibleItemIndex }, { state.isScrollInProgress }, { state.scrollToItem(it) }, modifier)
+
+/** [BinIndexStrip] for a lazy grid. */
+@Composable
+fun BinIndexStrip(state: LazyGridState, labels: List<String>, starts: List<Int>, modifier: Modifier = Modifier) =
+    BinIndexStripImpl(labels, starts, { state.firstVisibleItemIndex }, { state.isScrollInProgress }, { state.scrollToItem(it) }, modifier)
+
 private const val HIDE_DELAY_MS = 1500L
+private val RowHeight = 18.dp
 
 @Composable
-private fun FastScrollerImpl(
-    total: () -> Int,
+private fun BinIndexStripImpl(
+    labels: List<String>,
+    starts: List<Int>,
     first: () -> Int,
-    visible: () -> Int,
     scrolling: () -> Boolean,
     scrollTo: suspend (Int) -> Unit,
-    sectionAt: (Int) -> ScrollSection?,
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    val currentSectionAt by rememberUpdatedState(sectionAt)
+    val currentStarts by rememberUpdatedState(starts)
     var dragging by remember { mutableStateOf(false) }
-    var dragFraction by remember { mutableFloatStateOf(0f) }
+    var dragIndex by remember { mutableIntStateOf(0) }
     var shown by remember { mutableStateOf(false) }
-
-    val count by remember { derivedStateOf(total) }
-    val listFraction by remember {
-        derivedStateOf {
-            val scrollable = (total() - visible()).coerceAtLeast(1)
-            (first().toFloat() / scrollable).coerceIn(0f, 1f)
-        }
-    }
+    val listIndex by remember { derivedStateOf { currentStarts.indexOfLast { it <= first() }.coerceAtLeast(0) } }
     val isScrolling by remember { derivedStateOf(scrolling) }
-    val fraction = if (dragging) dragFraction else listFraction
-    val needed = count > visible() && count > 0
-
     LaunchedEffect(isScrolling, dragging) {
-        if (isScrolling || dragging) shown = true else {
-            delay(HIDE_DELAY_MS)
-            shown = false
-        }
+        if (isScrolling || dragging) shown = true else { delay(HIDE_DELAY_MS); shown = false }
+    }
+    val n = labels.size
+    if (n < 2 || n != starts.size) return
+    val current = (if (dragging) dragIndex else listIndex).coerceIn(0, n - 1)
+
+    fun jump(i: Int) {
+        val idx = i.coerceIn(0, n - 1)
+        if (idx != dragIndex) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        dragIndex = idx
+        scope.launch { scrollTo(currentStarts[idx]) }
     }
 
-    fun indexFor(f: Float) = (f * (count - 1)).roundToInt().coerceIn(0, (count - 1).coerceAtLeast(0))
-    var lastSection by remember { mutableStateOf<ScrollSection?>(null) }
-    fun jump(f: Float) {
-        dragFraction = f.coerceIn(0f, 1f)
-        val idx = indexFor(dragFraction)
-        val sec = currentSectionAt(idx)
-        if (sec != null && sec != lastSection) {
-            if (lastSection != null) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            lastSection = sec
-        }
-        scope.launch { scrollTo(idx) }
-    }
-
-    if (!needed) return
-    val section = if (count > 0) sectionAt(indexFor(fraction)) else null
-    val sectionText = section?.let { scrollSectionLabel(it) }
-    val a11yLabel = stringResource(R.string.fast_scroller_label)
-    val a11yState = sectionText ?: stringResource(R.string.fast_scroller_state, (fraction * 100).roundToInt())
-
-    BoxWithConstraints(modifier.fillMaxHeight().width(TouchWidth + 96.dp)) {
-        val trackPx = with(density) { (maxHeight - ThumbHeight).toPx() }.coerceAtLeast(1f)
-        val thumbY = (fraction * trackPx).roundToInt()
-        AnimatedVisibility(
-            visible = shown || dragging,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopEnd),
-        ) {
-            Box(
+    val a11yLabel = stringResource(R.string.home2_index_label)
+    AnimatedVisibility(shown || dragging, modifier.fillMaxHeight(), enter = fadeIn(), exit = fadeOut()) {
+        BoxWithConstraints(Modifier.fillMaxHeight().width(48.dp).padding(vertical = 8.dp)) {
+            val heightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
+            // More tabs than fit → keep every step-th label (plus the current one).
+            val fit = (maxHeight / RowHeight).toInt().coerceAtLeast(2)
+            val step = ((n + fit - 1) / fit).coerceAtLeast(1)
+            Column(
                 Modifier
                     .fillMaxHeight()
-                    .width(TouchWidth)
+                    .fillMaxWidth()
                     .semantics {
                         contentDescription = a11yLabel
-                        stateDescription = a11yState
-                        progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
-                        setProgress { jump(it); true }
+                        stateDescription = labels[current]
+                        progressBarRangeInfo = ProgressBarRangeInfo(current.toFloat(), 0f..(n - 1).toFloat(), steps = (n - 2).coerceAtLeast(0))
+                        setProgress { jump(it.roundToInt()); true }
                     }
-                    .pointerInput(count) {
+                    .pointerInput(n) {
+                        fun at(y: Float) = (y / heightPx * n).toInt()
                         detectVerticalDragGestures(
-                            onDragStart = { o ->
-                                dragging = true
-                                lastSection = null
-                                jump((o.y - ThumbHeight.toPx() / 2) / trackPx)
-                            },
+                            onDragStart = { o -> dragIndex = listIndex; dragging = true; jump(at(o.y)) },
                             onDragEnd = { dragging = false },
                             onDragCancel = { dragging = false },
-                        ) { change, _ ->
-                            change.consume()
-                            jump((change.position.y - ThumbHeight.toPx() / 2) / trackPx)
-                        }
+                        ) { change, _ -> change.consume(); jump(at(change.position.y)) }
                     },
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.End,
             ) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .offset { IntOffset(0, thumbY) }
-                        .size(width = if (dragging) 8.dp else 4.dp, height = ThumbHeight)
-                        .background(
-                            if (dragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(50),
-                        ),
-                )
+                labels.forEachIndexed { i, label ->
+                    if (i % step == 0 || i == current) IndexTab(label, active = i == current, expanded = dragging && i == current)
+                }
             }
         }
-        if (dragging && sectionText != null) {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .offset { IntOffset(-TouchWidth.roundToPx(), thumbY) }
-                    .widthIn(min = 56.dp)
-                    .background(SleeveColors.Label, MaterialTheme.shapes.large)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(sectionText, color = SleeveColors.Ink, style = MaterialTheme.typography.titleLarge)
-            }
+    }
+}
+
+@Composable
+private fun IndexTab(label: String, active: Boolean, expanded: Boolean) {
+    val short = label.length <= 2
+    Box(Modifier.padding(end = 6.dp).wrapContentWidth(Alignment.End, unbounded = true), contentAlignment = Alignment.CenterEnd) {
+        when {
+            active -> Text(
+                if (short || expanded) label else label.take(1),
+                color = SleeveColors.Ink,
+                style = (if (expanded) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium).tabular(),
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier
+                    .background(SleeveColors.Label, RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 2.dp, bottomEnd = 2.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+            short -> Text(label, style = MaterialTheme.typography.labelSmall.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.outline, CircleShape))
         }
     }
 }

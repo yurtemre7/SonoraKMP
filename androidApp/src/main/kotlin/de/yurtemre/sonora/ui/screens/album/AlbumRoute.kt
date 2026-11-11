@@ -134,6 +134,8 @@ fun AlbumRoute(name: String, artist: String, onBack: () -> Unit, onNavigate: (Na
                                 onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
                                 onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
                                 onMore = { actions.show(song) },
+                                selectionActive = selection.active,
+                                snackbar = snackbar,
                             )
                         }
                     }
@@ -144,6 +146,7 @@ fun AlbumRoute(name: String, artist: String, onBack: () -> Unit, onNavigate: (Na
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,
+        onSelect = { selection.onLongPress(it.id) },
         onGoToAlbum = { onNavigate(albumKeyOf(it)) },
         onGoToArtist = { onNavigate(artistKeyOf(it)) },
     )

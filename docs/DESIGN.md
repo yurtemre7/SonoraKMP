@@ -146,6 +146,24 @@ The one bold element. Everything around it stays quiet.
 9. **Badges** — Label yellow fill with Ink text, used sparingly (new version,
    selection count).
 
+## 6b. Home (revised after the P5-27 identity check)
+
+Side by side with the Flutter app, the first Home kept Flutter's structure (greeting title,
+search pill with round buttons, "N songs • duration" line, rows ending in duration + ⋮). Home now
+follows the record-collection idea instead:
+
+1. **Record-bin dividers.** Lists are split into sticky sections shown as divider tabs, like the
+   cards in a record-store bin: a Label-yellow tab with an Ink letter (title/artist sorts),
+   "This week / This month / Earlier" (recently added), minute ranges (duration) or play bands
+   (plays). The tab doubles as the fast-scroll target; there is no floating bubble.
+2. **Rows without ⋮.** Swipe right = play next, swipe left = add to queue (coloured reveal with
+   icon, haptic at threshold, snackbar with undo); long-press opens the song action sheet.
+   Duration stays at the end in small tabular figures. TalkBack exposes the same actions.
+3. **Header.** Condensed screen title (greeting only when a name is set) with the count and
+   total time as tabular figures beside it; below it one connected button group:
+   Search · Sort · Shuffle. Search expands in place into a field (shared-axis motion); pulling the
+   list down also opens it.
+
 ## 7. Layout
 
 * Edge-to-edge with inset padding; transparent system bars.

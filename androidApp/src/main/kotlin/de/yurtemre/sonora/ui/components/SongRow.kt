@@ -20,9 +20,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.PlaylistPlay
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
+import de.yurtemre.sonora.playback.api.PlaybackConnection
+import de.yurtemre.sonora.shared.model.Song
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,8 +73,48 @@ import de.yurtemre.sonora.ui.theme.SonoraTheme
 /** Extra TalkBack action exposed on a [SongRow]. */
 data class SongRowAction(val label: String, val onAction: () -> Unit)
 
+/** One swipe direction of a [SongRow]: coloured reveal with [icon]; the row springs back after [onSwipe]. */
+data class SongSwipe(val label: String, val icon: ImageVector, val container: Color, val content: Color, val onSwipe: () -> Unit)
+
+/** Per-screen swipe actions (DESIGN §6b.2): [right] = swipe start→end, [left] = end→start. */
+data class SongSwipeActions(val right: SongSwipe?, val left: SongSwipe?)
+
 /**
- * List row for a song (DESIGN §6.5): no card, no divider. Leading slot shows the track number in
+ * Default row swipes: right = play next (Label / secondaryContainer), left = add to queue
+ * (Cobalt / primaryContainer). Shows a snackbar with undo on [snackbar] when given.
+ * Pass [left] to replace the add-to-queue action (e.g. remove from playlist).
+ */
+@Composable
+fun rememberQueueSwipeActions(song: Song, snackbar: SnackbarHostState?, left: SongSwipe? = null): SongSwipeActions {
+    val playback = koinInject<PlaybackConnection>()
+    val res = LocalResources.current
+    val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    fun withUndo(msg: String, act: () -> Unit) {
+        val before = playback.queue.value.items.mapTo(HashSet()) { it.entryUid }
+        act()
+        if (snackbar == null) return
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val r = snackbar.showSnackbar(msg, res.getString(R.string.home2_undo), duration = SnackbarDuration.Short)
+            if (r == SnackbarResult.ActionPerformed) {
+                playback.queue.value.items.lastOrNull { it.entryUid !in before && it.song.id == song.id }
+                    ?.let { playback.removeFromQueue(it.entryUid) }
+            }
+        }
+    }
+    val playNext = SongSwipe(
+        res.getString(R.string.songs_play_next), Icons.Rounded.PlaylistPlay, cs.secondaryContainer, cs.onSecondaryContainer,
+    ) { withUndo(res.getString(R.string.sheets_actions_snack_play_next, song.title)) { playback.playNext(listOf(song)) } }
+    val queue = left ?: SongSwipe(
+        res.getString(R.string.songs_add_to_queue), Icons.AutoMirrored.Rounded.QueueMusic, cs.primaryContainer, cs.onPrimaryContainer,
+    ) { withUndo(res.getString(R.string.sheets_actions_snack_queued, song.title)) { playback.addToQueue(listOf(song)) } }
+    return SongSwipeActions(playNext, queue)
+}
+
+/**
+ * List row for a song (DESIGN §6.5, §6b.2): no card, no divider, no ⋮ — long-press (or [onMoreClick] when
+ * [onLongClick] is null) opens the action sheet, [swipeActions] add swipe right/left; both are TalkBack actions. Leading slot shows the track number in
  * tabular figures (or the sleeve when [showArtwork]); when [isPlaying] it swaps to Cobalt equalizer bars (static under [LocalReduceMotion]).
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -75,7 +133,73 @@ fun SongRow(
     onLongClick: (() -> Unit)? = null,
     onMoreClick: (() -> Unit)? = null,
     accessibilityActions: List<SongRowAction> = emptyList(),
+    swipeActions: SongSwipeActions? = null,
+    swipeEnabled: Boolean = true,
 ) {
+    if (swipeActions == null || !swipeEnabled) {
+        SongRowContent(title, artist, durationMs, onClick, modifier, trackNumber, artwork, showArtwork, isPlaying, selected,
+            onLongClick, onMoreClick, accessibilityActions)
+        return
+    }
+    val state = rememberSwipeToDismissBoxState()
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(state) {
+        snapshotFlow { state.targetValue }.collect {
+            if (it != SwipeToDismissBoxValue.Settled) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        }
+    }
+    val swipeA11y = listOfNotNull(swipeActions.right, swipeActions.left).map { SongRowAction(it.label, it.onSwipe) }
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        enableDismissFromStartToEnd = swipeActions.right != null,
+        enableDismissFromEndToStart = swipeActions.left != null,
+        onDismiss = { v ->
+            // Act, then spring back: rows are never removed by these swipes.
+            (if (v == SwipeToDismissBoxValue.StartToEnd) swipeActions.right else swipeActions.left)?.onSwipe?.invoke()
+            scope.launch { state.reset() }
+        },
+        backgroundContent = {
+            val right = state.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val a = if (right) swipeActions.right else swipeActions.left
+            if (a != null && state.dismissDirection != SwipeToDismissBoxValue.Settled) {
+                Box(
+                    Modifier.fillMaxSize().background(a.container).padding(horizontal = 24.dp),
+                    contentAlignment = if (right) Alignment.CenterStart else Alignment.CenterEnd,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (!right) Text(a.label, style = MaterialTheme.typography.labelLarge, color = a.content)
+                        Icon(a.icon, null, tint = a.content)
+                        if (right) Text(a.label, style = MaterialTheme.typography.labelLarge, color = a.content)
+                    }
+                }
+            }
+        },
+    ) {
+        SongRowContent(title, artist, durationMs, onClick, Modifier.background(MaterialTheme.colorScheme.surface), trackNumber, artwork,
+            showArtwork, isPlaying, selected, onLongClick, onMoreClick, swipeA11y + accessibilityActions)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SongRowContent(
+    title: String,
+    artist: String,
+    durationMs: Long,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    trackNumber: Int?,
+    artwork: Any?,
+    showArtwork: Boolean,
+    isPlaying: Boolean,
+    selected: Boolean,
+    onLongClick: (() -> Unit)?,
+    onMoreClick: (() -> Unit)?,
+    accessibilityActions: List<SongRowAction>,
+) {
+    val longPress = onLongClick ?: onMoreClick
     val cs = MaterialTheme.colorScheme
     val duration = formatDuration(durationMs)
     val desc = stringResource(R.string.song_row_state_desc, title, artist, duration)
@@ -87,19 +211,19 @@ fun SongRow(
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .background(bg)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClick = longPress)
             .clearAndSetSemantics {
                 contentDescription = desc
                 if (isPlaying) stateDescription = playingDesc
                 this.selected = selected
                 onClick { onClick(); true }
-                if (onLongClick != null) onLongClick { onLongClick(); true }
+                if (longPress != null) onLongClick { longPress(); true }
                 customActions = buildList {
                     if (onMoreClick != null) add(CustomAccessibilityAction(moreLabel) { onMoreClick(); true })
                     accessibilityActions.forEach { a -> add(CustomAccessibilityAction(a.label) { a.onAction(); true }) }
                 }
             }
-            .padding(start = 16.dp, end = 4.dp),
+            .padding(start = 16.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -124,9 +248,6 @@ fun SongRow(
             Text(artist, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
         }
         Text(duration, style = MaterialTheme.typography.labelMedium.tabular(), color = cs.onSurfaceVariant)
-        if (onMoreClick != null) {
-            IconButton(onClick = onMoreClick) { Icon(Icons.Rounded.MoreVert, moreLabel) }
-        }
     }
 }
 

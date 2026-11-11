@@ -34,7 +34,15 @@ import de.yurtemre.sonora.shared.library.ScrollSection
 import de.yurtemre.sonora.shared.model.ArtistGroup
 import de.yurtemre.sonora.ui.components.ArtistAvatar
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.FastScroller
+import de.yurtemre.sonora.ui.components.BinDivider
+import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.binLabel
+import de.yurtemre.sonora.ui.components.binStarts
+import de.yurtemre.sonora.ui.components.binsOf
+import de.yurtemre.sonora.ui.components.countBand
+import de.yurtemre.sonora.ui.components.letterBin
+import de.yurtemre.sonora.shared.model.ArtistSort
+import androidx.compose.runtime.remember
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.screens.home.HomeTabReselect
@@ -67,26 +75,25 @@ fun ArtistsTab(state: HomeTabState, onOpen: (ArtistGroup) -> Unit) {
             modifier = Modifier.fillMaxSize(),
         )
         else -> Box(Modifier.fillMaxSize()) {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                item(key = "header") {
-                    SectionHeader(
-                        text = stringResource(R.string.library_artists_header),
-                        count = artists.size,
-                        trailing = {
-                            TextButton(onClick = { playback.playShuffled(state.songs) }) {
-                                Icon(Icons.Rounded.Shuffle, null)
-                                Text(stringResource(R.string.library_shuffle), Modifier.padding(start = 8.dp))
-                            }
-                        },
-                    )
+            val sort = ArtistSort.fromStorage(state.sort.key)
+            val bins = remember(artists, sort) {
+                binsOf(artists) {
+                    when (sort) {
+                        ArtistSort.Albums -> countBand(it.albums.size)
+                        ArtistSort.Songs -> countBand(it.songs.size)
+                        else -> letterBin(it.name)
+                    }
                 }
-                items(artists, key = { it.key() }) { artist -> ArtistRow(artist) { onOpen(artist) } }
             }
-            FastScroller(
-                state = listState,
-                sectionAt = { i -> artists.getOrNull(i - 1)?.let { ScrollSection.letterOf(it.name) } },
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
+            val labels = bins.map { binLabel(it.key) }
+            val starts = remember(bins) { binStarts(bins) }
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                bins.forEachIndexed { bi, bin ->
+                    stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                    items(bin.items, key = { it.key() }, contentType = { "artist" }) { artist -> ArtistRow(artist) { onOpen(artist) } }
+                }
+            }
+            BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
 }

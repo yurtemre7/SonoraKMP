@@ -176,6 +176,8 @@ fun DetailSongRow(
     trackNumber: Int? = null,
     showArtwork: Boolean = false,
     onMore: (() -> Unit)? = null,
+    selectionActive: Boolean = false,
+    snackbar: androidx.compose.material3.SnackbarHostState? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
     var fav by remember(song.isFavorite) { mutableStateOf(song.isFavorite) }
@@ -195,13 +197,15 @@ fun DetailSongRow(
             showArtwork = showArtwork,
             isPlaying = isPlaying,
             selected = selected,
-            onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLongClick() },
+            // Long-press opens the action sheet; selection starts from its "Select" row.
+            onLongClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (!selectionActive && onMore != null) onMore() else onLongClick()
+            },
             onMoreClick = onMore ?: { menu = true },
-            accessibilityActions = listOf(
-                SongRowAction(playNext, onPlayNext),
-                SongRowAction(addQueue, onAddToQueue),
-                SongRowAction(favLabel, toggleFav),
-            ),
+            accessibilityActions = listOf(SongRowAction(favLabel, toggleFav)),
+            swipeActions = de.yurtemre.sonora.ui.components.rememberQueueSwipeActions(song, snackbar),
+            swipeEnabled = !selectionActive,
         )
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.align(Alignment.TopEnd)) {
             DropdownMenuItem(text = { Text(playNext) }, onClick = { menu = false; onPlayNext() })

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.sheets
 
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -65,7 +66,7 @@ fun rememberSongActionsState(): SongActionsState = remember { SongActionsState()
  * Renders the song long-press menu for [state]; put it once per screen. Playback, favourites and
  * playlists are wired via Koin; navigation stays with the caller ([onGoToAlbum] / [onGoToArtist], hidden
  * when null). [extraActions] adds screen-specific rows (e.g. remove from playlist). Confirmations go to
- * [snackbarHostState].
+ * [snackbarHostState]. [onSelect] adds a "Select" row that starts multi-select with this song.
  */
 @Composable
 fun SongActionsHost(
@@ -74,8 +75,10 @@ fun SongActionsHost(
     onGoToAlbum: ((Song) -> Unit)? = null,
     onGoToArtist: ((Song) -> Unit)? = null,
     extraActions: (Song) -> List<SongSheetAction> = { emptyList() },
+    onSelect: ((Song) -> Unit)? = null,
 ) {
     val song = state.song ?: return
+    val selectLabel = androidx.compose.ui.res.stringResource(R.string.home2_select)
     val playback: PlaybackConnection = koinInject()
     val favorites: FavoritesRepository = koinInject()
     val favMap by favorites.favoriteSongs.collectAsState(initial = null)
@@ -122,7 +125,9 @@ fun SongActionsHost(
             },
             onGoToAlbum = onGoToAlbum?.let { { it(song) } },
             onGoToArtist = onGoToArtist?.let { { it(song) } },
-            extraActions = extraActions(song),
+            extraActions = onSelect?.let { sel ->
+                listOf(SongSheetAction(selectLabel, androidx.compose.material.icons.Icons.Rounded.CheckCircle) { sel(song) })
+            }.orEmpty() + extraActions(song),
         )
         SongActionsState.Mode.Playlist -> PlaylistSelectorSheetHost(
             songIds = listOf(song.id),
