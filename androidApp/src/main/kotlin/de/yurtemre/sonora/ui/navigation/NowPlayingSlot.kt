@@ -39,7 +39,12 @@ private val BackCorner = 28.dp
  * scales the overlay toward 0.94 / 28 dp corners and collapses it on commit.
  */
 @Composable
-fun NowPlayingSlot(state: NowPlayingSlotState, modifier: Modifier = Modifier, onNavigate: (NavKey) -> Unit = {}) {
+fun NowPlayingSlot(
+    state: NowPlayingSlotState,
+    modifier: Modifier = Modifier,
+    snackbarHostState: androidx.compose.material3.SnackbarHostState? = null,
+    onNavigate: (NavKey) -> Unit = {},
+) {
     PredictiveBackHandler(enabled = state.expanded) { progress ->
         try {
             progress.collect { state.backProgress = it.progress }
@@ -62,6 +67,7 @@ fun NowPlayingSlot(state: NowPlayingSlotState, modifier: Modifier = Modifier, on
             onCollapse = collapse,
             onOpenAlbum = { collapse(); onNavigate(Album(it.album, it.albumArtist ?: it.artist)) },
             onOpenArtist = { collapse(); onNavigate(Artist(it.artist)) },
+            snackbarHostState = snackbarHostState,
             modifier = Modifier.fillMaxSize().graphicsLayer {
                 val p = state.backProgress
                 val s = 1f - BACK_SCALE * p

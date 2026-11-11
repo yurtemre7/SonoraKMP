@@ -85,9 +85,7 @@ fun UpNextView(
                 duration = SnackbarDuration.Short,
             )
             if (result == SnackbarResult.ActionPerformed) {
-                val end = connection.queue.value.items.size
-                connection.addToQueue(listOf(item.song))
-                if (index < end) connection.moveQueueItem(end, index)
+                connection.insertQueueItem(item.song.id, index)
             }
         }
     }

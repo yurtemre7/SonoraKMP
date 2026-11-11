@@ -361,7 +361,8 @@ private fun FolderPage(folderPath: String?, error: Boolean, onPick: () -> Unit) 
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.onboarding_folder_selected), style = MaterialTheme.typography.labelMedium)
                 Text(
-                    folderPath ?: stringResource(R.string.onboarding_folder_none),
+                    folderPath?.let { de.yurtemre.sonora.ui.format.FolderDisplay.format(LocalContext.current, it) }
+                        ?: stringResource(R.string.onboarding_folder_none),
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (folderPath == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 )

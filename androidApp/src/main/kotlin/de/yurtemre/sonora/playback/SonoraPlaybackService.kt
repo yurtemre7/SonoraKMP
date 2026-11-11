@@ -37,6 +37,7 @@ import de.yurtemre.sonora.shared.queue.add
 import de.yurtemre.sonora.shared.queue.cleared
 import de.yurtemre.sonora.shared.queue.currentEntry
 import de.yurtemre.sonora.shared.queue.cycleRepeat
+import de.yurtemre.sonora.shared.queue.insertAt
 import de.yurtemre.sonora.shared.queue.load
 import de.yurtemre.sonora.shared.queue.move
 import de.yurtemre.sonora.shared.queue.playNext
@@ -296,6 +297,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             C.ADD_TO_QUEUE -> queue.applyEdit(s.add(a.getLongArray(C.ARG_IDS)?.toList().orEmpty()))
             C.REMOVE -> queue.applyEdit(s.removeByUid(a.getLong(C.ARG_UID)))
             C.MOVE -> queue.applyEdit(s.move(a.getInt(C.ARG_FROM), a.getInt(C.ARG_TO)))
+            C.INSERT_AT -> queue.applyEdit(s.insertAt(a.getLong(C.ARG_SONG), a.getInt(C.ARG_TO)))
             C.SKIP_TO -> {
                 val idx = s.entries.indexOfFirst { it.uid == a.getLong(C.ARG_UID) }
                 if (idx >= 0) queue.applyEdit(s.skipTo(idx))

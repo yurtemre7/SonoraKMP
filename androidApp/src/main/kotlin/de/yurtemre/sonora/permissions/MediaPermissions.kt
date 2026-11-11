@@ -10,14 +10,13 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 
-/** LIB-02 runtime permissions: audio (required), images (best-effort), notifications (33+, best-effort). */
+/** LIB-02 runtime permissions: audio (required), notifications (33+, best-effort). */
 object MediaPermissions {
     val audio: String =
         if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
 
-    /** Requested together with [audio]; images are best-effort and never block. */
-    val storageRequest: Array<String> =
-        if (Build.VERSION.SDK_INT >= 33) arrayOf(audio, Manifest.permission.READ_MEDIA_IMAGES) else arrayOf(audio)
+    /** Storage request: audio only. Artist images are read through the SAF folder grant (D-55). */
+    val storageRequest: Array<String> = arrayOf(audio)
 
     val notifications: String? = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.POST_NOTIFICATIONS else null
 

@@ -86,7 +86,11 @@ fun SearchHeader(
                     colors = if (plays) IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary,
-                    ) else IconButtonDefaults.filledTonalIconButtonColors(),
+                    ) else IconButtonDefaults.filledTonalIconButtonColors(
+                        // Tonal default is secondaryContainer (Label yellow): neutral unless sort = plays.
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
                 ) { Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = label) }
             }
         }

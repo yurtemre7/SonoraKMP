@@ -160,7 +160,7 @@ UI) for the licenses screen. Tests: JUnit4, kotlin-test, Turbine, Robolectric 4.
 | `automotive_app_desc.xml` + meta-data `com.google.android.gms.car.application` | dropped (D-52) |
 | `<queries>` for 17 file managers | reduced (§9 D-31) |
 | `LaunchTheme`/`NormalTheme` | `Theme.Sonora` + `Theme.SplashScreen` |
-| Permissions: READ_MEDIA_AUDIO, READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE, POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK), WAKE_LOCK, INTERNET, REQUEST_INSTALL_PACKAGES | same; `READ_EXTERNAL_STORAGE maxSdkVersion=32`; no cleartext traffic |
+| Permissions: READ_MEDIA_AUDIO, READ_EXTERNAL_STORAGE, POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK), WAKE_LOCK, INTERNET, REQUEST_INSTALL_PACKAGES | same minus READ_MEDIA_IMAGES (artist images via the SAF folder, D-55); `READ_EXTERNAL_STORAGE maxSdkVersion=32`; no cleartext traffic |
 
 ---
 
@@ -173,7 +173,7 @@ Format: **ID — feature**: behaviour (constants) → ✅ acceptance. "audit/x �
 | ID | Feature & behaviour | Acceptance |
 |---|---|---|
 | LIB-01 | **Folder selection.** `OpenDocumentTree`; persist URI permission; convert tree URI to filesystem path (`primary:Music` → `/storage/emulated/0/Music`, `<uuid>:x` → `/storage/<uuid>/x`); store `scan_folder_path` + `scan_folder_uri`. `null` = not configured. | Picking Music folder stores `/storage/emulated/0/Music`; permission survives reboot. |
-| LIB-02 | **Permissions.** API ≥ 33: `READ_MEDIA_AUDIO` (required) + `READ_MEDIA_IMAGES` (best-effort); < 33: `READ_EXTERNAL_STORAGE`; then `POST_NOTIFICATIONS` (33+, best-effort). Result = audio granted. audit/data §2.1. | Denying images still allows scanning; denying audio routes to permission gate. |
+| LIB-02 | **Permissions.** API ≥ 33: `READ_MEDIA_AUDIO` (required; no `READ_MEDIA_IMAGES`, D-55); < 33: `READ_EXTERNAL_STORAGE`; then `POST_NOTIFICATIONS` (33+, best-effort). Result = audio granted. audit/data §2.1. | Denying audio routes to permission gate. |
 | LIB-03 | **MediaStore scan.** Query/selection/variants/escaping/fallback titles exactly as audit/data §2.3 (`IS_MUSIC != 0`, `/sdcard`⇄`/storage/emulated/0`, case-insensitive prefix recheck, `Unknown Artist`/`Unknown Album`, `<unknown>`). `Song.id = _ID`. MediaStore leaves `discNumber/genre/bitrate/sampleRate` null, `trackNumber` raw (disc×1000+track). | Instrumented/robolectric fake cursor → expected `Song` list; LIKE escaping of `%`/`_` in folder names. |
 | LIB-04 | **Incremental sync.** Unchanged rule (path match ∧ mtime ∧ size ∧ (art null ∨ same art)) keeps cached row; else re-create carrying favorites/seed color by path; dropped files removed. Missing folder → return cache untouched. Empty MediaStore → directory scan. Any exception → cache returned (FIX D-19). Writes `last_sync_timestamp`, `last_sync_duration_ms`; clears `postpone_sync_until` on every successful sync. Cache = Room `songs` (transaction). | Unit test with fake scanner: unchanged song keeps object fields; unmounted folder keeps rows; exception keeps rows. |
 | LIB-05 | **Album art cache.** `cacheDir/album_art/art_album_<albumId>.jpg`, `.none` marker, `.tmp` + rename; API ≥ 29 `loadThumbnail(720×720)` JPEG q90, else albumart URI copy; FNF/empty → marker; other error → retry; cold cache: pool `clamp(cores,1,4)`, ≤ 5 min; warm: background extraction, **rows patched in DB when done** (FIX D-20); prune `^art_album_(\d+)\.(jpg|none|jpg\.tmp)$` not in result. audit/data §2.3. | First scan yields art paths; second scan of album without art does not retry (marker); art appears without second sync. |

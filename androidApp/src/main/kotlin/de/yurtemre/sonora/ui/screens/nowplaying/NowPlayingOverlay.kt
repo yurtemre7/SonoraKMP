@@ -1,7 +1,6 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,10 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,6 +27,7 @@ import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.TintedBackdrop
+import de.yurtemre.sonora.ui.components.WavySeekBar
 import org.koin.compose.koinInject
 
 /**
@@ -42,7 +43,8 @@ fun NowPlayingOverlay(
     onMfx: () -> Unit = {},
     onSleepTimer: () -> Unit = {},
     seekBar: (@Composable () -> Unit)? = null,
-    upNext: @Composable () -> Unit = {},
+    snackbarHostState: SnackbarHostState? = null,
+    upNext: (@Composable () -> Unit)? = null,
 ) {
     val playback = koinInject<de.yurtemre.sonora.playback.api.PlaybackConnection>()
     val favorites = koinInject<de.yurtemre.sonora.shared.repo.api.FavoritesRepository>()
@@ -87,23 +89,25 @@ fun NowPlayingOverlay(
                 view = view,
                 onViewChange = { view = it },
                 actions = actions,
-                seekBar = { if (seekBar != null) seekBar() else PlaceholderSeekBar(vm, state.durationMs) },
-                upNext = upNext,
+                seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
+                upNext = {
+                    if (upNext != null) upNext()
+                    else UpNextView(snackbarHostState ?: remember { SnackbarHostState() }, connection = playback)
+                },
             )
         }
     }
 }
 
-/** Basic Slider until the wavy seek bar is wired in. */
+/** Wavy seek bar fed by the live 200 ms position ticker (PLAY-25). */
 @Composable
-private fun PlaceholderSeekBar(vm: NowPlayingViewModel, durationMs: Long) {
+private fun LiveSeekBar(vm: NowPlayingViewModel, durationMs: Long, isPlaying: Boolean) {
     val position by vm.positionMs.collectAsStateWithLifecycle(0L)
-    val max = durationMs.coerceAtLeast(1L).toFloat()
-    Box(Modifier.fillMaxWidth()) {
-        Slider(
-            value = position.toFloat().coerceIn(0f, max),
-            onValueChange = { vm.seekTo(it.toLong()) },
-            valueRange = 0f..max,
-        )
-    }
+    WavySeekBar(
+        positionMs = position,
+        durationMs = durationMs,
+        isPlaying = isPlaying,
+        onSeek = vm::seekTo,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

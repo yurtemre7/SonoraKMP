@@ -119,3 +119,15 @@ class QueueStateTest {
         assertEquals(NavAction.Completed, last.onTrackEnded()!!.action)
     }
 }
+
+class QueueInsertAtTest {
+    @kotlin.test.Test
+    fun insertBeforeCurrentShiftsIndexAndKeepsOriginalOrder() {
+        val base = de.yurtemre.sonora.shared.model.QueueState().add(listOf(1L, 2L, 3L)).let { it.copy(currentIndex = 1) }
+        val removed = base.removeByUid(base.entries[0].uid)
+        val restored = removed.insertAt(1L, 0)
+        kotlin.test.assertEquals(listOf(1L, 2L, 3L), restored.entries.map { it.songId })
+        kotlin.test.assertEquals(listOf(1L, 2L, 3L), restored.original.map { it.songId })
+        kotlin.test.assertEquals(1, restored.currentIndex)
+    }
+}

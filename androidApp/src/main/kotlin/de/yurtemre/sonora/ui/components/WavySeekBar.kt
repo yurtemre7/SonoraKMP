@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -24,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -60,7 +63,7 @@ fun WavySeekBar(
     val state = stringResource(R.string.seek_bar_state, elapsed, total)
     val remainingLabel = stringResource(R.string.seek_bar_remaining, remaining)
     val color = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
 
     val interaction = remember { MutableInteractionSource() }
     val sliderState = remember { SliderState() }
@@ -89,17 +92,23 @@ fun WavySeekBar(
                 Box(Modifier.size(16.dp).clip(CircleShape).background(color))
             },
             track = { sliderState: SliderState ->
-                LinearWavyProgressIndicator(
-                    progress = { sliderState.value },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = color,
-                    trackColor = trackColor,
-                    amplitude = { _ -> if (isPlaying && dragFraction == null) 1f else 0f },
-                    waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
-                )
+                Box(Modifier.fillMaxWidth().height(16.dp), contentAlignment = Alignment.CenterStart) {
+                    // Inactive track: thin flat line (DESIGN §6.2), never a filled Label bar.
+                    Box(Modifier.fillMaxWidth().height(2.dp).clip(CircleShape).background(trackColor))
+                    LinearWavyProgressIndicator(
+                        progress = { sliderState.value },
+                        modifier = Modifier.fillMaxWidth().height(16.dp),
+                        color = color,
+                        trackColor = Color.Transparent,
+                        stopSize = 0.dp,
+                        amplitude = { _ -> if (isPlaying && dragFraction == null) 1f else 0f },
+                        wavelength = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
+                        waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
+                    )
+                }
             },
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             val style = MaterialTheme.typography.labelMedium.tabular()
             Text(elapsed, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.weight(1f))

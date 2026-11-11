@@ -4,12 +4,12 @@
     <string name="onboarding_next">Next</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_fab_disabled">not available yet</string>
-    <string name="onboarding_welcome_title">Welcome to Sonora</string>
+    <string name="onboarding_welcome_title">Welcome to SonoraKMP</string>
     <string name="onboarding_welcome_body">Your music, played from your own files. Offline, private and quick to sync.</string>
     <string name="onboarding_name_label">Your name (optional)</string>
     <string name="onboarding_name_hint">Used for a greeting on the home screen. Leave it empty to skip.</string>
     <string name="onboarding_permissions_title">A few permissions</string>
-    <string name="onboarding_permissions_body">Sonora reads audio files to build your library and shows playback controls in a notification.</string>
+    <string name="onboarding_permissions_body">SonoraKMP reads audio files to build your library and shows playback controls in a notification.</string>
     <string name="onboarding_permission_audio">Music and audio</string>
     <string name="onboarding_permission_audio_body">Required to find and play your songs</string>
     <string name="onboarding_permission_notifications">Notifications</string>

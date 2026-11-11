@@ -225,7 +225,7 @@ fun SonoraAppShell(
         if (widthSizeClass != WindowWidthSizeClass.Compact) {
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
         }
-        NowPlayingSlot(nowPlaying, onNavigate = navigate)
+        NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
     } }
 }
 

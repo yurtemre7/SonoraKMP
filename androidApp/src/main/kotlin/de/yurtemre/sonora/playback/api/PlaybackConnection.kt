@@ -35,6 +35,8 @@ interface PlaybackConnection {
     // PLAY-06 remove / reorder
     fun removeFromQueue(entryUid: Long)
     fun moveQueueItem(from: Int, to: Int)
+    /** Undo of a remove: insert [songId] at play-order position [logicalIndex]. */
+    fun insertQueueItem(songId: Long, logicalIndex: Int)
     fun skipToQueueItem(entryUid: Long)
 
     // PLAY-07/09 transport

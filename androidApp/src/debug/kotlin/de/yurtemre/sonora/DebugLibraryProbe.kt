@@ -33,7 +33,7 @@ class DebugLibraryProbe : BroadcastReceiver(), KoinComponent {
         scope.launch {
             try {
                 val folder = intent.getStringExtra("folder") ?: "/storage/emulated/0/Music/SonoraTest"
-                settings.setScanFolder(folder, null)
+                settings.setScanFolder(folder, intent.getStringExtra("uri"))
                 val outcome = library.sync()
                 val songs = library.songs.first()
                 val impl = library as? LibraryRepositoryImpl
@@ -54,7 +54,7 @@ class DebugLibraryProbe : BroadcastReceiver(), KoinComponent {
         scope.launch {
             try {
                 val folder = intent.getStringExtra("folder") ?: "/storage/emulated/0/Music/SonoraTest"
-                settings.setScanFolder(folder, null)
+                settings.setScanFolder(folder, intent.getStringExtra("uri"))
                 library.sync()
                 val songs = library.songs.first()
                 Log.i(TAG, "play songs=${songs.size}")

@@ -213,6 +213,8 @@ class PlaybackConnectionImpl(
     override fun removeFromQueue(entryUid: Long) = send(C.REMOVE, Bundle().apply { putLong(C.ARG_UID, entryUid) })
     override fun moveQueueItem(from: Int, to: Int) =
         send(C.MOVE, Bundle().apply { putInt(C.ARG_FROM, from); putInt(C.ARG_TO, to) })
+    override fun insertQueueItem(songId: Long, logicalIndex: Int) =
+        send(C.INSERT_AT, Bundle().apply { putLong(C.ARG_SONG, songId); putInt(C.ARG_TO, logicalIndex) })
     override fun skipToQueueItem(entryUid: Long) = send(C.SKIP_TO, Bundle().apply { putLong(C.ARG_UID, entryUid) })
 
     override fun play() = withController { it.play() }

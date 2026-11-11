@@ -2,12 +2,12 @@
 <resources>
     <string name="gate_loading">Loading your library</string>
     <string name="gate_loading_slow">This is taking longer than usual. Hang on a moment.</string>
-    <string name="gate_error_title">Sonora couldn\'t start</string>
+    <string name="gate_error_title">SonoraKMP couldn\'t start</string>
     <string name="gate_error_body">Your saved data couldn\'t be read. You can close the app and try again later, or clear the app\'s data and start fresh. Your music files are not touched.</string>
     <string name="gate_error_clear_retry">Clear data and retry</string>
     <string name="gate_error_close_app">Close app</string>
     <string name="gate_permission_title">Allow access to your music</string>
-    <string name="gate_permission_body">Sonora needs permission to read the audio files on this device to build your library.</string>
+    <string name="gate_permission_body">SonoraKMP needs permission to read the audio files on this device to build your library.</string>
     <string name="gate_permission_grant">Allow access</string>
     <string name="gate_permission_denied_hint">Access was turned off. Turn on \"Music and audio\" in the app settings, then come back.</string>
     <string name="gate_permission_open_settings">Open app settings</string>

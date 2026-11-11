@@ -86,3 +86,24 @@ fun QueueState.skipTo(index: Int): QueueState =
 /** Clears the queue (uids keep increasing so stale references never collide). */
 fun QueueState.cleared(): QueueState =
     copy(entries = emptyList(), original = emptyList(), currentIndex = -1, isShuffled = false, playlistContext = null)
+
+/**
+ * Undo of a remove: insert a fresh entry for [songId] at [index] in the play order (clamped).
+ * In [QueueState.original] it goes right after the entry that precedes it in play order (or first),
+ * so un-shuffling keeps a sensible position. The current entry stays current.
+ */
+fun QueueState.insertAt(songId: Long, index: Int): QueueState {
+    val (created, uid) = allocate(listOf(songId))
+    val entry = created.single()
+    val at = index.coerceIn(0, entries.size)
+    val newEntries = entries.toMutableList().apply { add(at, entry) }
+    val prev = entries.getOrNull(at - 1)
+    val origAt = prev?.let { p -> original.indexOfFirst { it.uid == p.uid } + 1 }?.takeIf { it > 0 } ?: 0
+    val newOriginal = original.toMutableList().apply { add(origAt.coerceIn(0, size), entry) }
+    val newIndex = when {
+        currentIndex < 0 -> 0
+        at <= currentIndex -> currentIndex + 1
+        else -> currentIndex
+    }
+    return copy(entries = newEntries, original = newOriginal, currentIndex = newIndex, nextUid = uid)
+}

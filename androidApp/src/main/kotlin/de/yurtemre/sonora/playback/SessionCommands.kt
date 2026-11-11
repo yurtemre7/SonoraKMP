@@ -15,6 +15,7 @@ object SessionCommands {
     const val ADD_TO_QUEUE = P + "ADD_TO_QUEUE"
     const val REMOVE = P + "REMOVE"
     const val MOVE = P + "MOVE"
+    const val INSERT_AT = P + "INSERT_AT"
     const val SKIP_TO = P + "SKIP_TO"
     const val SET_SHUFFLE = P + "SET_SHUFFLE"
     const val TOGGLE_SHUFFLE = P + "TOGGLE_SHUFFLE"
@@ -37,7 +38,7 @@ object SessionCommands {
     const val CLOSE_PLAYER = P + "CLOSE_PLAYER"
 
     val ALL = listOf(
-        SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
+        SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, INSERT_AT, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
         CYCLE_REPEAT, SKIP_NEXT, SKIP_PREVIOUS, SET_VOLUME, SET_SPEED, SET_MFX_PRESET, SET_BASS_BOOST, SET_WARMTH,
         SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_EXTEND, SLEEP_STOP,
         CLOSE_PLAYER,
@@ -56,6 +57,7 @@ object SessionCommands {
     const val ARG_UID = "uid"
     const val ARG_FROM = "from"
     const val ARG_TO = "to"
+    const val ARG_SONG = "song"
     const val ARG_ENABLED = "enabled"
     const val ARG_VALUE = "value"
     const val ARG_NAME = "name"

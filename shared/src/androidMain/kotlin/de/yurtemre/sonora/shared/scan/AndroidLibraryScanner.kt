@@ -88,15 +88,18 @@ class AndroidLibraryScanner(
         cached: List<Song>,
     ): ScanResult {
         val albumIds = rows.map { it.albumId }.filter { it > 0 }.toSet()
+        val sources = rows.filter { it.albumId > 0 }
+            .groupBy { it.albumId }
+            .mapValues { (_, rs) -> rs.first().let { ArtworkCache.Source(it.filePath, it.id) } }
         val known = albumIds.associateWith { artworkCache.cachedPath(it) }
         val missing = albumIds.filter { artworkCache.needsExtraction(it) }
         val coldCache = known.values.all { it == null } && missing.isNotEmpty()
         val art: Map<Long, String> = if (coldCache) {
             // Cold: extract synchronously (pool clamp(cores,1,4), ≤ 5 min) and patch rows now.
-            artworkCache.extractAll(albumIds)
+            artworkCache.extractAll(albumIds, sources)
         } else {
             if (missing.isNotEmpty()) {
-                artworkCache.extractInBackground(missing) { found -> _backgroundArt.emit(found) }
+                artworkCache.extractInBackground(missing, sources) { found -> _backgroundArt.emit(found) }
             }
             known.filterValues { it != null }.mapValues { it.value!! }
         }

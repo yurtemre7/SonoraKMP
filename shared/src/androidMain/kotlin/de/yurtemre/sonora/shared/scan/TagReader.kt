@@ -36,6 +36,14 @@ object TagReader {
     }
 
     fun read(file: File, withPicture: Boolean = true): AudioTags {
+        val tags = readTags(file, withPicture)
+        if (!withPicture || tags.picture != null || file.extension.lowercase() !in OGG_EXTENSIONS) return tags
+        return OggPictureReader.read(file)?.let { tags.copy(picture = it) } ?: tags
+    }
+
+    private val OGG_EXTENSIONS = setOf("opus", "ogg", "oga")
+
+    private fun readTags(file: File, withPicture: Boolean): AudioTags {
         val primary = try { readJaudiotagger(file, withPicture) } catch (_: Throwable) { null }
         val needsFallback = primary == null || primary.title == null || primary.durationMs == null ||
             (withPicture && primary.picture == null)

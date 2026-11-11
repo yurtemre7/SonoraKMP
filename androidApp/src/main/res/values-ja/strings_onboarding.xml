@@ -4,7 +4,7 @@
     <string name="onboarding_next">次へ</string>
     <string name="onboarding_get_started">はじめる</string>
     <string name="onboarding_fab_disabled">まだ進めません</string>
-    <string name="onboarding_welcome_title">Sonora へようこそ</string>
+    <string name="onboarding_welcome_title">SonoraKMP へようこそ</string>
     <string name="onboarding_welcome_body">手元の音楽ファイルを、そのまま再生。オフラインでプライベート、同期もすばやく。</string>
     <string name="onboarding_name_label">お名前（任意）</string>
     <string name="onboarding_name_hint">ホーム画面のあいさつに使います。空欄のままでもかまいません。</string>
