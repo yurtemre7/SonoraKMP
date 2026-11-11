@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Albums / Artists / Playlists tabs -->
+    <string name="library_shuffle">Shuffle</string>
+    <string name="library_play">Play</string>
+    <string name="library_play_next">Play next</string>
+    <string name="library_add_to_queue">Add to queue</string>
+    <string name="library_favorite">Add to favourites</string>
+    <string name="library_unfavorite">Remove from favourites</string>
+    <string name="library_snack_play_next">Playing next</string>
+    <string name="library_snack_queued">Added to queue</string>
+    <string name="library_albums_header">All albums</string>
+    <string name="library_artists_header">All artists</string>
+    <string name="library_playlists_header">Your playlists</string>
+    <string name="library_albums_empty">No albums yet</string>
+    <string name="library_albums_no_match">No matching albums</string>
+    <string name="library_artists_empty">No artists yet</string>
+    <string name="library_artists_no_match">No matching artists</string>
+    <string name="library_library_empty_subtitle">Sync your music folder from the Songs tab to fill your library.</string>
+    <string name="library_no_match_subtitle">Nothing matches “%1$s”.</string>
+    <string name="library_playlists_empty">No playlists yet</string>
+    <string name="library_playlists_empty_subtitle">Make one for a mood, a trip or a friend.</string>
+    <string name="library_playlists_no_match">No matching playlists</string>
+    <string name="library_new_playlist">New playlist</string>
+    <string name="library_import_m3u">Import M3U</string>
+    <string name="library_imported">Playlist imported</string>
+    <string name="library_import_no_matches">No songs in that file matched your library</string>
+    <string name="library_import_wrong_type">Choose an .m3u or .m3u8 file</string>
+    <string name="library_imported_from_m3u">Imported from M3U</string>
+    <string name="library_playlist_name">Name</string>
+    <string name="library_description">Description</string>
+    <string name="library_create">Create</string>
+    <string name="library_save">Save</string>
+    <string name="library_cancel">Cancel</string>
+    <string name="library_rename">Rename</string>
+    <string name="library_edit_description">Edit description</string>
+    <string name="library_change_cover">Change cover</string>
+    <string name="library_remove_cover">Remove cover</string>
+    <string name="library_choose_square_image">Pick a square image for the best fit</string>
+    <string name="library_cover_failed">Couldn’t use that image</string>
+    <string name="library_export_m3u">Export M3U</string>
+    <string name="library_exported">Exported playlist: %1$s</string>
+    <string name="library_export_failed">Couldn’t export the playlist</string>
+    <string name="library_delete">Delete</string>
+    <string name="library_delete_title">Delete playlist?</string>
+    <string name="library_delete_message">“%1$s” will be deleted. This can’t be undone.</string>
+    <string name="library_deleted">Deleted “%1$s”</string>
+    <string name="library_count_separator">%1$s · %2$s</string>
+    <!-- Album / Artist detail -->
+    <string name="library_album_not_found">Album not found</string>
+    <string name="library_artist_not_found">Artist not found</string>
+    <string name="library_not_found_subtitle">It may have been moved or renamed since the last sync.</string>
+    <string name="library_disc">Disc %1$d</string>
+    <string name="library_artist_albums">Albums</string>
+    <string name="library_artist_top_songs">Most played</string>
+    <string name="library_artist_all_songs">All songs</string>
+    <string name="library_cd_favorite_album">Favourite album</string>
+    <string name="library_cd_favorite_artist">Favourite artist</string>
+</resources>

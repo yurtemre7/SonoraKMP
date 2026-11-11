@@ -6,6 +6,12 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import de.yurtemre.sonora.ui.screens.home.tabs.SongsTab
+import de.yurtemre.sonora.ui.screens.home.tabs.AlbumsTab
+import de.yurtemre.sonora.ui.screens.home.tabs.ArtistsTab
+import de.yurtemre.sonora.ui.screens.home.tabs.PlaylistsTab
+import de.yurtemre.sonora.ui.navigation.Album
+import de.yurtemre.sonora.ui.navigation.Artist
+import de.yurtemre.sonora.ui.navigation.Playlist
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,7 +53,12 @@ fun HomeRoute(
         onSettings = { onNavigate(Settings) },
         snackbarHostState = snackbar,
         tabContent = tabContent ?: { t, s ->
-            if (t == LibraryTab.Songs) SongsTab(s, vm, header.isSyncing, snackbar) else PlaceholderTabContent(t, s)
+            when (t) {
+                LibraryTab.Songs -> SongsTab(s, vm, header.isSyncing, snackbar)
+                LibraryTab.Albums -> AlbumsTab(s, snackbar) { onNavigate(Album(it.name, it.artist)) }
+                LibraryTab.Artists -> ArtistsTab(s) { onNavigate(Artist(it.name)) }
+                LibraryTab.Playlists -> PlaylistsTab(s, snackbar) { onNavigate(Playlist(it.id)) }
+            }
         },
     )
 }
