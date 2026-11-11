@@ -34,8 +34,7 @@ import de.yurtemre.sonora.shared.library.ScrollSection
 import de.yurtemre.sonora.shared.model.ArtistGroup
 import de.yurtemre.sonora.ui.components.ArtistAvatar
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.BinDivider
-import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.FastScroller
 import de.yurtemre.sonora.ui.components.binLabel
 import de.yurtemre.sonora.ui.components.binStarts
 import de.yurtemre.sonora.ui.components.binsOf
@@ -88,12 +87,11 @@ fun ArtistsTab(state: HomeTabState, onOpen: (ArtistGroup) -> Unit) {
             val labels = bins.map { binLabel(it.key) }
             val starts = remember(bins) { binStarts(bins) }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                bins.forEachIndexed { bi, bin ->
-                    stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                bins.forEach { bin ->
                     items(bin.items, key = { it.key() }, contentType = { "artist" }) { artist -> ArtistRow(artist) { onOpen(artist) } }
                 }
             }
-            BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
+            FastScroller(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
 }

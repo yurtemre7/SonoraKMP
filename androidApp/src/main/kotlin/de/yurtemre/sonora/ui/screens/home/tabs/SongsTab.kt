@@ -48,8 +48,7 @@ import de.yurtemre.sonora.shared.model.SongSort
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.BinDivider
-import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.FastScroller
 import de.yurtemre.sonora.ui.components.binLabel
 import de.yurtemre.sonora.ui.components.binStarts
 import de.yurtemre.sonora.ui.components.binsOf
@@ -146,8 +145,7 @@ fun SongsTab(
                     val labels = bins.map { binLabel(it.key) }
                     val starts = remember(bins) { binStarts(bins) }
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        bins.forEachIndexed { bi, bin ->
-                            stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                        bins.forEach { bin ->
                             items(bin.items, key = { it.id }, contentType = { "song" }) { song ->
                                 SongItem(
                                     song = song,
@@ -166,7 +164,7 @@ fun SongsTab(
                             }
                         }
                     }
-                    BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
+                    FastScroller(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
                 }
             }
         }

@@ -45,9 +45,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.layout.layout
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlaybackConnection
@@ -59,8 +57,7 @@ import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.ArtSize
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.BinDivider
-import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.FastScroller
 import de.yurtemre.sonora.ui.components.addedBin
 import de.yurtemre.sonora.ui.components.binLabel
 import de.yurtemre.sonora.ui.components.binStarts
@@ -127,8 +124,7 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                bins.forEachIndexed { bi, bin ->
-                stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi], Modifier.bleed(16.dp)) }
+                bins.forEach { bin ->
                 items(bin.items, key = { it.key() }) { album ->
                     val tracks = remember(album) { AlbumGrouper.sortTracks(album.songs) }
                     val fav = favAlbums.containsKey(album.key())
@@ -145,16 +141,9 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
                 }
                 }
             }
-            BinIndexStrip(gridState, labels, starts, Modifier.align(Alignment.CenterEnd))
+            FastScroller(gridState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
-}
-
-/** Cancels the grid's horizontal content padding so full-span headers align with list screens. */
-private fun Modifier.bleed(h: Dp): Modifier = layout { m, c ->
-    val extra = h.roundToPx() * 2
-    val p = m.measure(c.copy(minWidth = c.minWidth + extra, maxWidth = c.maxWidth + extra))
-    layout(c.maxWidth, p.height) { p.place(-extra / 2, 0) }
 }
 
 @OptIn(ExperimentalFoundationApi::class)

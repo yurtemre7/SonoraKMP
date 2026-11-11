@@ -68,8 +68,7 @@ import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.ConfirmDialog
 import de.yurtemre.sonora.ui.components.EmptyState
-import de.yurtemre.sonora.ui.components.BinDivider
-import de.yurtemre.sonora.ui.components.BinIndexStrip
+import de.yurtemre.sonora.ui.components.FastScroller
 import de.yurtemre.sonora.ui.components.binLabel
 import de.yurtemre.sonora.ui.components.binStarts
 import de.yurtemre.sonora.ui.components.binsOf
@@ -193,8 +192,7 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
                         },
                     )
                 }
-                bins.forEachIndexed { bi, bin ->
-                stickyHeader(key = "bin-$bi", contentType = "bin") { BinDivider(labels[bi]) }
+                bins.forEach { bin ->
                 items(bin.items, key = { it.id }) { p ->
                     PlaylistRow(
                         playlist = p,
@@ -215,7 +213,7 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
                 }
                 }
             }
-            BinIndexStrip(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
+            FastScroller(listState, labels, starts, Modifier.align(Alignment.CenterEnd))
         }
     }
 

@@ -152,10 +152,10 @@ Side by side with the Flutter app, the first Home kept Flutter's structure (gree
 search pill with round buttons, "N songs • duration" line, rows ending in duration + ⋮). Home now
 follows the record-collection idea instead:
 
-1. **Record-bin dividers.** Lists are split into sticky sections shown as divider tabs, like the
-   cards in a record-store bin: a Label-yellow tab with an Ink letter (title/artist sorts),
-   "This week / This month / Earlier" (recently added), minute ranges (duration) or play bands
-   (plays). The tab doubles as the fast-scroll target; there is no floating bubble.
+1. **No section dividers** (tried record-bin divider tabs; removed at the maintainer's request —
+   they added noise). Lists run uninterrupted; fast scrolling is a quiet thumb on the right edge
+   with a small neutral bubble (surfaceContainerHighest, onSurface text) showing the current
+   letter, minute or play band for the active sort.
 2. **Rows without ⋮.** Swipe right = play next, swipe left = add to queue (coloured reveal with
    icon, haptic at threshold, snackbar with undo); long-press opens the song action sheet.
    Duration stays at the end in small tabular figures. TalkBack exposes the same actions.
