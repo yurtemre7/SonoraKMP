@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="np_collapse">プレーヤーを閉じる</string>
+    <string name="np_previous">前の曲</string>
+    <string name="np_next">次の曲</string>
+    <string name="np_shuffle">シャッフル</string>
+    <string name="np_repeat">リピート</string>
+    <string name="np_repeat_off">オフ</string>
+    <string name="np_repeat_all">全曲</string>
+    <string name="np_repeat_one">1曲</string>
+    <string name="np_state_on">オン</string>
+    <string name="np_state_off">オフ</string>
+    <string name="np_favorite">お気に入り</string>
+    <string name="np_mfx">サウンドエフェクト</string>
+    <string name="np_sleep_timer">スリープタイマー</string>
+    <string name="np_view_up_next">次に再生</string>
+    <string name="np_open_artist">アーティスト：%1$s</string>
+    <string name="np_open_album">アルバム：%1$s</string>
+    <string name="np_immersive_enter">操作ボタンを隠す</string>
+    <string name="np_immersive_exit">操作ボタンを表示</string>
+</resources>

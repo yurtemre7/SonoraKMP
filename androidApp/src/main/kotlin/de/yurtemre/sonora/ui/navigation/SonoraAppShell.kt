@@ -120,7 +120,9 @@ fun SonoraAppShell(
     }
     val rootTab = (backStack.firstOrNull() as? Library)?.tab ?: defaultTab
     val showNav = backStack.size == 1
-    val onTab: (LibraryTab) -> Unit = { backStack.switchTab(it) }
+    val onTab: (LibraryTab) -> Unit = {
+        if (it == rootTab && backStack.size == 1) de.yurtemre.sonora.ui.screens.home.HomeTabReselect.events.tryEmit(it) else backStack.switchTab(it)
+    }
     val navigate: (NavKey) -> Unit = { backStack.add(it) }
     val goBack: () -> Unit = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
 

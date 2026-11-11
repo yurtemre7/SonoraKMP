@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="np_collapse">Close player</string>
+    <string name="np_previous">Previous</string>
+    <string name="np_next">Next</string>
+    <string name="np_shuffle">Shuffle</string>
+    <string name="np_repeat">Repeat</string>
+    <string name="np_repeat_off">Off</string>
+    <string name="np_repeat_all">All songs</string>
+    <string name="np_repeat_one">This song</string>
+    <string name="np_state_on">On</string>
+    <string name="np_state_off">Off</string>
+    <string name="np_favorite">Favourite</string>
+    <string name="np_mfx">Sound effects</string>
+    <string name="np_sleep_timer">Sleep timer</string>
+    <string name="np_view_up_next">Up next</string>
+    <string name="np_open_artist">Artist: %1$s</string>
+    <string name="np_open_album">Album: %1$s</string>
+    <string name="np_immersive_enter">Hide controls</string>
+    <string name="np_immersive_exit">Show controls</string>
+</resources>
