@@ -157,7 +157,7 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [ ] **P6-06** Locale-aware formatting & non-UI strings [L10N-05, L10N-06] — deps: [P1-08, P4-11] — owns: `A/ui/format/**` — done when: all dates/weekdays/month-year via locale APIs; notification/Auto/widget strings resolve with app locale (verified in ja).
 
 **P6b**
-- [ ] **P6-01** Merge & translate strings [L10N-01, L10N-02] — deps: [P6-02..P6-06] — owns: `AR/values/strings*.xml`, `AR/values-ja/strings*.xml` — done when: all staging files merged into `strings.xml` (en + ja, every new key translated), staging files deleted, `LINT` clean.
+- [ ] **P6-01** Strings parity & Japanese review [L10N-01, L10N-02] — deps: [P6-02..P6-06] — owns: `AR/values*/strings*.xml`, `AT/l10n/StringsParityTest.kt` — done when: per-feature `strings_*.xml` files are kept (decision D-66: no merge into `strings.xml`, which the generator owns), every key exists in en and ja with matching format args, the whole ja set is reviewed for natural, consistent phrasing, and a parity unit test guards it; `LINT` clean.
 
 ## P7 Auto-update installer end-to-end
 
