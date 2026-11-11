@@ -19,7 +19,7 @@ import de.yurtemre.sonora.playback.api.QueueItemUi
 import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.audio.EqGains
-import de.yurtemre.sonora.shared.audio.SpeedPresets
+import de.yurtemre.sonora.shared.audio.displayDurationMs
 import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
@@ -159,8 +159,9 @@ class PlaybackConnectionImpl(
         val cur = qs.entries.firstOrNull { it.uid == curUid } ?: actualCur
         val curIndex = qs.entries.indexOf(cur).takeIf { it >= 0 } ?: qs.currentIndex
         val song = cur?.let { songs[it.songId] }
-        val speed = c?.playbackParameters?.speed ?: 1f
-        val raw = c?.duration?.takeIf { it > 0 && it != M3.TIME_UNSET } ?: song?.durationMs ?: 0L
+        // Media time for both total and position (PositionTicker): never scale by speed.
+        val playerMs = c?.duration?.takeIf { it > 0 && it != M3.TIME_UNSET }
+        val duration = displayDurationMs(playerMs, song?.durationMs, c?.currentPosition ?: 0L)
         val state = c?.playbackState ?: Player.STATE_IDLE
         val repeat = resolve(pendingRepeat, qs.repeat) { pendingRepeat = null }
         val shuffled = resolve(pendingShuffle, qs.isShuffled) { pendingShuffle = null }
@@ -173,7 +174,7 @@ class PlaybackConnectionImpl(
             isPlaying = playing,
             isBuffering = state == Player.STATE_BUFFERING,
             isCompleted = state == Player.STATE_ENDED,
-            durationMs = SpeedPresets.effectiveDurationMs(raw, speed.toDouble()),
+            durationMs = duration,
             repeat = repeat,
             isShuffled = shuffled,
             hasNext = cur != null && (curIndex < qs.entries.lastIndex || wraps),

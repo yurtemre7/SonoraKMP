@@ -135,7 +135,7 @@ private fun LiveSeekBar(vm: NowPlayingViewModel, durationMs: Long, isPlaying: Bo
     val position by vm.positionMs.collectAsStateWithLifecycle(0L)
     WavySeekBar(
         positionMs = position,
-        durationMs = durationMs,
+        durationMs = maxOf(durationMs, position),
         isPlaying = isPlaying,
         onSeek = vm::seekTo,
         modifier = Modifier.fillMaxWidth(),
