@@ -10,6 +10,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -82,12 +83,9 @@ import de.yurtemre.sonora.ui.screens.settings.playback.SettingsPlaybackRoute
 import de.yurtemre.sonora.ui.screens.settings.privacy.SettingsPrivacyRoute
 import de.yurtemre.sonora.ui.screens.stats.StatsRoute
 
-/** Replaces the root `Library` key (tab switch, SPEC §6) and clears anything above it. */
-private fun NavBackStack<NavKey>.switchTab(tab: LibraryTab) {
-    val current = firstOrNull() as? Library
-    if (size == 1 && current?.tab == tab) return
-    clear()
-    add(Library(tab))
+/** Pops everything above the root `Library` entry (tab selection itself is state, not navigation; SPEC §6). */
+private fun NavBackStack<NavKey>.popToLibrary() {
+    while (size > 1) removeAt(lastIndex)
 }
 
 /**
@@ -101,7 +99,7 @@ fun SonoraAppShell(
     defaultTab: LibraryTab,
     onOpenNowPlaying: (() -> Unit)? = null,
 ) {
-    val backStack = rememberNavBackStack(Library(defaultTab))
+    val backStack = rememberNavBackStack(Library)
     val nowPlaying = rememberNowPlayingSlotState()
     val controller = rememberNowPlayingController(nowPlaying)
     val openNowPlaying: () -> Unit = onOpenNowPlaying ?: controller::expand
@@ -137,17 +135,18 @@ fun SonoraAppShell(
             },
         )
     }
-    val rootTab = (backStack.firstOrNull() as? Library)?.tab ?: defaultTab
+    var rootTab by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(defaultTab) }
     val showNav = backStack.size == 1
     val onTab: (LibraryTab) -> Unit = {
-        if (it == rootTab && backStack.size == 1) de.yurtemre.sonora.ui.screens.home.HomeTabReselect.events.tryEmit(it) else backStack.switchTab(it)
+        if (it == rootTab && backStack.size == 1) de.yurtemre.sonora.ui.screens.home.HomeTabReselect.events.tryEmit(it)
+        else { backStack.popToLibrary(); rootTab = it }
     }
     val navigate: (NavKey) -> Unit = { backStack.add(it) }
     val goBack: () -> Unit = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
 
     // Back rule 6: root tab ≠ default → switch to default; otherwise the activity finishes.
     BackHandler(enabled = backStack.size == 1 && rootTab != defaultTab && !nowPlaying.expanded) {
-        backStack.switchTab(defaultTab)
+        rootTab = defaultTab
     }
 
     val display: @Composable (Modifier, List<NavKey>) -> Unit = { modifier, stack ->
@@ -163,7 +162,7 @@ fun SonoraAppShell(
             popTransitionSpec = { pop() },
             predictivePopTransitionSpec = { predictivePop() },
             entryProvider = entryProvider {
-                entry<Library> { HomeRoute(it.tab, navigate) }
+                entry<Library> { HomeRoute(rootTab, navigate) }
                 entry<Album> { AlbumRoute(it.name, it.artist, goBack, navigate) }
                 entry<Artist> { ArtistRoute(it.name, goBack, onOpenAlbum = { n, a -> navigate(Album(n, a)) }, onNavigate = navigate) }
                 entry<Playlist> { PlaylistRoute(it.id, goBack, onNavigate = navigate) }

@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Home (library) route. The ViewModel is activity-scoped so the search query is shared across
- * the four `Library(tab)` entries.
+ * all tabs of the single `Library` destination.
  */
 @Composable
 fun HomeRoute(

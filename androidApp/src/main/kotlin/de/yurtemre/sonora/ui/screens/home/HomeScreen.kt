@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.geometry.Offset
@@ -86,7 +87,7 @@ fun HomeScreen(
             Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())
                 .windowInsetsPadding(de.yurtemre.sonora.ui.components.SonoraInsets.horizontal).imePadding().nestedScroll(pull),
         ) {
-            tabContent(tab, state)
+            TabContentSwitcher(tab) { tabContent(tab, state) }
         }
     }
     if (sortOpen) SortSheet(tab, state.sort, onSortSelect, onSortDirection, onDismiss = { sortOpen = false })
@@ -122,5 +123,25 @@ fun PlaceholderTabContent(tab: LibraryTab, state: HomeTabState) {
             Text(label, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 16.dp, vertical = 12.dp))
         }
+    }
+}
+
+/**
+ * Swaps only the tab body (the header above stays put) with a quick fade-in of the incoming tab, instant with reduce
+ * motion. Each tab keeps its own saveable state (scroll position, dialogs) in a SaveableStateHolder.
+ */
+@Composable
+private fun TabContentSwitcher(tab: LibraryTab, content: @Composable () -> Unit) {
+    val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val reduceMotion = de.yurtemre.sonora.ui.theme.LocalReduceMotion.current
+    val alpha = remember { androidx.compose.animation.core.Animatable(1f) }
+    var initial by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(tab) {
+        if (initial || reduceMotion) { initial = false; alpha.snapTo(1f); return@LaunchedEffect }
+        alpha.snapTo(0f)
+        alpha.animateTo(1f, androidx.compose.animation.core.tween(160))
+    }
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value }) {
+        holder.SaveableStateProvider(tab.name) { content() }
     }
 }

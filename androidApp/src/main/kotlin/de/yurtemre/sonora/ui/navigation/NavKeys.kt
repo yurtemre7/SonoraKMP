@@ -12,7 +12,8 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 }
 
 /** Navigation 3 destinations (SPEC §6). Now Playing is an overlay, not a key; the gate is outside the back stack. */
-@Serializable data class Library(val tab: LibraryTab) : NavKey
+/** The library root: one destination; the selected tab is state inside it, not navigation. */
+@Serializable data object Library : NavKey
 @Serializable data class Album(val name: String, val artist: String) : NavKey
 @Serializable data class Artist(val name: String) : NavKey
 @Serializable data class Playlist(val id: String) : NavKey
