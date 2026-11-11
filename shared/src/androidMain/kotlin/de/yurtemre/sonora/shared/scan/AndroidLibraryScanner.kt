@@ -8,6 +8,7 @@ import de.yurtemre.sonora.shared.library.TrackNumbers
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.platform.TreeUriPaths
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
+import de.yurtemre.sonora.shared.repo.api.ScanEnrichment
 import de.yurtemre.sonora.shared.repo.api.ScanResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -60,16 +61,15 @@ class AndroidLibraryScanner(
         // Missing/unmounted folder → keep cache (LIB-04). A readable SAF tree counts as present.
         if (root != null && !File(root).isDirectory && treeUri == null) return null
 
-        val index = TreeSidecarIndex.build(resolver, treeUri)
+        // Blocking path = MediaStore query + row mapping only; the SAF index, lyrics, covers and artist
+        // images are resolved in [enrich] after the songs are persisted.
         val rows = mediaStore.query(root)
 
-        if (!rows.isNullOrEmpty()) return fromMediaStore(rows, root, index, cached)
+        if (!rows.isNullOrEmpty()) return fromMediaStore(rows, cached)
 
         if (root == null) {
             // No folder and MediaStore empty: keep cached songs whose file still exists (audit §2.2 step 4).
-            val kept = cached.filter { File(it.filePath).exists() }
-                .map { it.withLyrics(index) }
-            return ScanResult(kept, artistImages(kept, null, index))
+            return ScanResult(cached.filter { File(it.filePath).exists() }, null)
         }
 
         val minNextId = maxOf(
@@ -77,32 +77,28 @@ class AndroidLibraryScanner(
             cached.maxOfOrNull { it.id } ?: 0L,
         ) + 1
         val dir = directoryScanner.scan(root, treeUri, cached, minNextId) ?: return null
-        val songs = dir.songs.map { it.withLyrics(index) }
-        return ScanResult(songs, artistImages(songs, root, index))
+        return ScanResult(dir.songs, null)
     }
 
-    private suspend fun fromMediaStore(
-        rows: List<MediaStoreRow>,
-        root: String?,
-        index: TreeSidecarIndex,
-        cached: List<Song>,
-    ): ScanResult {
-        val albumIds = rows.map { it.albumId }.filter { it > 0 }.toSet()
-        val sources = rows.filter { it.albumId > 0 }
-            .groupBy { it.albumId }
-            .mapValues { (_, rs) -> rs.first().let { ArtworkCache.Source(it.filePath, it.id) } }
-        val known = albumIds.associateWith { artworkCache.cachedPath(it) }
-        val missing = albumIds.filter { artworkCache.needsExtraction(it) }
-        val coldCache = known.values.all { it == null } && missing.isNotEmpty()
-        val art: Map<Long, String> = if (coldCache) {
-            // Cold: extract synchronously (pool clamp(cores,1,4), ≤ 5 min) and patch rows now.
-            artworkCache.extractAll(albumIds, sources)
-        } else {
-            if (missing.isNotEmpty()) {
-                artworkCache.extractInBackground(missing, sources) { found -> _backgroundArt.emit(found) }
+    /** Background half of a scan (see [LibraryScanner.enrich]): no per-song work blocks the UI result. */
+    override suspend fun enrich(folderPath: String?, folderUri: String?, songs: List<Song>): ScanEnrichment? =
+        withContext(Dispatchers.IO) {
+            val treeUri: Uri? = folderUri?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
+            val root = folderPath?.takeIf { it.isNotBlank() } ?: treeUri?.let { TreeUriPaths.treeUriToPath(it) }
+            val index = TreeSidecarIndex.build(resolver, treeUri)
+            val albumSongs = songs.filter { (it.albumId ?: 0) > 0 }.groupBy { it.albumId!! }
+            val art = if (albumSongs.isEmpty()) emptyMap() else {
+                val sources = albumSongs.mapValues { (_, s) -> s.first().let { ArtworkCache.Source(it.filePath, it.id) } }
+                artworkCache.extractAll(albumSongs.keys, sources).also { runCatching { artworkCache.prune(albumSongs.keys) } }
             }
-            known.filterValues { it != null }.mapValues { it.value!! }
+            val lyrics = songs.filter { LyricsLocator.hasLyrics(it.filePath, index) }.mapTo(HashSet()) { it.filePath }
+            ScanEnrichment(art, lyrics, artistImages(songs, root, index))
         }
+
+    private fun fromMediaStore(rows: List<MediaStoreRow>, cached: List<Song>): ScanResult {
+        // Only already-cached covers (cheap File checks); missing ones are extracted in [enrich].
+        val art = rows.map { it.albumId }.filter { it > 0 }.distinct()
+            .mapNotNull { id -> artworkCache.cachedPath(id)?.let { id to it } }.toMap()
 
         val cachedByPath = cached.associateBy { it.filePath }
         val songs = rows.map { r ->
@@ -118,7 +114,7 @@ class AndroidLibraryScanner(
                 format = r.filePath.substringAfterLast('/').substringAfterLast('.', "").lowercase().ifEmpty { null },
                 lastModifiedMs = r.lastModifiedMs,
                 fileSize = r.fileSize,
-                hasLyrics = r.hasLyrics || LyricsLocator.hasLyrics(r.filePath, index),
+                hasLyrics = cachedByPath[r.filePath]?.hasLyrics ?: false,
                 dateAddedMs = r.dateAddedMs.takeIf { it > 0 } ?: r.lastModifiedMs,
                 // TRACK is disc×1000+track; genre/bitrate/sampleRate stay null.
                 trackNumber = track,
@@ -129,8 +125,7 @@ class AndroidLibraryScanner(
                 replayGainScanned = false,
             )
         }
-        runCatching { artworkCache.prune(albumIds) }
-        return ScanResult(songs, artistImages(songs, root, index))
+        return ScanResult(songs, null)
     }
 
     /**
@@ -142,11 +137,6 @@ class AndroidLibraryScanner(
         val old = cachedByPath[r.filePath]
         if (old != null && old.lastModifiedMs == r.lastModifiedMs && old.fileSize == r.fileSize) return old.albumArtist
         return runCatching { TagReader.read(File(r.filePath), withPicture = false).albumArtist }.getOrNull()
-    }
-
-    private fun Song.withLyrics(index: TreeSidecarIndex): Song {
-        val has = LyricsLocator.hasLyrics(filePath, index)
-        return if (has == hasLyrics) this else copy(hasLyrics = has)
     }
 
     /** LIB-07; index-only (SAF) matches are copied into `filesDir/artist_images` so they are File-readable. */

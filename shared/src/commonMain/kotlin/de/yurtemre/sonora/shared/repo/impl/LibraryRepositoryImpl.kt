@@ -16,6 +16,7 @@ import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
+import de.yurtemre.sonora.shared.repo.api.ScanEnrichment
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,7 @@ class LibraryRepositoryImpl(
     private val syncMutex = Mutex()
     private val _isSyncing = MutableStateFlow(false)
     private var seedJob: Job? = null
+    private var enrichJob: Job? = null
 
     override val songs: Flow<List<Song>> = combine(songDao.observeAll(), db.favoritesDao().observeSongs()) { rows, favs ->
         val byId = favs.associateBy { it.songId }
@@ -91,15 +93,16 @@ class LibraryRepositoryImpl(
                 c.immediateTransaction {
                     val oldIdByPath = cached.associate { it.filePath to it.id }
                     songDao.replaceAll(merged.map { it.toEntity() })
-                    db.artistImageDao().replaceAll(result.artistImages.map { ArtistImageEntity(it.key, it.value) })
+                    result.artistImages?.let { m -> db.artistImageDao().replaceAll(m.map { ArtistImageEntity(it.key, it.value) }) }
                     db.relinkDao().relinkAll() // D-49
                     merged.mapNotNull { s -> oldIdByPath[s.filePath]?.takeIf { it != s.id }?.let { it to s.id } }.toMap()
                 }
             }
             val duration = clock.nowMs() - start
             settings.recordSync(clock.nowMs(), duration)
+            // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
             scope.launch { fillReplayGain() }
-            startSeedPass()
+            startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
             SyncOutcome.Failed(t)
@@ -118,6 +121,31 @@ class LibraryRepositoryImpl(
             if (unchanged) old.copy(id = s.id, albumId = s.albumId ?: old.albumId, dateAddedMs = s.dateAddedMs ?: old.dateAddedMs,
                 trackNumber = s.trackNumber, discNumber = s.discNumber, albumArtist = s.albumArtist ?: old.albumArtist, isFavorite = false, favoriteDateMs = null)
             else s.copy(seedColor = s.seedColor ?: old.seedColor.takeIf { s.artworkPath == old.artworkPath })
+        }
+    }
+
+    /** Background: covers, lyrics flags, artist images (scanner.enrich), then the seed pass. */
+    private fun startEnrichment(path: String?, uri: String?, songs: List<Song>) {
+        enrichJob?.cancel()
+        enrichJob = scope.launch {
+            val e = try { scanner.enrich(path, uri, songs) } catch (c: CancellationException) { throw c } catch (t: Throwable) { null }
+            if (e != null) applyEnrichment(songs, e)
+            startSeedPass()
+        }
+    }
+
+    private suspend fun applyEnrichment(songs: List<Song>, e: ScanEnrichment) {
+        db.useWriterConnection { c ->
+            c.immediateTransaction {
+                val current = songDao.getAll().associateBy { it.id }
+                e.artworkByAlbum.forEach { (album, art) ->
+                    if (songs.any { it.albumId == album && current[it.id]?.artworkPath != art }) songDao.updateArtworkForAlbum(album, art)
+                }
+                val (with, without) = songs.mapNotNull { current[it.id] }.partition { it.filePath in e.lyricsPaths }
+                with.filter { !it.hasLyrics }.map { it.id }.takeIf { it.isNotEmpty() }?.let { songDao.updateHasLyrics(it, true) }
+                without.filter { it.hasLyrics }.map { it.id }.takeIf { it.isNotEmpty() }?.let { songDao.updateHasLyrics(it, false) }
+                db.artistImageDao().replaceAll(e.artistImages.map { ArtistImageEntity(it.key, it.value) })
+            }
         }
     }
 

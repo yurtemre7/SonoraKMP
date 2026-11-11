@@ -85,7 +85,7 @@ class MediaStoreScanner(private val resolver: ContentResolver) {
                         dateAddedMs = c.getLong(addedCol) * 1000L,
                         albumArtist = if (albumArtistCol >= 0) c.getString(albumArtistCol)?.trim()
                             ?.takeIf { it.isNotEmpty() && it != UNKNOWN } else null,
-                        hasLyrics = LyricsLocator.hasLyrics(path),
+                        hasLyrics = false, // resolved in the background (AndroidLibraryScanner.enrich)
                     )
                 }
                 out

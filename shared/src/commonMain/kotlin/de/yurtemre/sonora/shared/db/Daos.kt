@@ -31,6 +31,9 @@ interface SongDao {
     @Query("UPDATE songs SET seed_color = :color WHERE id = :id")
     suspend fun updateSeedColor(id: Long, color: Int?)
 
+    @Query("UPDATE songs SET has_lyrics = :has WHERE id IN (:ids)")
+    suspend fun updateHasLyrics(ids: List<Long>, has: Boolean)
+
     @Query("UPDATE songs SET artwork_path = :path WHERE album_id = :albumId")
     suspend fun updateArtworkForAlbum(albumId: Long, path: String?)
 
