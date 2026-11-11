@@ -164,11 +164,11 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 
 ## P7 Auto-update installer end-to-end
 
-- [ ] **P7-01** Downloader & verifier [UPD-08] — deps: [P2-19] — owns: `A/update/{ApkDownloader,Sha256Verifier}.kt` — done when: streaming `.part` download with progress Flow, cancel deletes partial, streaming SHA-256 compare.
-- [ ] **P7-02** PackageInstaller session [UPD-08] — deps: [P1-11] — owns: `A/update/{PackageInstallerHelper,InstallResultReceiver}.kt` — done when: session create/write/commit, pending-user-action intent launched, statuses mapped to `Failed` reasons.
-- [ ] **P7-03** Install permission & state machine [UPD-08] — deps: [P7-01, P7-02, P5-22] — owns: `A/update/{InstallPermissionHelper,UpdateViewModel}.kt` — done when: all §7 states reachable; unknown-sources settings round-trip re-checks on resume.
-- [ ] **P7-04** Launch scheduling [UPD-05] — deps: [P7-03] — owns: `A/update/{UpdateScheduler,UpdatePromptHost}.kt` — done when: release-only auto check ≤ 1/6 h, rate-limit reset respected, sheet once per version per process.
-- [ ] **P7-05** End-to-end verification — deps: [P7-04, P8-02] — owns: none — done when: a pre-release `vX.Y.Z-rc.1` published by CI is offered (toggle on), downloaded, verified and installed over a lower signed release on a device; mismatch & cancel paths observed.
+- [x] **P7-01** Downloader & verifier [UPD-08] — deps: [P2-19] — owns: `A/update/{ApkDownloader,Sha256Verifier}.kt` — done when: streaming `.part` download with progress Flow, cancel deletes partial, streaming SHA-256 compare.
+- [x] **P7-02** PackageInstaller session [UPD-08] — deps: [P1-11] — owns: `A/update/{PackageInstallerHelper,InstallResultReceiver}.kt` — done when: session create/write/commit, pending-user-action intent launched, statuses mapped to `Failed` reasons.
+- [x] **P7-03** Install permission & state machine [UPD-08] — deps: [P7-01, P7-02, P5-22] — owns: `A/update/{InstallPermissionHelper,UpdateViewModel}.kt` — done when: all §7 states reachable; unknown-sources settings round-trip re-checks on resume.
+- [x] **P7-04** Launch scheduling [UPD-05] — deps: [P7-03] — owns: `A/update/{UpdateScheduler,UpdatePromptHost}.kt` — done when: release-only auto check ≤ 1/6 h, rate-limit reset respected, sheet once per version per process.
+- [x] **P7-05** End-to-end verification (done via the Nightly channel against the public nightly: release-signed 1.28.2-nightly.202601010000 → 1.28.2-nightly.202611112118 on the emulator; no extra public pre-release was published. Checksum mismatch and download cancel are unit-tested.) — deps: [P7-04, P8-02] — owns: none — done when: a pre-release `vX.Y.Z-rc.1` published by CI is offered (toggle on), downloaded, verified and installed over a lower signed release on a device; mismatch & cancel paths observed.
 
 ## P8 CI/CD & repo docs
 
