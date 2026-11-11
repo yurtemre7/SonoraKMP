@@ -60,6 +60,23 @@ class PlaybackConnectionImpl(
     private var extras = C.Extras()
     private var lastClosed: Pair<QueueState, Long>? = null
 
+    /**
+     * Optimistic UI (P5-26): a command's expected result is shown at once and kept until the controller/session
+     * reports it (or [OPTIMISTIC_MS] passes), so a stale event in between can't flicker the old state back.
+     */
+    private class Pending<T>(val value: T, val atMs: Long = android.os.SystemClock.uptimeMillis())
+    private var pendingPlaying: Pending<Boolean>? = null
+    private var pendingUid: Pending<Long>? = null
+    private var pendingShuffle: Pending<Boolean>? = null
+    private var pendingRepeat: Pending<RepeatMode>? = null
+
+    /** Returns the pending value while it differs from [actual] and is fresh; clears it otherwise. */
+    private fun <T> resolve(p: Pending<T>?, actual: T, clear: () -> Unit): T {
+        if (p == null) return actual
+        if (p.value == actual || android.os.SystemClock.uptimeMillis() - p.atMs > OPTIMISTIC_MS) { clear(); return actual }
+        return p.value
+    }
+
     private val _player = MutableStateFlow(PlayerUiState())
     private val _queue = MutableStateFlow(QueueUiState())
     private val _sleep = MutableStateFlow<SleepTimerUiState>(SleepTimerUiState.Inactive)
@@ -137,24 +154,30 @@ class PlaybackConnectionImpl(
     private fun recompute() {
         val c = controller
         val qs = extras.queue
-        val cur = qs.currentEntry
+        val actualCur = qs.currentEntry
+        val curUid = resolve(pendingUid, actualCur?.uid ?: -1L) { pendingUid = null }
+        val cur = qs.entries.firstOrNull { it.uid == curUid } ?: actualCur
+        val curIndex = qs.entries.indexOf(cur).takeIf { it >= 0 } ?: qs.currentIndex
         val song = cur?.let { songs[it.songId] }
         val speed = c?.playbackParameters?.speed ?: 1f
         val raw = c?.duration?.takeIf { it > 0 && it != M3.TIME_UNSET } ?: song?.durationMs ?: 0L
         val state = c?.playbackState ?: Player.STATE_IDLE
-        val wraps = qs.repeat != RepeatMode.Off
+        val repeat = resolve(pendingRepeat, qs.repeat) { pendingRepeat = null }
+        val shuffled = resolve(pendingShuffle, qs.isShuffled) { pendingShuffle = null }
+        val playing = resolve(pendingPlaying, c?.isPlaying == true) { pendingPlaying = null }
+        val wraps = repeat != RepeatMode.Off
         _player.value = PlayerUiState(
             isConnected = c?.isConnected == true,
             currentSong = song,
             currentEntryUid = cur?.uid,
-            isPlaying = c?.isPlaying == true,
+            isPlaying = playing,
             isBuffering = state == Player.STATE_BUFFERING,
             isCompleted = state == Player.STATE_ENDED,
             durationMs = SpeedPresets.effectiveDurationMs(raw, speed.toDouble()),
-            repeat = qs.repeat,
-            isShuffled = qs.isShuffled,
-            hasNext = cur != null && (qs.currentIndex < qs.entries.lastIndex || wraps),
-            hasPrevious = cur != null && (qs.currentIndex > 0 || wraps),
+            repeat = repeat,
+            isShuffled = shuffled,
+            hasNext = cur != null && (curIndex < qs.entries.lastIndex || wraps),
+            hasPrevious = cur != null && (curIndex > 0 || wraps),
             userVolume = c?.volume ?: settings.volume.toFloat(),
             playlistContext = qs.playlistContext,
         )
@@ -162,9 +185,22 @@ class PlaybackConnectionImpl(
         _queue.value = QueueUiState(
             items = items,
             currentIndex = cur?.let { e -> items.indexOfFirst { it.entryUid == e.uid } } ?: -1,
-            isShuffled = qs.isShuffled,
+            isShuffled = shuffled,
             playlistContext = qs.playlistContext,
         )
+    }
+
+    private fun optimisticSkip(offset: Int) {
+        val qs = extras.queue
+        val base = pendingUid?.value?.let { u -> qs.entries.indexOfFirst { it.uid == u } }?.takeIf { it >= 0 } ?: qs.currentIndex
+        if (base !in qs.entries.indices || qs.repeat == RepeatMode.One) return
+        var target = base + offset
+        if (target !in qs.entries.indices) {
+            if (qs.repeat == RepeatMode.Off) return
+            target = (target + qs.entries.size) % qs.entries.size
+        }
+        pendingUid = Pending(qs.entries[target].uid)
+        recompute()
     }
 
     private fun recomputeMfx() {
@@ -205,8 +241,23 @@ class PlaybackConnectionImpl(
     )
 
     override fun setShuffle(enabled: Boolean) = send(C.SET_SHUFFLE, bool(enabled))
-    override fun toggleShuffle() = send(C.TOGGLE_SHUFFLE)
-    override fun cycleRepeat() = send(C.CYCLE_REPEAT)
+    override fun toggleShuffle() {
+        pendingShuffle = Pending(!_player.value.isShuffled)
+        recompute()
+        send(C.TOGGLE_SHUFFLE)
+    }
+
+    override fun cycleRepeat() {
+        pendingRepeat = Pending(
+            when (_player.value.repeat) {
+                RepeatMode.Off -> RepeatMode.All
+                RepeatMode.All -> RepeatMode.One
+                RepeatMode.One -> RepeatMode.Off
+            },
+        )
+        recompute()
+        send(C.CYCLE_REPEAT)
+    }
 
     override fun playNext(songs: List<Song>) = send(C.PLAY_NEXT, Bundle().apply { putLongArray(C.ARG_IDS, ids(songs)) })
     override fun addToQueue(songs: List<Song>) = send(C.ADD_TO_QUEUE, Bundle().apply { putLongArray(C.ARG_IDS, ids(songs)) })
@@ -215,13 +266,26 @@ class PlaybackConnectionImpl(
         send(C.MOVE, Bundle().apply { putInt(C.ARG_FROM, from); putInt(C.ARG_TO, to) })
     override fun insertQueueItem(songId: Long, logicalIndex: Int) =
         send(C.INSERT_AT, Bundle().apply { putLong(C.ARG_SONG, songId); putInt(C.ARG_TO, logicalIndex) })
-    override fun skipToQueueItem(entryUid: Long) = send(C.SKIP_TO, Bundle().apply { putLong(C.ARG_UID, entryUid) })
+    override fun skipToQueueItem(entryUid: Long) {
+        pendingUid = Pending(entryUid)
+        recompute()
+        send(C.SKIP_TO, Bundle().apply { putLong(C.ARG_UID, entryUid) })
+    }
 
     override fun play() = withController { it.play() }
     override fun pause() = withController { it.pause() }
-    override fun togglePlayPause() = withController { if (it.playWhenReady && it.playbackState != Player.STATE_ENDED) it.pause() else it.play() }
-    override fun skipToNext() = send(C.SKIP_NEXT)
-    override fun skipToPrevious() = send(C.SKIP_PREVIOUS)
+    override fun togglePlayPause() {
+        if (!_player.value.isCompleted) { pendingPlaying = Pending(!_player.value.isPlaying); recompute() }
+        withController { if (it.playWhenReady && it.playbackState != Player.STATE_ENDED) it.pause() else it.play() }
+    }
+
+    override fun skipToNext() { optimisticSkip(1); send(C.SKIP_NEXT) }
+
+    /** "Previous" restarts the song after the first seconds (service rule), so only predict it near the start. */
+    override fun skipToPrevious() {
+        if ((controller?.currentPosition ?: Long.MAX_VALUE) < PREVIOUS_RESTART_MS) optimisticSkip(-1)
+        send(C.SKIP_PREVIOUS)
+    }
     override fun seekTo(positionMs: Long) = withController { it.seekTo(positionMs.coerceAtLeast(0)) }
     override fun seekBy(deltaMs: Long) = withController { c ->
         val target = c.currentPosition + deltaMs
@@ -273,4 +337,9 @@ class PlaybackConnectionImpl(
     private fun bool(v: Boolean) = Bundle().apply { putBoolean(C.ARG_ENABLED, v) }
     private fun float(v: Float) = Bundle().apply { putFloat(C.ARG_VALUE, v) }
     private fun name(v: String) = Bundle().apply { putString(C.ARG_NAME, v) }
+
+    private companion object {
+        const val OPTIMISTIC_MS = 1_500L
+        const val PREVIOUS_RESTART_MS = 3_000L
+    }
 }

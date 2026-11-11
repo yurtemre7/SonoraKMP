@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlayerUiState
+import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.PulseButton
@@ -84,6 +85,8 @@ fun PlayerView(
     seekBar: @Composable () -> Unit,
     upNext: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    queue: QueueUiState? = null,
+    onSkipTo: (Long) -> Unit = {},
 ) {
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
     Column(modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -92,7 +95,7 @@ fun PlayerView(
         } else if (horizontalSpine) {
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Spine(song.title)
-                ArtworkArea(song, immersive, actions.onToggleImmersive, Modifier.weight(1f, fill = false))
+                ArtworkArea(song, immersive, actions.onToggleImmersive, Modifier.weight(1f, fill = false), queue, onSkipTo)
                 if (!immersive) MetaChips(song, actions)
             }
         } else {
@@ -100,7 +103,7 @@ fun PlayerView(
                 Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Bottom) {
-                    ArtworkArea(song, immersive, actions.onToggleImmersive)
+                    ArtworkArea(song, immersive, actions.onToggleImmersive, queue = queue, onSkipTo = onSkipTo)
                     Spacer(Modifier.height(12.dp))
                     if (!immersive) MetaChips(song, actions)
                 }

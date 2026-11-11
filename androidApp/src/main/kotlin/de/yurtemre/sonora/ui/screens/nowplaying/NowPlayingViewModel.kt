@@ -8,12 +8,15 @@ import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Now Playing state & commands (UI-16/17/22). */
 class NowPlayingViewModel(
@@ -24,8 +27,12 @@ class NowPlayingViewModel(
     val player: StateFlow<PlayerUiState> = playback.player
     val positionMs: Flow<Long> = playback.positionMs
 
-    val isFavorite: StateFlow<Boolean> = combine(playback.player, favorites.favoriteSongs) { p, f ->
-        p.currentSong?.id?.let { it in f } ?: false
+    /** Optimistic favourite (song id → value) shown until the repository write lands (P5-26). */
+    private val favoriteOverride = MutableStateFlow<Pair<Long, Boolean>?>(null)
+
+    val isFavorite: StateFlow<Boolean> = combine(playback.player, favorites.favoriteSongs, favoriteOverride) { p, f, o ->
+        val id = p.currentSong?.id ?: return@combine false
+        if (o != null && o.first == id) o.second else id in f
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), false)
 
     val immersive: StateFlow<Boolean> = settings.settings.map { it.immersiveMode }
@@ -40,10 +47,20 @@ class NowPlayingViewModel(
     fun toggleShuffle() = playback.toggleShuffle()
     fun cycleRepeat() = playback.cycleRepeat()
     fun seekTo(ms: Long) = playback.seekTo(ms)
+    fun skipTo(entryUid: Long) = playback.skipToQueueItem(entryUid)
 
     fun toggleFavorite() {
         val song = player.value.currentSong ?: return
-        viewModelScope.launch { favorites.toggleSong(song.id, song.filePath) }
+        val wanted = !isFavorite.value
+        favoriteOverride.value = song.id to wanted
+        viewModelScope.launch {
+            try {
+                favorites.toggleSong(song.id, song.filePath)
+                withTimeoutOrNull(RECONCILE_MS) { favorites.favoriteSongs.first { (song.id in it) == wanted } }
+            } finally {
+                if (favoriteOverride.value?.first == song.id) favoriteOverride.value = null
+            }
+        }
     }
 
     fun toggleImmersive() {
@@ -51,5 +68,5 @@ class NowPlayingViewModel(
         viewModelScope.launch { settings.setImmersiveMode(next) }
     }
 
-    private companion object { const val STOP_MS = 5_000L }
+    private companion object { const val STOP_MS = 5_000L; const val RECONCILE_MS = 2_000L }
 }

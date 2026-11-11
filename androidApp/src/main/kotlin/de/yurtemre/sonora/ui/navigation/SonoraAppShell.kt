@@ -94,7 +94,10 @@ fun SonoraAppShell(
     val openNowPlaying: () -> Unit = onOpenNowPlaying ?: controller::expand
     val playback: PlaybackConnection = koinInject()
     val player by playback.player.collectAsStateWithLifecycle()
-    val position by playback.positionMs.collectAsStateWithLifecycle(0L)
+    // Kept as a State (not delegated): only the mini player's progress line reads it, so position ticks
+    // invalidate one draw call instead of recomposing the shell (P5-26).
+    val position = playback.positionMs.collectAsStateWithLifecycle(0L)
+    val flingPx = with(androidx.compose.ui.platform.LocalDensity.current) { 600.dp.toPx() }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val closedMsg = stringResource(R.string.miniplayer_closed)
@@ -102,8 +105,11 @@ fun SonoraAppShell(
     val mini: @Composable () -> Unit = {
         if (player.currentSong != null) MiniPlayer(
             state = player,
-            progress = { if (player.durationMs > 0) position.toFloat() / player.durationMs else 0f },
+            progress = { if (player.durationMs > 0) position.value.toFloat() / player.durationMs else 0f },
             onOpen = openNowPlaying,
+            expandProgress = { nowPlaying.fraction },
+            onExpandDrag = nowPlaying::dragBy,
+            onExpandDragStopped = { v -> nowPlaying.settle(v, flingPx) },
             onTogglePlay = { if (player.isCompleted) { playback.seekTo(0); playback.play() } else playback.togglePlayPause() },
             onNext = playback::skipToNext,
             onPrevious = playback::skipToPrevious,

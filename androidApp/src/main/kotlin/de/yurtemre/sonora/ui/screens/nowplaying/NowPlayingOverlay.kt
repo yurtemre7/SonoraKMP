@@ -45,12 +45,14 @@ fun NowPlayingOverlay(
     seekBar: (@Composable () -> Unit)? = null,
     snackbarHostState: SnackbarHostState? = null,
     upNext: (@Composable () -> Unit)? = null,
+    dragModifier: Modifier = Modifier,
 ) {
     val playback = koinInject<de.yurtemre.sonora.playback.api.PlaybackConnection>()
     val favorites = koinInject<de.yurtemre.sonora.shared.repo.api.FavoritesRepository>()
     val settings = koinInject<de.yurtemre.sonora.shared.settings.SettingsRepository>()
     val vm = viewModel { NowPlayingViewModel(playback, favorites, settings) }
     val state by vm.player.collectAsStateWithLifecycle()
+    val queue by playback.queue.collectAsStateWithLifecycle()
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
@@ -61,12 +63,16 @@ fun NowPlayingOverlay(
 
     val song = state.currentSong
     TintedBackdrop(song?.seedColor?.let { Color(it) }, modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        // TintedBackdrop is not a Surface, so icons would default to black in dark theme.
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+        ) {
+        Column(Modifier.fillMaxSize().then(dragModifier).safeDrawingPadding()) {
             IconButton(onClick = onCollapse, modifier = Modifier.padding(start = 4.dp)) {
                 Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.np_collapse))
             }
             if (song == null) return@Column
-            val actions = PlayerActions(
+            val actions = remember(vm, onOpenAlbum, onOpenArtist, onMfx, onSleepTimer) { PlayerActions(
                 onTogglePlayPause = vm::togglePlayPause,
                 onPrevious = vm::previous,
                 onNext = vm::next,
@@ -78,7 +84,7 @@ fun NowPlayingOverlay(
                 onOpenArtist = onOpenArtist,
                 onMfx = onMfx,
                 onSleepTimer = onSleepTimer,
-            )
+            ) }
             // TODO(P5-07): Vinyl and Minimalist layouts; every style renders Modern for now.
             @Suppress("UNUSED_VARIABLE") val layoutStyle: NowPlayingStyle = style
             PlayerView(
@@ -89,12 +95,15 @@ fun NowPlayingOverlay(
                 view = view,
                 onViewChange = { view = it },
                 actions = actions,
+                queue = queue,
+                onSkipTo = vm::skipTo,
                 seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
                 upNext = {
                     if (upNext != null) upNext()
                     else UpNextView(snackbarHostState ?: remember { SnackbarHostState() }, connection = playback)
                 },
             )
+        }
         }
     }
 }
