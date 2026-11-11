@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -23,6 +26,11 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 
 /** Slot for a tab's body; P5-04 plugs the real tabs in. */
+/** Emits a tab when its nav item is selected again (scroll to top). */
+object HomeTabReselect {
+    val events = kotlinx.coroutines.flow.MutableSharedFlow<LibraryTab>(extraBufferCapacity = 1)
+}
+
 typealias HomeTabContent = @Composable (LibraryTab, HomeTabState) -> Unit
 
 /** Home scaffold (UI-04..06): collapsing header, shared search, per-tab sort sheet, [tabContent] body. */
@@ -40,12 +48,14 @@ fun HomeScreen(
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tabContent: HomeTabContent = { t, s -> PlaceholderTabContent(t, s) },
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var sortOpen by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         modifier = modifier.nestedScroll(scroll.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { HomeHeader(header.userName, header.isSyncing, scroll, onRecentlyPlayed, onFavorites, onSettings) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {

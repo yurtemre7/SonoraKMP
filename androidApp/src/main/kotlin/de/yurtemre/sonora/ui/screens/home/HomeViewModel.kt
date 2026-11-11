@@ -17,6 +17,10 @@ import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.model.SongSort
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
+import de.yurtemre.sonora.shared.repo.api.StatsRepository
+import de.yurtemre.sonora.shared.repo.api.SyncOutcome
+import de.yurtemre.sonora.shared.repo.impl.LibraryRepositoryImpl
+import de.yurtemre.sonora.shared.stats.StatsAggregates
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +53,8 @@ data class HomeTabState(
     val loaded: Boolean = false,
     /** Library song ids, so playlist counts can hide missing songs (LIB-16). */
     val librarySongIds: Set<Long> = emptySet(),
+    /** Play counts per song id, filled only for the "plays" sort (row subtitle). */
+    val playCounts: Map<Long, Int> = emptyMap(),
 ) {
     val count: Int get() = when (tab) {
         LibraryTab.Songs -> songs.size
@@ -65,6 +71,7 @@ class HomeViewModel(
     private val library: LibraryRepository,
     playlistRepo: PlaylistRepository,
     private val settingsRepo: SettingsRepository,
+    private val stats: StatsRepository,
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -85,10 +92,17 @@ class HomeViewModel(
 
     private val sorts = settingsRepo.settings.map { it.sorts() }
 
-    val songs: StateFlow<HomeTabState> = combine(lib, _query, sorts) { l, q, s ->
-        val sort = SongSort.fromStorage(s.getValue(LibraryTab.Songs).key)
-        HomeTabState(LibraryTab.Songs, q, s.getValue(LibraryTab.Songs),
-            songs = l.index.searchSongs(q, sort, s.getValue(LibraryTab.Songs).ascending), totalCount = l.songs.size, loaded = true)
+    val songs: StateFlow<HomeTabState> = combine(lib, _query, sorts, stats.snapshot) { l, q, s, snap ->
+        val ts = s.getValue(LibraryTab.Songs)
+        val sort = SongSort.fromStorage(ts.key)
+        val res = if (sort == SongSort.Plays) {
+            // Plays sort goes through the stats activity view (audit/data §6.3), not the title fallback.
+            LibrarySorter.sortSongs(l.index.searchSongs(q), sort, ts.ascending) { list, view ->
+                StatsAggregates.applyActivityView(snap, list, view)
+            }
+        } else l.index.searchSongs(q, sort, ts.ascending)
+        val counts = if (sort == SongSort.Plays) snap.songs.mapValues { it.value.plays } else emptyMap()
+        HomeTabState(LibraryTab.Songs, q, ts, songs = res, totalCount = l.songs.size, loaded = true, playCounts = counts)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Songs))
 
     val albums: StateFlow<HomeTabState> = combine(lib, _query, sorts) { l, q, s ->
@@ -109,6 +123,26 @@ class HomeViewModel(
         val res = LibrarySorter.sortPlaylists(LibrarySearchIndex.filterPlaylists(pls, q), PlaylistSort.fromStorage(ts.key), ts.ascending, ids)
         HomeTabState(LibraryTab.Playlists, q, ts, playlists = res, totalCount = pls.size, loaded = true, librarySongIds = ids)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Playlists))
+
+    /** UI-12 sync banner, computed once at startup (LIB-21). */
+    private val _syncBanner = MutableStateFlow(false)
+    val syncBanner: StateFlow<Boolean> = _syncBanner.asStateFlow()
+
+    init {
+        viewModelScope.launch { _syncBanner.value = (library as? LibraryRepositoryImpl)?.shouldShowSyncReminder() == true }
+    }
+
+    /** "Remind me next month": postpone = now + 30 d (LIB-21). */
+    fun postponeSyncReminder() {
+        _syncBanner.value = false
+        viewModelScope.launch { (library as? LibraryRepositoryImpl)?.postponeSyncReminder() }
+    }
+
+    /** LIB-04 sync; hides the banner first (UI-12). */
+    suspend fun sync(): SyncOutcome {
+        _syncBanner.value = false
+        return library.sync()
+    }
 
     fun stateFor(tab: LibraryTab): StateFlow<HomeTabState> = when (tab) {
         LibraryTab.Songs -> songs

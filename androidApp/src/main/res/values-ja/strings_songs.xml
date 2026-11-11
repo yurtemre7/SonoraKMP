@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="songs_header">すべての曲</string>
+    <string name="songs_shuffle_all">すべてシャッフル</string>
+    <string name="songs_empty_title">曲がありません</string>
+    <string name="songs_empty_subtitle">音楽フォルダに音楽ファイルを追加してから、再スキャンしてください。</string>
+    <string name="songs_rescan">再スキャン</string>
+    <string name="songs_no_results_title">見つかりませんでした</string>
+    <string name="songs_no_results_subtitle">「%1$s」に一致する曲はありません。</string>
+    <string name="songs_play_next">次に再生</string>
+    <string name="songs_add_to_queue">キューに追加</string>
+    <string name="songs_favorite">お気に入りに追加</string>
+    <string name="songs_unfavorite">お気に入りから削除</string>
+    <string name="songs_snack_play_next">次に再生します</string>
+    <string name="songs_snack_queued">キューに追加しました</string>
+    <plurals name="songs_listens_count">
+        <item quantity="other">%1$d回再生</item>
+    </plurals>
+    <plurals name="songs_sync_done">
+        <item quantity="other">%1$d曲を同期しました（%2$d ms）</item>
+    </plurals>
+    <string name="songs_sync_folder_missing">音楽フォルダが見つかりません。ライブラリはそのままです。</string>
+    <string name="songs_sync_failed">同期できませんでした。ライブラリはそのままです。</string>
+    <string name="songs_banner_title">ライブラリを同期しますか？</string>
+    <string name="songs_banner_subtitle">前回の同期から1か月が経ちました。新しい音楽ファイルを取り込むには、今すぐ同期してください。</string>
+    <string name="songs_banner_sync_now">今すぐ同期</string>
+    <string name="songs_banner_remind_later">来月に通知</string>
+    <string name="songs_banner_postponed">1か月後にまたお知らせします</string>
+</resources>

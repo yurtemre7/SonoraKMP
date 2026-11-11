@@ -2,7 +2,10 @@ package de.yurtemre.sonora.ui.screens.home
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import de.yurtemre.sonora.ui.screens.home.tabs.SongsTab
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,13 +25,15 @@ import org.koin.compose.koinInject
 fun HomeRoute(
     tab: LibraryTab,
     onNavigate: (NavKey) -> Unit,
-    tabContent: HomeTabContent = { t, s -> PlaceholderTabContent(t, s) },
+    tabContent: HomeTabContent? = null,
 ) {
     val owner = (LocalActivity.current as? ViewModelStoreOwner) ?: checkNotNull(LocalViewModelStoreOwner.current)
     val library = koinInject<de.yurtemre.sonora.shared.repo.api.LibraryRepository>()
     val playlists = koinInject<de.yurtemre.sonora.shared.repo.api.PlaylistRepository>()
     val settings = koinInject<de.yurtemre.sonora.shared.settings.SettingsRepository>()
-    val vm = viewModel(owner) { HomeViewModel(library, playlists, settings) }
+    val stats = koinInject<de.yurtemre.sonora.shared.repo.api.StatsRepository>()
+    val vm = viewModel(owner) { HomeViewModel(library, playlists, settings, stats) }
+    val snackbar = remember { SnackbarHostState() }
     val header by vm.header.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val state by vm.stateFor(tab).collectAsStateWithLifecycle()
@@ -40,6 +45,9 @@ fun HomeRoute(
         onRecentlyPlayed = { onNavigate(RecentlyPlayed) },
         onFavorites = { onNavigate(Favorites) },
         onSettings = { onNavigate(Settings) },
-        tabContent = tabContent,
+        snackbarHostState = snackbar,
+        tabContent = tabContent ?: { t, s ->
+            if (t == LibraryTab.Songs) SongsTab(s, vm, header.isSyncing, snackbar) else PlaceholderTabContent(t, s)
+        },
     )
 }

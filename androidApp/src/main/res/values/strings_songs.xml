@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="songs_header">All songs</string>
+    <string name="songs_shuffle_all">Shuffle all</string>
+    <string name="songs_empty_title">No songs yet</string>
+    <string name="songs_empty_subtitle">Add music files to your music folder, then rescan.</string>
+    <string name="songs_rescan">Rescan</string>
+    <string name="songs_no_results_title">No results</string>
+    <string name="songs_no_results_subtitle">Nothing matches “%1$s”.</string>
+    <string name="songs_play_next">Play next</string>
+    <string name="songs_add_to_queue">Add to queue</string>
+    <string name="songs_favorite">Add to favorites</string>
+    <string name="songs_unfavorite">Remove from favorites</string>
+    <string name="songs_snack_play_next">Playing next</string>
+    <string name="songs_snack_queued">Added to queue</string>
+    <plurals name="songs_listens_count">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+    <plurals name="songs_sync_done">
+        <item quantity="one">Synced %1$d song in %2$d ms</item>
+        <item quantity="other">Synced %1$d songs in %2$d ms</item>
+    </plurals>
+    <string name="songs_sync_folder_missing">Music folder not found. Your library was kept.</string>
+    <string name="songs_sync_failed">Sync failed. Your library was kept.</string>
+    <string name="songs_banner_title">Sync your library?</string>
+    <string name="songs_banner_subtitle">It has been a month since the last sync. Sync now to pick up new music files.</string>
+    <string name="songs_banner_sync_now">Sync now</string>
+    <string name="songs_banner_remind_later">Remind me next month</string>
+    <string name="songs_banner_postponed">We’ll remind you again in a month</string>
+</resources>
