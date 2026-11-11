@@ -147,13 +147,26 @@ fun PlayerView(
                 if (!immersive) MetaChips(song, actions)
             }
         } else {
-            Row(Modifier.weight(1f).fillMaxWidth()) {
-                Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Bottom) {
-                    ArtworkArea(song, immersive, actions.onToggleImmersive, queue = queue, onSkipTo = onSkipTo)
-                    Spacer(Modifier.height(12.dp))
-                    if (!immersive) MetaChips(song, actions)
+            // Spine runs alongside the sleeve from the same top edge; the sleeve takes the width left by the spine
+            // (capped by the slot height minus the chips), and the spare height is split above and below the block.
+            androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val chips = if (immersive) 0.dp else 124.dp
+                val art = minOf(maxWidth - 80.dp, maxHeight - chips).coerceAtLeast(0.dp)
+                Column(Modifier.fillMaxSize()) {
+                    Spacer(Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth().height(art)) {
+                        Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
+                        Spacer(Modifier.width(8.dp))
+                        ArtworkArea(song, immersive, actions.onToggleImmersive, Modifier.size(art), queue = queue, onSkipTo = onSkipTo)
+                    }
+                    if (!immersive) {
+                        Spacer(Modifier.height(12.dp))
+                        Row {
+                            Spacer(Modifier.width(80.dp))
+                            MetaChips(song, actions)
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
                 }
             }
         }

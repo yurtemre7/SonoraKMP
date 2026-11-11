@@ -177,18 +177,32 @@ private fun Counts(tab: LibraryTab, s: HomeTabState, modifier: Modifier = Modifi
 private fun ActionGroup(onSearch: () -> Unit, onSort: () -> Unit, onShuffle: () -> Unit, tab: LibraryTab) {
     val cs = MaterialTheme.colorScheme
     val neutral = ButtonDefaults.buttonColors(containerColor = cs.surfaceContainerHigh, contentColor = cs.onSurface)
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-    ) {
-        GroupButton(Icons.Rounded.Search, stringResource(R.string.home2_search), ButtonGroupDefaults.connectedLeadingButtonShapes().shape, neutral, onSearch)
-        GroupButton(
-            Icons.AutoMirrored.Rounded.Sort, stringResource(R.string.home2_sort),
-            ButtonGroupDefaults.connectedMiddleButtonShapes().shape, neutral, onSort,
-            description = stringResource(R.string.home_sort_button, stringResource(tab.labelRes)),
-        )
-        GroupButton(Icons.Rounded.Shuffle, stringResource(R.string.home2_shuffle), ButtonGroupDefaults.connectedTrailingButtonShapes().shape,
-            ButtonDefaults.buttonColors(), onShuffle)
+    val search = stringResource(R.string.home2_search)
+    val sort = stringResource(R.string.home2_sort)
+    val shuffle = stringResource(R.string.home2_shuffle)
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp)) {
+        // Labels only when the widest one fits its third of the row (icon 18 + gap 8 + padding 2 x 16, plus slack);
+        // otherwise icon-only buttons with descriptions, never ellipsised text.
+        val widest = with(density) { listOf(search, sort, shuffle).maxOf { measurer.measure(it, style).size.width }.toDp() }
+        val perButton = (maxWidth - ButtonGroupDefaults.ConnectedSpaceBetween * 2) / 3
+        val showLabels = perButton >= widest + 66.dp
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            GroupButton(Icons.Rounded.Search, search, ButtonGroupDefaults.connectedLeadingButtonShapes().shape, neutral, onSearch, showLabel = showLabels)
+            GroupButton(
+                Icons.AutoMirrored.Rounded.Sort, sort,
+                ButtonGroupDefaults.connectedMiddleButtonShapes().shape, neutral, onSort,
+                description = stringResource(R.string.home_sort_button, stringResource(tab.labelRes)),
+                showLabel = showLabels,
+            )
+            GroupButton(Icons.Rounded.Shuffle, shuffle, ButtonGroupDefaults.connectedTrailingButtonShapes().shape,
+                ButtonDefaults.buttonColors(), onShuffle, showLabel = showLabels)
+        }
     }
 }
 
@@ -200,6 +214,7 @@ private fun RowScope.GroupButton(
     colors: androidx.compose.material3.ButtonColors,
     onClick: () -> Unit,
     description: String? = null,
+    showLabel: Boolean = true,
 ) {
     Button(
         onClick = onClick,
@@ -207,11 +222,15 @@ private fun RowScope.GroupButton(
         colors = colors,
         contentPadding = ButtonDefaults.SmallContentPadding,
         modifier = Modifier.weight(1f).heightIn(min = 48.dp).then(
-            if (description != null) Modifier.semantics { this.contentDescription = description } else Modifier,
+            if (description != null || !showLabel) Modifier.semantics { this.contentDescription = description ?: label } else Modifier,
         ),
     ) {
-        Icon(icon, null, Modifier.padding(end = 8.dp))
-        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (showLabel) {
+            Icon(icon, null, Modifier.padding(end = 8.dp))
+            Text(label, maxLines = 1)
+        } else {
+            Icon(icon, null)
+        }
     }
 }
 
