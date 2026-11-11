@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.shared.update
 
+import de.yurtemre.sonora.shared.model.UpdateChannel
 import de.yurtemre.sonora.shared.repo.api.Clock
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -33,7 +34,7 @@ class UpdateCheckerTest {
     }
 
     @Test fun newerAvailable() = runTest {
-        val r = checker("1.28.1-dev") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(false)
+        val r = checker("1.28.1-dev") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("sonora-1.29.0.apk", r.apkAsset.name)
         assertEquals("sonora-1.29.0.apk.sha256", r.checksumAsset.name)
@@ -42,8 +43,8 @@ class UpdateCheckerTest {
     }
 
     @Test fun olderOrEqualUpToDate() = runTest {
-        assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.28.0"), HttpStatusCode.OK, json) }.check(false))
-        assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(false))
+        assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.28.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
+        assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
     @Test fun prereleaseListMode() = runTest {
@@ -51,47 +52,77 @@ class UpdateCheckerTest {
         val nightly = """{"tag_name":"nightly","prerelease":true,"draft":false,"body":"","html_url":"https://x",
             "assets":[{"name":"sonora-9.9.9-nightly.20991231.apk","browser_download_url":"https://d/n.apk","size":10}]}"""
         val body = "[$nightly,${rel("1.30.0-beta.2", draft = true)},${rel("1.30.0-beta.1")},${rel("1.29.0")}]"
-        val r = checker("1.29.0") { respond(body, HttpStatusCode.OK, json) }.check(true)
+        val r = checker("1.29.0") { respond(body, HttpStatusCode.OK, json) }.check(UpdateChannel.PreRelease)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("1.30.0-beta.1", r.version.toString())
         assertTrue(lastPath.contains("/releases?") && lastPath.contains("per_page=20"))
     }
 
+    private fun nightlyRel(v: String) = """{"tag_name":"nightly","prerelease":true,"draft":false,"body":"n","html_url":"https://x",
+        "assets":[{"name":"sonora-$v.apk","browser_download_url":"https://d/n.apk","size":10},
+        {"name":"sonora-$v.apk.sha256","browser_download_url":"https://d/n.sha","size":1}]}"""
+
+    private fun nightlyChecker(local: String, stable: String, nightly: String?) = checker(local) { req ->
+        if (req.url.encodedPath.endsWith("/releases/tags/nightly")) {
+            if (nightly == null) respond("{}", HttpStatusCode.NotFound, json) else respond(nightlyRel(nightly), HttpStatusCode.OK, json)
+        } else respond(rel(stable), HttpStatusCode.OK, json)
+    }
+
+    @Test fun nightlyNewerThanInstalledReleaseOffered() = runTest {
+        val r = nightlyChecker("1.28.1", "1.28.1", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
+        assertIs<UpdateCheckResult.Available>(r)
+        assertEquals("sonora-1.28.2-nightly.202611110317.apk", r.apkAsset.name)
+        // No nightly published (404) is not an error.
+        assertEquals(UpdateCheckResult.UpToDate, nightlyChecker("1.28.1", "1.28.1", null).check(UpdateChannel.Nightly))
+    }
+
+    @Test fun newerNightlyOfferedOverOlderInstalledNightly() = runTest {
+        val r = nightlyChecker("1.28.2-nightly.202611100317", "1.28.1", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
+        assertIs<UpdateCheckResult.Available>(r)
+        assertEquals("1.28.2-nightly.202611110317", r.version.toString())
+    }
+
+    @Test fun stableNewerThanInstalledNightlyWins() = runTest {
+        val r = nightlyChecker("1.28.2-nightly.202611110317", "1.28.2", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
+        assertIs<UpdateCheckResult.Available>(r)
+        assertEquals("1.28.2", r.version.toString())
+    }
+
     @Test fun preReleaseUserToggleOffGetsNextStable() = runTest {
-        val r = checker("1.30.0-beta.1") { respond(rel("1.30.0"), HttpStatusCode.OK, json) }.check(false)
+        val r = checker("1.30.0-beta.1") { respond(rel("1.30.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable)
         assertIs<UpdateCheckResult.Available>(r)
     }
 
     @Test fun rateLimited403() = runTest {
         val r = checker("1.0.0") {
             respond("{}", HttpStatusCode.Forbidden, headersOf("X-RateLimit-Remaining" to listOf("0"), "X-RateLimit-Reset" to listOf("2000000")))
-        }.check(false)
+        }.check(UpdateChannel.Stable)
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.RateLimited(2_000_000_000L)), r)
     }
 
     @Test fun rateLimited429RetryAfter() = runTest {
-        val r = checker("1.0.0") { respond("", HttpStatusCode.TooManyRequests, headersOf("Retry-After", "30")) }.check(false)
+        val r = checker("1.0.0") { respond("", HttpStatusCode.TooManyRequests, headersOf("Retry-After", "30")) }.check(UpdateChannel.Stable)
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.RateLimited(now + 30_000)), r)
     }
 
     @Test fun serverError() = runTest {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.Server(500)),
-            checker("1.0.0") { respond("", HttpStatusCode.InternalServerError) }.check(false))
+            checker("1.0.0") { respond("", HttpStatusCode.InternalServerError) }.check(UpdateChannel.Stable))
     }
 
     @Test fun offline() = runTest {
-        assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0") { throw IOException("down") }.check(false))
-        assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0", online = false) { error("no call") }.check(false))
+        assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0") { throw IOException("down") }.check(UpdateChannel.Stable))
+        assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0", online = false) { error("no call") }.check(UpdateChannel.Stable))
     }
 
     @Test fun missingAsset() = runTest {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoAsset),
-            checker("1.0.0") { respond(rel("1.29.0", assets = false), HttpStatusCode.OK, json) }.check(false))
+            checker("1.0.0") { respond(rel("1.29.0", assets = false), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
     @Test fun malformedTag() = runTest {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.Malformed),
-            checker("1.0.0") { respond("""{"tag_name":"nightly"}""", HttpStatusCode.OK, json) }.check(false))
+            checker("1.0.0") { respond("""{"tag_name":"nightly"}""", HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
     @Test fun throttle() {

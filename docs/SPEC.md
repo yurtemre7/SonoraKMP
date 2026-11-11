@@ -318,7 +318,7 @@ Format: **ID — feature**: behaviour (constants) → ✅ acceptance. "audit/x �
 |---|---|---|
 | UPD-01 | Release fetch (latest / list) via Ktor | MockEngine tests 200/403/429/500/offline |
 | UPD-02 | SemVer parse & compare incl. pre-release, `-dev` strip, `v` prefix, `+build` ignore | table tests |
-| UPD-03 | Pre-release opt-in toggle `include_prereleases` | list endpoint used; drafts ignored |
+| UPD-03 | Update channel `update_channel` (stable / prerelease / nightly) | list endpoint for prerelease, drafts ignored; nightly vs stable picks highest SemVer (D-65) |
 | UPD-04 | Asset + checksum resolution (`sonora-<v>.apk`, `.sha256`) | missing asset → `NoAsset` state, browser fallback |
 | UPD-05 | Auto check on launch ≤ once / 6 h, release builds, `auto_check_updates` | clock test |
 | UPD-06 | Update sheet: changelog markdown, Later / Download / Open in browser | UI test |
@@ -451,7 +451,7 @@ Types: B Boolean, I Int, L Long, D Double, S String, SS StringSet. ★ = new key
 | sleep_timer_finish_song ⓑ | B | false | |
 | filter_title_features ⓑ, filter_title_artist ⓑ | B | false | |
 | auto_check_updates ⓑ | B | true | |
-| include_prereleases ★ | B | false | not backed up |
+| update_channel ★ | S | `stable` | {stable, prerelease, nightly}; absent + legacy `include_prereleases`=true → `prerelease` (also on import) |
 | song_sort_by ⓑ / song_sort_ascending ⓑ | S/B | `title`/true | |
 | album_sort_by ⓑ / album_sort_ascending ⓑ | S/B | `name`/true | |
 | artist_sort_by ⓑ / artist_sort_ascending ⓑ | S/B | `name`/true | |
@@ -570,8 +570,12 @@ Rules:
 
 | Mode | Endpoint | Selection |
 |---|---|---|
-| stable (default) | `GET /repos/{repo}/releases/latest` | that release |
-| pre-releases on (`include_prereleases`) | `GET /repos/{repo}/releases?per_page=20` | non-draft releases, highest SemVer (pre-releases included) |
+| `stable` (default) | `GET /repos/{repo}/releases/latest` | that release (ignored if it is a pre-release) |
+| `prerelease` | `GET /repos/{repo}/releases?per_page=20` | non-draft releases with a SemVer tag, highest SemVer (the `nightly` tag is not a version, so never offered) |
+| `nightly` (D-65) | `GET /repos/{repo}/releases/tags/nightly` + `releases/latest` | nightly version = APK asset name `sonora-<version>.apk` (needs its `.sha256`); offer the highest of nightly and stable that is > local. 404 for the tag = no nightly (not an error) |
+
+Channel setting `update_channel` (`UpdateChannel` enum); migration from the legacy `include_prereleases`=true → `prerelease`.
+Nightly is for experimental users: untested builds of `main`; the channel picker shows a short warning.
 
 **Versions (`SemVer`).** Parse `[vV]?MAJOR.MINOR.PATCH(-PRERELEASE)?(+BUILD)?`. Local = `BuildConfig.VERSION_NAME`
 with a trailing `-dev` removed. Ordering per semver.org §11: numeric core; a version with pre-release < same core
@@ -583,7 +587,9 @@ stable that is greater.
 **Release conventions (CI, P8).** Tag `v<version>` (e.g. `v1.29.0`, `v1.30.0-beta.1`); GitHub "prerelease" flag set
 iff version has `-`; assets `sonora-<version>.apk` (universal, signed) and `sonora-<version>.apk.sha256`; body =
 CHANGELOG section of that version (markdown). Checksum file format: `<64 hex>` optionally followed by whitespace +
-filename (sha256sum format); `ChecksumParser` accepts both, case-insensitive hex.
+filename (sha256sum format); `ChecksumParser` accepts both, case-insensitive hex. Nightly (CI `nightly.yml`):
+rolling tag `nightly`, version `<next patch>-nightly.<YYYYMMDDHHMM>+<sha>`, asset `sonora-<next patch>-nightly.<YYYYMMDDHHMM>.apk`,
+so every build has a new, ordered version below the next stable.
 
 **State machine (`UpdateState`).**
 
@@ -730,6 +736,7 @@ weekday names for most-active-day; About footer.
 | D-62 | repeat mode reset on restart | persisted (`repeat_mode`) |
 | D-63 | a broken file stopped playback | skipped, playback continues, UI notified |
 | D-64 | onboarding forced the greeting on with the name "User" | greeting only when the user enters a name (P5-02) |
+| D-65 | no in-app nightly updates | Nightly update channel for experimental users (§7) |
 
 Deliberately kept (design, not bugs): ReplayGain never amplifies above 1.0 (avoids clipping); the sleep timer is not persisted across restarts; stats rows remain for deleted playlists; "next" on the last song with repeat off restarts it.
 

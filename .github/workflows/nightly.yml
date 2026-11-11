@@ -2,7 +2,8 @@ name: Nightly
 
 # Builds main every night and replaces the rolling "nightly" pre-release.
 # Skipped when main has not changed since the last nightly.
-# The in-app updater never offers nightlies (the tag is not a version).
+# The in-app updater offers it on the Nightly channel only (SPEC §7, D-65); the version comes
+# from the APK asset name and changes on every build (<next patch>-nightly.<YYYYMMDDHHMM>).
 on:
   schedule:
     - cron: "17 3 * * *"
@@ -56,13 +57,13 @@ jobs:
             base=$(grep -E '^sonora.versionName=' gradle.properties | cut -d= -f2)
           fi
           IFS=. read -r major minor patch <<< "$base"
-          date=$(date -u +%Y%m%d)
+          stamp=$(date -u +%Y%m%d%H%M)
           short=$(git rev-parse --short=7 HEAD)
-          version="$major.$minor.$((patch + 1))-nightly.$date+$short"
+          version="$major.$minor.$((patch + 1))-nightly.$stamp+$short"
           {
             echo "skip=false"
             echo "version=$version"
-            echo "file_version=$major.$minor.$((patch + 1))-nightly.$date"
+            echo "file_version=$major.$minor.$((patch + 1))-nightly.$stamp"
             echo "short=$short"
             echo "date=$(date -u +%Y-%m-%d)"
             echo "prev=$latest"
@@ -152,7 +153,7 @@ jobs:
           {
             echo "Nightly build of \`main\` at [\`$SHORT\`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA), version \`$VERSION\`."
             echo
-            echo "Untested development build. It installs over a regular release; the app does not offer nightlies as updates."
+            echo "Untested development build. It installs over a regular release; the app offers it only on the Nightly update channel."
             echo
             if [[ -n "$PREV" ]]; then echo "### Changes since $PREV"; else echo "### Changes"; fi
             echo

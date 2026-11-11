@@ -32,9 +32,10 @@ fun deriveVersionCode(name: String): Int {
     val pre = match.groupValues[4]
     val stage = if (pre.isEmpty()) 9 else {
         val label = pre.substringBefore('.').lowercase()
-        val n = pre.substringAfter('.', "1").toIntOrNull() ?: 1
+        // Long: nightly identifiers are 12-digit timestamps (YYYYMMDDHHMM).
+        val n = pre.substringAfter('.', "1").toLongOrNull() ?: 1L
         val base = when (label) { "beta" -> 3; "rc" -> 6; else -> 0 }
-        base + (n - 1).coerceIn(0, 2)
+        base + (n - 1).coerceIn(0L, 2L).toInt()
     }
     return (major * 1_000_000 + minor * 1_000 + patch) * 10 + stage
 }

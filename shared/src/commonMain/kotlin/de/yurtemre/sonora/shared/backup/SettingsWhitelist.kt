@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.shared.backup
 
 import de.yurtemre.sonora.shared.model.MfxPreset
+import de.yurtemre.sonora.shared.model.UpdateChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -22,6 +23,8 @@ object SettingsWhitelist {
     const val MFX_PRESET_NAME = "mfx_preset_name"
     const val MFX_CUSTOM_EQ_GAINS = "mfx_customEqGains"
     const val APP_LOCALE = "app_locale"
+    const val UPDATE_CHANNEL = "update_channel"
+    const val LEGACY_INCLUDE_PRERELEASES = "include_prereleases"
 
     private val B = PrefType.Boolean
     private val I = PrefType.Integer
@@ -61,10 +64,11 @@ object SettingsWhitelist {
 
     /** Keys KMP writes on export (backup types); Flutter ignores [THEME_COLOR_SOURCE] as unknown. */
     val exportKeys: Map<String, PrefType> =
-        flutterKeys.filterKeys { it !in importOnlyKeys } + (THEME_COLOR_SOURCE to S)
+        flutterKeys.filterKeys { it !in importOnlyKeys } + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S)
 
     /** Keys accepted (and type-checked) by the KMP parser. */
-    val parseKeys: Map<String, PrefType> = flutterKeys + (THEME_COLOR_SOURCE to S)
+    val parseKeys: Map<String, PrefType> =
+        flutterKeys + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (LEGACY_INCLUDE_PRERELEASES to B)
 
     /** Flutter keys removed on restore when a `settings` section lacks them (audit/data §12.5). */
     val flutterRemovedWhenAbsent = listOf(MFX_PRESET_NAME, "mfx_preset", MFX_CUSTOM_EQ_GAINS)
@@ -93,7 +97,7 @@ object SettingsWhitelist {
     fun fromBackup(backup: Map<String, SettingValue>): Map<String, SettingValue> {
         val out = LinkedHashMap<String, SettingValue>()
         for ((key, value) in backup) {
-            if (key in importOnlyKeys) continue
+            if (key in importOnlyKeys || key == LEGACY_INCLUDE_PRERELEASES) continue
             val type = parseKeys[key] ?: continue
             if (key == MFX_CUSTOM_EQ_GAINS) {
                 gainsToStored(value)?.let { out[key] = it }
@@ -102,6 +106,9 @@ object SettingsWhitelist {
             }
         }
         if (THEME_COLOR_SOURCE !in out) legacyColorSource(backup)?.let { out[THEME_COLOR_SOURCE] = SettingValue.Str(it) }
+        if (UPDATE_CHANNEL !in out && (backup[LEGACY_INCLUDE_PRERELEASES] as? SettingValue.Bool)?.value == true) {
+            out[UPDATE_CHANNEL] = SettingValue.Str(UpdateChannel.PreRelease.storageName)
+        }
         if (MFX_PRESET_NAME !in out) legacyPreset(backup)?.let { out[MFX_PRESET_NAME] = SettingValue.Str(it.storageName) }
         return out
     }

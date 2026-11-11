@@ -100,7 +100,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setPostponeSyncUntil(ms: Long) = put { it[K.POSTPONE_SYNC_UNTIL] = ms }
     suspend fun setOnboardingCompleted(v: Boolean) = put { it[K.ONBOARDING_COMPLETED] = v }
     suspend fun setAutoCheckUpdates(v: Boolean) = put { it[K.AUTO_CHECK_UPDATES] = v }
-    suspend fun setIncludePrereleases(v: Boolean) = put { it[K.INCLUDE_PRERELEASES] = v }
+    suspend fun setUpdateChannel(v: UpdateChannel) = put { it[K.UPDATE_CHANNEL] = v.storageName; it.remove(K.INCLUDE_PRERELEASES) }
     suspend fun setLastUpdateCheckMs(v: Long) = put { it[K.LAST_UPDATE_CHECK_MS] = v }
     suspend fun setUpdateRateLimitResetMs(v: Long) = put { it[K.UPDATE_RATE_LIMIT_RESET_MS] = v }
 
@@ -164,7 +164,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 filterTitleFeatures = p[K.FILTER_TITLE_FEATURES] ?: d.filterTitleFeatures,
                 filterTitleArtist = p[K.FILTER_TITLE_ARTIST] ?: d.filterTitleArtist,
                 autoCheckUpdates = p[K.AUTO_CHECK_UPDATES] ?: d.autoCheckUpdates,
-                includePrereleases = p[K.INCLUDE_PRERELEASES] ?: d.includePrereleases,
+                updateChannel = UpdateChannel.fromStored(p[K.UPDATE_CHANNEL], p[K.INCLUDE_PRERELEASES]),
                 songSortBy = SongSort.fromStorage(p[K.SONG_SORT_BY]),
                 songSortAscending = p[K.SONG_SORT_ASCENDING] ?: d.songSortAscending,
                 albumSortBy = AlbumSort.fromStorage(p[K.ALBUM_SORT_BY]),

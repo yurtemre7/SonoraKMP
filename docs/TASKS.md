@@ -138,7 +138,7 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [ ] **P5-19** Info & danger zone [SET-07, SET-08] — deps: [P1-12] — owns: `A/ui/screens/settings/info/**`, `A/platform/AppWiper.kt` — done when: about dialog, links, thank-you card, hold-3-s danger zone performing the full wipe of SET-08 and routing to onboarding.
 - [ ] **P5-20** Changelog & licenses [UI-36, UI-37] — deps: [P1-01] — owns: `A/ui/screens/changelog/**`, `A/ui/screens/licenses/**` — done when: bundled markdown renders with h1–h3 styles offline; AboutLibraries list + OFL fonts.
 - [ ] **P5-21** Debug caches [SET-09] — deps: [P1-12] — owns: `A/ui/screens/debug/**` — done when: read-only sections, reachable only when `BuildConfig.DEBUG`.
-- [ ] **P5-22** Update UI [UPD-06, UPD-07] — deps: [P2-19] — owns: `A/update/{UpdateViewModel,UpdatePromptHost}.kt`, `A/ui/screens/update/**` — done when: update sheet (markdown body, Later/Browser/Download), Info tile states, rate-limit dialog with reset time; download/install actions call P7 interfaces (stubbed).
+- [ ] **P5-22** Update UI [UPD-06, UPD-07] — deps: [P2-19] — owns: `A/update/{UpdateViewModel,UpdatePromptHost}.kt`, `A/ui/screens/update/**` — done when: update sheet (markdown body, Later/Browser/Download), Info tile states, rate-limit dialog with reset time; channel picker Stable / Pre-release / Nightly with a short warning for Nightly; download/install actions call P7 interfaces (stubbed).
 
 ## P6 Localization, accessibility, adaptive (batch P6a → P6b)
 

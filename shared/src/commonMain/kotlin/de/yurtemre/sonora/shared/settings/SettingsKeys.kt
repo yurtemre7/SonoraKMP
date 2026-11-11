@@ -41,6 +41,9 @@ object SettingsKeys {
     val FILTER_TITLE_FEATURES = booleanPreferencesKey("filter_title_features")
     val FILTER_TITLE_ARTIST = booleanPreferencesKey("filter_title_artist")
     val AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")
+    val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
+
+    /** Legacy (≤ 1.28) boolean; read only to migrate to [UPDATE_CHANNEL]. */
     val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
     val SONG_SORT_BY = stringPreferencesKey("song_sort_by")
     val SONG_SORT_ASCENDING = booleanPreferencesKey("song_sort_ascending")

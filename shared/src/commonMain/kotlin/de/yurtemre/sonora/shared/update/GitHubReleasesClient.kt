@@ -31,6 +31,10 @@ class GitHubReleasesClient(
     suspend fun latest(): FetchResult<Release> =
         fetch("$baseUrl/repos/$repo/releases/latest") { json.decodeFromString<Release>(it) }
 
+    /** The rolling `nightly` release; a 404 means no nightly exists (caller treats it as "none"). */
+    suspend fun nightly(): FetchResult<Release> =
+        fetch("$baseUrl/repos/$repo/releases/tags/$NIGHTLY_TAG") { json.decodeFromString<Release>(it) }
+
     suspend fun list(perPage: Int = 20): FetchResult<List<Release>> =
         fetch("$baseUrl/repos/$repo/releases", perPage) { json.decodeFromString<List<Release>>(it) }
 
@@ -72,5 +76,6 @@ class GitHubReleasesClient(
     companion object {
         const val DEFAULT_REPO = "yurtemre7/SonoraKMP"
         const val USER_AGENT = "Sonora-Android"
+        const val NIGHTLY_TAG = "nightly"
     }
 }

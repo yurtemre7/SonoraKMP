@@ -35,7 +35,7 @@ data class AppSettings(
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,
     val autoCheckUpdates: Boolean = true,
-    val includePrereleases: Boolean = false,
+    val updateChannel: UpdateChannel = UpdateChannel.Stable,
     val songSortBy: SongSort = SongSort.Title,
     val songSortAscending: Boolean = true,
     val albumSortBy: AlbumSort = AlbumSort.Name,
@@ -69,5 +69,18 @@ data class AppSettings(
     companion object {
         val SLEEP_TIMER_MINUTES_OPTIONS = listOf(5, 10, 15, 20, 25, 30, 45, 60)
         val SLEEP_TIMER_FADE_OPTIONS = listOf(0, 10, 30, 60)
+    }
+}
+
+/** In-app update channel (SPEC §7, D-65). */
+enum class UpdateChannel(override val storageName: String) : StorageEnum {
+    Stable("stable"), PreRelease("prerelease"), Nightly("nightly");
+
+    companion object {
+        fun fromStorage(value: String?): UpdateChannel = enumFromStorage(value, Stable)
+
+        /** Migration: absent [channel] + legacy `include_prereleases` = true → [PreRelease]. */
+        fun fromStored(channel: String?, legacyIncludePrereleases: Boolean?): UpdateChannel =
+            if (channel == null && legacyIncludePrereleases == true) PreRelease else fromStorage(channel)
     }
 }
