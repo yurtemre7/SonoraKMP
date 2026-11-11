@@ -150,14 +150,17 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 ## P6 Localization, accessibility, adaptive (batch P6a → P6b)
 
 **P6a**
-- [ ] **P6-02** Hardcoded-literal sweep [L10N-04] — deps: [P5-*] — owns: `A/ui/screens/**`, `A/ui/sheets/**`, `scripts/check_hardcoded_strings.sh` — done when: script finds no `Text("…")`/literal user text in `A/`; offenders moved to `strings_l10n_sweep.xml`.
-- [ ] **P6-03** Accessibility pass (incl.: hide the home tree from TalkBack while Now Playing is expanded; "Last sync: 0 minutes ago" → "just now") [A11Y-01..05, A11Y-08] — deps: [P5-*] — owns: `A/ui/components/**` — done when: content descriptions, 48 dp targets, merged row semantics, custom actions, slider range info, marquee off at large font scale.
-- [ ] **P6-04** Reduce motion & theme a11y [A11Y-06, A11Y-07] — deps: [P1-07] — owns: `A/ui/theme/**` — done when: `LocalReduceMotion` from animator scale consumed by motion tokens; album-art contrast fallback to `Contrast.Medium`.
-- [ ] **P6-05** Adaptive layouts [UI-34] — deps: [P5-*] — owns: `A/ui/navigation/**`, `A/ui/screens/nowplaying/NowPlayingTwoPane.kt` — done when: compact/medium/expanded scaffolds, list-detail on expanded, NP two-pane in landscape, 840 dp max width for settings.
-- [ ] **P6-06** Locale-aware formatting & non-UI strings [L10N-05, L10N-06] — deps: [P1-08, P4-11] — owns: `A/ui/format/**` — done when: all dates/weekdays/month-year via locale APIs; notification/Auto/widget strings resolve with app locale (verified in ja).
+- [x] **P6-02** Hardcoded-literal sweep [L10N-04] — deps: [P5-*] — owns: `A/ui/screens/**`, `A/ui/sheets/**`, `scripts/check_hardcoded_strings.sh` — done when: script finds no `Text("…")`/literal user text in `A/`; offenders moved to `strings_l10n_sweep.xml`.
+- [x] **P6-03** Accessibility pass (incl.: hide the home tree from TalkBack while Now Playing is expanded; "Last sync: 0 minutes ago" → "just now") [A11Y-01..05, A11Y-08] — deps: [P5-*] — owns: `A/ui/components/**` — done when: content descriptions, 48 dp targets, merged row semantics, custom actions, slider range info, marquee off at large font scale.
+- [x] **P6-04** Reduce motion & theme a11y [A11Y-06, A11Y-07] — deps: [P1-07] — owns: `A/ui/theme/**` — done when: `LocalReduceMotion` from animator scale consumed by motion tokens; album-art contrast fallback to `Contrast.Medium`.
+- [x] **P6-05** Adaptive layouts [UI-34] — deps: [P5-*] — owns: `A/ui/navigation/**`, `A/ui/screens/nowplaying/NowPlayingTwoPane.kt` — done when: compact/medium/expanded scaffolds, list-detail on expanded, NP two-pane in landscape, 840 dp max width for settings.
+- [x] **P6-06** Locale-aware formatting & non-UI strings [L10N-05, L10N-06] — deps: [P1-08, P4-11] — owns: `A/ui/format/**` — done when: all dates/weekdays/month-year via locale APIs; notification/Auto/widget strings resolve with app locale (verified in ja).
 
 **P6b**
-- [ ] **P6-01** Strings parity & Japanese review [L10N-01, L10N-02] — deps: [P6-02..P6-06] — owns: `AR/values*/strings*.xml`, `AT/l10n/StringsParityTest.kt` — done when: per-feature `strings_*.xml` files are kept (decision D-66: no merge into `strings.xml`, which the generator owns), every key exists in en and ja with matching format args, the whole ja set is reviewed for natural, consistent phrasing, and a parity unit test guards it; `LINT` clean.
+- [x] **P6-01** Strings parity & Japanese review [L10N-01, L10N-02] — deps: [P6-02..P6-06] — owns: `AR/values*/strings*.xml`, `AT/l10n/StringsParityTest.kt` — done when: per-feature `strings_*.xml` files are kept (decision D-66: no merge into `strings.xml`, which the generator owns), every key exists in en and ja with matching format args, the whole ja set is reviewed for natural, consistent phrasing, and a parity unit test guards it; `LINT` clean.
+
+- [ ] **P6-07** English sentence case for generated strings — owns: `scripts/strings/**`, `AR/values/strings.xml` — done when: the generator supports English overrides and the ~430 Title Case strings carried over from Flutter read in sentence case (DESIGN §2).
+- [ ] **P6-08** Tall-pane Now Playing spacing — owns: `A/ui/screens/nowplaying/PlayerView.kt` — done when: on expanded panes the cover block sits closer to the controls (spacers weighted to the top) instead of floating mid-pane.
 
 ## P7 Auto-update installer end-to-end
 
@@ -210,7 +213,7 @@ App tests (`AT/`, Robolectric):
 - [x] **P10-16** DAO tests — deps: [P1-05, P3-07] — owns: `AT/data/DaoTest.kt` — done when: playlist add dedupe/remove-all/reorder, favorites relink, stats transaction, clearAll.
 - [x] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
 - [x] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
-- [ ] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
+- [x] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
 - [ ] **P10-20** Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Sleeve/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
 - [ ] **P10-21** Sync banner UI test — deps: [P5-04] — owns: `AT/ui/SyncBannerTest.kt` — done when: 3 cases of audit/ui §2.9.
 - [ ] **P10-22** Multi-select bar UI test — deps: [P5-05] — owns: `AT/ui/MultiSelectBarTest.kt` — done when: "1 selected", select-all/close callbacks, 5 actions.
