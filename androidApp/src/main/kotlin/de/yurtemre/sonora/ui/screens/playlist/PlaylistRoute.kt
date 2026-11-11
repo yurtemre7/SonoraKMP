@@ -99,8 +99,6 @@ import de.yurtemre.sonora.ui.components.SongRow
 import de.yurtemre.sonora.ui.components.SongRowAction
 import de.yurtemre.sonora.ui.components.rememberSelectionState
 import de.yurtemre.sonora.ui.format.rememberTotalDurationText
-import de.yurtemre.sonora.ui.navigation.Album
-import de.yurtemre.sonora.ui.navigation.Artist
 import de.yurtemre.sonora.ui.sheets.EditDescriptionDialog
 import de.yurtemre.sonora.ui.sheets.PlaylistSelectorSheetHost
 import de.yurtemre.sonora.ui.sheets.RenamePlaylistDialog
@@ -391,8 +389,8 @@ private fun PlaylistDetailScreen(
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,
-        onGoToAlbum = onNavigate?.let { nav -> { song: Song -> nav(Album(song.album, song.albumArtist ?: song.artist)) } },
-        onGoToArtist = onNavigate?.let { nav -> { song: Song -> nav(Artist(song.artist)) } },
+        onGoToAlbum = onNavigate?.let { nav -> { song: Song -> nav(de.yurtemre.sonora.ui.navigation.albumKeyOf(song)) } },
+        onGoToArtist = onNavigate?.let { nav -> { song: Song -> nav(de.yurtemre.sonora.ui.navigation.artistKeyOf(song)) } },
         extraActions = { song ->
             listOf(
                 SongSheetAction(removeFromPlaylist, Icons.Rounded.PlaylistRemove, destructive = true) {

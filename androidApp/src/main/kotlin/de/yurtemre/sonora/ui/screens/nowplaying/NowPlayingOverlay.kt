@@ -28,6 +28,8 @@ import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.TintedBackdrop
 import de.yurtemre.sonora.ui.components.WavySeekBar
+import de.yurtemre.sonora.ui.screens.nowplaying.sheets.EffectsSheet
+import de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet
 import org.koin.compose.koinInject
 
 /**
@@ -40,8 +42,8 @@ fun NowPlayingOverlay(
     onOpenAlbum: (Song) -> Unit,
     onOpenArtist: (Song) -> Unit,
     modifier: Modifier = Modifier,
-    onMfx: () -> Unit = {},
-    onSleepTimer: () -> Unit = {},
+    onMfx: (() -> Unit)? = null,
+    onSleepTimer: (() -> Unit)? = null,
     seekBar: (@Composable () -> Unit)? = null,
     snackbarHostState: SnackbarHostState? = null,
     upNext: (@Composable () -> Unit)? = null,
@@ -57,6 +59,12 @@ fun NowPlayingOverlay(
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
     var view by rememberSaveable { mutableStateOf(NowPlayingView.Player) }
+    var showEffects by rememberSaveable { mutableStateOf(false) }
+    var showSleep by rememberSaveable { mutableStateOf(false) }
+    val openMfx: () -> Unit = onMfx ?: { showEffects = true }
+    val openSleep: () -> Unit = onSleepTimer ?: { showSleep = true }
+    if (showEffects) EffectsSheet(onDismiss = { showEffects = false }, connection = playback)
+    if (showSleep) SleepTimerSheet(onDismiss = { showSleep = false }, connection = playback)
 
     // Composed after the slot's handler, so it wins while a secondary view is open.
     BackHandler(enabled = view != NowPlayingView.Player) { view = NowPlayingView.Player }
@@ -72,7 +80,7 @@ fun NowPlayingOverlay(
                 Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.np_collapse))
             }
             if (song == null) return@Column
-            val actions = remember(vm, onOpenAlbum, onOpenArtist, onMfx, onSleepTimer) { PlayerActions(
+            val actions = remember(vm, onOpenAlbum, onOpenArtist, openMfx, openSleep) { PlayerActions(
                 onTogglePlayPause = vm::togglePlayPause,
                 onPrevious = vm::previous,
                 onNext = vm::next,
@@ -82,8 +90,8 @@ fun NowPlayingOverlay(
                 onToggleImmersive = vm::toggleImmersive,
                 onOpenAlbum = onOpenAlbum,
                 onOpenArtist = onOpenArtist,
-                onMfx = onMfx,
-                onSleepTimer = onSleepTimer,
+                onMfx = openMfx,
+                onSleepTimer = openSleep,
             ) }
             // TODO(P5-07): Vinyl and Minimalist layouts; every style renders Modern for now.
             @Suppress("UNUSED_VARIABLE") val layoutStyle: NowPlayingStyle = style
@@ -101,6 +109,19 @@ fun NowPlayingOverlay(
                 upNext = {
                     if (upNext != null) upNext()
                     else UpNextView(snackbarHostState ?: remember { SnackbarHostState() }, connection = playback)
+                },
+                lyrics = {
+                    val position by vm.positionMs.collectAsStateWithLifecycle(0L)
+                    LyricsView(song, position, vm::seekTo, Modifier.fillMaxSize())
+                },
+                related = {
+                    RelatedView(
+                        song = song,
+                        onPlay = { s, list -> playback.playSong(s, list) },
+                        onOpenAlbum = { onOpenAlbum(song) },
+                        onOpenArtist = { onOpenArtist(song) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 },
             )
         }

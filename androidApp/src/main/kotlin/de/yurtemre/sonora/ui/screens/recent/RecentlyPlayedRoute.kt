@@ -1,5 +1,13 @@
 package de.yurtemre.sonora.ui.screens.recent
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.navigation.albumKeyOf
+import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
+import de.yurtemre.sonora.ui.sheets.SongActionsHost
+import de.yurtemre.sonora.ui.sheets.PlaylistSelectorSheetHost
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -86,7 +94,9 @@ class RecentlyPlayedViewModel(library: LibraryRepository, stats: StatsRepository
 /** UI-27 Recently played: grouped by day (Today / Yesterday / weekday / date), play counts, multi-select. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun RecentlyPlayedRoute(onBack: () -> Unit) {
+fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
+    val actions = rememberSongActionsState()
+    var addToPlaylistIds by remember { mutableStateOf<List<Long>?>(null) }
     val playback: PlaybackConnection = koinInject()
     val library: LibraryRepository = koinInject()
     val stats: StatsRepository = koinInject()
@@ -127,7 +137,7 @@ fun RecentlyPlayedRoute(onBack: () -> Unit) {
                     snackbarHostState = snackbar,
                     onPlayNext = { playback.playNext(pick(it)) },
                     onAddToQueue = { playback.addToQueue(pick(it)) },
-                    onAddToPlaylist = {},
+                    onAddToPlaylist = { addToPlaylistIds = it.toList() },
                     allFavorite = selection.selected.isNotEmpty() && selection.selected.all { byId[it]?.isFavorite == true },
                     onFavoriteToggle = { ids, fav ->
                         scope.launch { favorites.setSongsFavorite(pick(ids).associate { it.id to it.filePath }, fav) }
@@ -172,11 +182,25 @@ fun RecentlyPlayedRoute(onBack: () -> Unit) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 selection.onLongPress(song.id)
                             },
+                            onMoreClick = { actions.show(song) },
                             modifier = Modifier.animateItem(),
                         )
                     }
                 }
             }
         }
+    }
+    SongActionsHost(
+        state = actions,
+        snackbarHostState = snackbar,
+        onGoToAlbum = { onNavigate(albumKeyOf(it)) },
+        onGoToArtist = { onNavigate(artistKeyOf(it)) },
+    )
+    addToPlaylistIds?.let { ids ->
+        PlaylistSelectorSheetHost(
+            songIds = ids,
+            onDismiss = { addToPlaylistIds = null; selection.clear() },
+            onMessage = { msg -> scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(msg) } },
+        )
     }
 }

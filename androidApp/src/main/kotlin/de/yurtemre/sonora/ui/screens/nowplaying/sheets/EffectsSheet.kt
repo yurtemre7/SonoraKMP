@@ -187,15 +187,16 @@ private fun EqBands(mfx: MfxUiState, onBand: (Int, Float) -> Unit) {
         mfx.eqBandCenterHz.forEachIndexed { band, hz ->
             val gain = mfx.customEqGains.getOrNull(band) ?: 0f
             val label = bandLabel(hz)
-            val state = remember(band, minDb, maxDb) { SliderState(value = gain, valueRange = minDb..maxDb) }
+            val state = remember(band, minDb, maxDb) { SliderState(gain, 0, minDb..maxDb) }
             LaunchedEffect(gain) { if (!state.isDragging) state.value = gain }
-            state.onValueChangeFinished = { onBand(band, state.value) }
             val desc = stringResource(R.string.effects_band_desc, label, "%.1f".format(Locale.getDefault(), state.value))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 VerticalSlider(
                     state = state,
+                    onValueChange = { state.value = it },
+                    onValueChangeFinished = { onBand(band, state.value) },
                     modifier = Modifier.height(180.dp).width(48.dp).semantics { contentDescription = desc },
-                    reverseDirection = true,
+                    topToBottom = false, // min at the bottom
                 )
                 Text(label, style = MaterialTheme.typography.labelSmall)
             }

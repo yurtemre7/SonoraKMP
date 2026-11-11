@@ -175,6 +175,7 @@ fun DetailSongRow(
     onFavorite: () -> Unit,
     trackNumber: Int? = null,
     showArtwork: Boolean = false,
+    onMore: (() -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
     var fav by remember(song.isFavorite) { mutableStateOf(song.isFavorite) }
@@ -195,7 +196,7 @@ fun DetailSongRow(
             isPlaying = isPlaying,
             selected = selected,
             onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLongClick() },
-            onMoreClick = { menu = true },
+            onMoreClick = onMore ?: { menu = true },
             accessibilityActions = listOf(
                 SongRowAction(playNext, onPlayNext),
                 SongRowAction(addQueue, onAddToQueue),

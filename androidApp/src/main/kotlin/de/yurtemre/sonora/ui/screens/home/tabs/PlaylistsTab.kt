@@ -1,5 +1,8 @@
 package de.yurtemre.sonora.ui.screens.home.tabs
 
+import de.yurtemre.sonora.ui.sheets.CreatePlaylistDialog
+import de.yurtemre.sonora.ui.sheets.EditDescriptionDialog
+import de.yurtemre.sonora.ui.sheets.RenamePlaylistDialog
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -204,30 +207,18 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
 
     when (val d = dialog) {
         null -> Unit
-        PlaylistDialog.Create -> PlaylistTextDialog(
-            title = stringResource(R.string.library_new_playlist),
-            label = stringResource(R.string.library_playlist_name),
-            initial = "",
-            confirmLabel = stringResource(R.string.library_create),
-            onConfirm = { name -> dialog = null; scope.launch { repo.create(name) } },
+        PlaylistDialog.Create -> CreatePlaylistDialog(
+            onCreate = { name -> scope.launch { repo.create(name) } },
             onDismiss = { dialog = null },
         )
-        is PlaylistDialog.Rename -> PlaylistTextDialog(
-            title = stringResource(R.string.library_rename),
-            label = stringResource(R.string.library_playlist_name),
-            initial = d.p.name,
-            confirmLabel = stringResource(R.string.library_save),
-            onConfirm = { name -> dialog = null; scope.launch { repo.rename(d.p.id, name) } },
+        is PlaylistDialog.Rename -> RenamePlaylistDialog(
+            currentName = d.p.name,
+            onRename = { name -> scope.launch { repo.rename(d.p.id, name) } },
             onDismiss = { dialog = null },
         )
-        is PlaylistDialog.Description -> PlaylistTextDialog(
-            title = stringResource(R.string.library_edit_description),
-            label = stringResource(R.string.library_description),
-            initial = d.p.description.orEmpty(),
-            confirmLabel = stringResource(R.string.library_save),
-            allowEmpty = true,
-            singleLine = false,
-            onConfirm = { text -> dialog = null; scope.launch { repo.setDescription(d.p.id, text.ifBlank { null }) } },
+        is PlaylistDialog.Description -> EditDescriptionDialog(
+            currentDescription = d.p.description,
+            onSave = { text -> scope.launch { repo.setDescription(d.p.id, text) } },
             onDismiss = { dialog = null },
         )
         is PlaylistDialog.Delete -> ConfirmDialog(

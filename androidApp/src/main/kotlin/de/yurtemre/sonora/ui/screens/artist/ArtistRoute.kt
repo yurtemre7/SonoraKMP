@@ -1,5 +1,10 @@
 package de.yurtemre.sonora.ui.screens.artist
 
+import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.navigation.albumKeyOf
+import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
+import de.yurtemre.sonora.ui.sheets.SongActionsHost
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +74,13 @@ private data class ArtistDetail(val artist: ArtistGroup, val songs: List<Song>)
  * [onOpenAlbum] is wired by the app shell; without it the carousel is display-only.
  */
 @Composable
-fun ArtistRoute(name: String, onBack: () -> Unit, onOpenAlbum: ((name: String, artist: String) -> Unit)? = null) {
+fun ArtistRoute(
+    name: String,
+    onBack: () -> Unit,
+    onOpenAlbum: ((name: String, artist: String) -> Unit)? = null,
+    onNavigate: (NavKey) -> Unit = {},
+) {
+    val actions = rememberSongActionsState()
     val library = koinInject<LibraryRepository>()
     val favorites = koinInject<FavoritesRepository>()
     val playback = koinInject<PlaybackConnection>()
@@ -164,6 +175,7 @@ fun ArtistRoute(name: String, onBack: () -> Unit, onOpenAlbum: ((name: String, a
                             onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
                             onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
                             onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
+                            onMore = { actions.show(song) },
                         )
                     }
                 }
@@ -178,11 +190,18 @@ fun ArtistRoute(name: String, onBack: () -> Unit, onOpenAlbum: ((name: String, a
                         onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
                         onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
                         onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
+                        onMore = { actions.show(song) },
                     )
                 }
             }
         }
     }
+    SongActionsHost(
+        state = actions,
+        snackbarHostState = snackbar,
+        onGoToAlbum = { onNavigate(albumKeyOf(it)) },
+        onGoToArtist = { onNavigate(artistKeyOf(it)) },
+    )
 }
 
 @Composable

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="debug_section_database">Database</string>
+    <string name="debug_section_artwork">Artwork cache</string>
+    <string name="debug_section_sync">Library sync</string>
+    <string name="debug_section_settings">Settings</string>
+    <string name="debug_songs">Songs</string>
+    <string name="debug_playlists">Playlists</string>
+    <string name="debug_favorites">Favorites (songs / albums / artists)</string>
+    <string name="debug_stats_songs">Songs with stats</string>
+    <string name="debug_dir_album_art">Album art</string>
+    <string name="debug_dir_embedded_art">Embedded art</string>
+    <string name="debug_dir_artist_images">Artist images</string>
+    <string name="debug_dir_cache_total">Whole cache folder</string>
+    <string name="debug_dir_value">%1$d files · %2$s</string>
+    <string name="debug_ms">%1$d ms</string>
+    <string name="debug_last_sync_duration">Last sync duration</string>
+    <string name="debug_last_sync_at">Last sync</string>
+    <string name="np_view_lyrics">Lyrics</string>
+    <string name="np_view_related">Related</string>
+</resources>

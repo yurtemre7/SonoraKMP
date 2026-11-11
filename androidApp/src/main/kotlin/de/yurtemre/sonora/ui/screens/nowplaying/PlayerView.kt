@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
@@ -54,8 +56,8 @@ import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.PulseButton
 
-/** Which pane the overlay shows (UI-17). Lyrics/Related join in P5.2. */
-enum class NowPlayingView { Player, UpNext }
+/** Which pane the overlay shows (UI-17). */
+enum class NowPlayingView { Player, UpNext, Lyrics, Related }
 
 /** Callbacks for the player view; MFX and sleep timer open sheets later. */
 class PlayerActions(
@@ -85,13 +87,22 @@ fun PlayerView(
     seekBar: @Composable () -> Unit,
     upNext: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    lyrics: @Composable () -> Unit = {},
+    related: @Composable () -> Unit = {},
     queue: QueueUiState? = null,
     onSkipTo: (Long) -> Unit = {},
 ) {
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
     Column(modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        if (view == NowPlayingView.UpNext) {
-            Column(Modifier.weight(1f).fillMaxWidth()) { upNext() }
+        if (view != NowPlayingView.Player) {
+            Column(Modifier.weight(1f).fillMaxWidth()) {
+                when (view) {
+                    NowPlayingView.UpNext -> upNext()
+                    NowPlayingView.Lyrics -> lyrics()
+                    NowPlayingView.Related -> related()
+                    NowPlayingView.Player -> Unit
+                }
+            }
         } else if (horizontalSpine) {
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Spine(song.title)
@@ -205,23 +216,34 @@ private fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: Pla
     }
 }
 
-/** View switcher (DESIGN §6.7). Lyrics / Related buttons are hidden until P5.2. */
+/** View switcher (DESIGN §6.7): connected button group Up next | Lyrics | Related; re-tapping returns to the player. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
+    val items = listOf(
+        Triple(NowPlayingView.UpNext, Icons.AutoMirrored.Filled.QueueMusic, R.string.np_view_up_next),
+        Triple(NowPlayingView.Lyrics, Icons.Filled.Lyrics, R.string.np_view_lyrics),
+        Triple(NowPlayingView.Related, Icons.Filled.LibraryMusic, R.string.np_view_related),
+    )
     Row(
         Modifier.fillMaxWidth().padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
-        val upNext = view == NowPlayingView.UpNext
-        ToggleButton(
-            checked = upNext,
-            onCheckedChange = { onViewChange(if (it) NowPlayingView.UpNext else NowPlayingView.Player) },
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) {
-            Icon(Icons.AutoMirrored.Filled.QueueMusic, null)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.np_view_up_next))
+        items.forEachIndexed { i, (target, icon, label) ->
+            ToggleButton(
+                checked = view == target,
+                onCheckedChange = { onViewChange(if (it) target else NowPlayingView.Player) },
+                shapes = when (i) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    items.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                },
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { role = Role.Tab },
+            ) {
+                Icon(icon, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }

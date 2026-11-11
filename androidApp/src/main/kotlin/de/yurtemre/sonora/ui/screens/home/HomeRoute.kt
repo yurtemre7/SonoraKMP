@@ -54,7 +54,7 @@ fun HomeRoute(
         snackbarHostState = snackbar,
         tabContent = tabContent ?: { t, s ->
             when (t) {
-                LibraryTab.Songs -> SongsTab(s, vm, header.isSyncing, snackbar)
+                LibraryTab.Songs -> SongsTab(s, vm, header.isSyncing, snackbar, onNavigate)
                 LibraryTab.Albums -> AlbumsTab(s, snackbar) { onNavigate(Album(it.name, it.artist)) }
                 LibraryTab.Artists -> ArtistsTab(s) { onNavigate(Artist(it.name)) }
                 LibraryTab.Playlists -> PlaylistsTab(s, snackbar) { onNavigate(Playlist(it.id)) }

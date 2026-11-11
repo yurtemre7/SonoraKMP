@@ -151,13 +151,13 @@ fun SonoraAppShell(
             predictivePopTransitionSpec = { predictivePop() },
             entryProvider = entryProvider {
                 entry<Library> { HomeRoute(it.tab, navigate) }
-                entry<Album> { AlbumRoute(it.name, it.artist, goBack) }
-                entry<Artist> { ArtistRoute(it.name, goBack) }
-                entry<Playlist> { PlaylistRoute(it.id, goBack) }
-                entry<Favorites> { FavoritesRoute(goBack) }
-                entry<RecentlyPlayed> { RecentlyPlayedRoute(goBack) }
-                entry<Stats> { StatsRoute(goBack) }
-                entry<Settings> { SettingsRoute(goBack) }
+                entry<Album> { AlbumRoute(it.name, it.artist, goBack, navigate) }
+                entry<Artist> { ArtistRoute(it.name, goBack, onOpenAlbum = { n, a -> navigate(Album(n, a)) }, onNavigate = navigate) }
+                entry<Playlist> { PlaylistRoute(it.id, goBack, onNavigate = navigate) }
+                entry<Favorites> { FavoritesRoute(goBack, navigate) }
+                entry<RecentlyPlayed> { RecentlyPlayedRoute(goBack, navigate) }
+                entry<Stats> { StatsRoute(goBack, navigate) }
+                entry<Settings> { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) }
                 entry<SettingsAppearance> { SettingsAppearanceRoute(goBack) }
                 entry<SettingsFormatting> { SettingsFormattingRoute(goBack) }
                 entry<SettingsPlayback> { SettingsPlaybackRoute(goBack) }
@@ -232,6 +232,8 @@ fun SonoraAppShell(
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
         }
         NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
+        // Automatic launch update check + update sheet (UPD-05); placed once.
+        de.yurtemre.sonora.update.UpdatePromptHost()
     } }
 }
 

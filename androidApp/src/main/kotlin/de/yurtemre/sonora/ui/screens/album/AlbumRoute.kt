@@ -1,5 +1,11 @@
 package de.yurtemre.sonora.ui.screens.album
 
+import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.navigation.albumKeyOf
+import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
+import de.yurtemre.sonora.ui.sheets.SongActionsHost
+import de.yurtemre.sonora.ui.sheets.PlaylistSelectorSheetHost
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,7 +51,8 @@ import org.koin.compose.koinInject
 
 /** Album detail (UI-23): Spine header, play/shuffle, favourite, tracks by disc, menus, multi-select. */
 @Composable
-fun AlbumRoute(name: String, artist: String, onBack: () -> Unit) {
+fun AlbumRoute(name: String, artist: String, onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
+    val actions = rememberSongActionsState()
     val library = koinInject<LibraryRepository>()
     val favorites = koinInject<FavoritesRepository>()
     val playback = koinInject<PlaybackConnection>()
@@ -126,6 +133,7 @@ fun AlbumRoute(name: String, artist: String, onBack: () -> Unit) {
                                 onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
                                 onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
                                 onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
+                                onMore = { actions.show(song) },
                             )
                         }
                     }
@@ -133,13 +141,19 @@ fun AlbumRoute(name: String, artist: String, onBack: () -> Unit) {
             }
         }
     }
+    SongActionsHost(
+        state = actions,
+        snackbarHostState = snackbar,
+        onGoToAlbum = { onNavigate(albumKeyOf(it)) },
+        onGoToArtist = { onNavigate(artistKeyOf(it)) },
+    )
     LaunchedEffect(tracks) {
         val ids = tracks.mapTo(HashSet()) { it.id }
         selection.selected.filter { it !in ids }.forEach(selection::toggle)
     }
 }
 
-/** Multi-select bar shared by album and artist detail. Add to playlist waits for the P5-10 selector. */
+/** Multi-select bar shared by album and artist detail; Add to playlist opens the playlist selector. */
 @Composable
 internal fun DetailSelectionBar(selection: SelectionState, songs: List<Song>, snackbar: SnackbarHostState) {
     val playback = koinInject<PlaybackConnection>()
@@ -147,13 +161,21 @@ internal fun DetailSelectionBar(selection: SelectionState, songs: List<Song>, sn
     val scope = rememberCoroutineScope()
     val byId = remember(songs) { songs.associateBy { it.id } }
     fun pick(ids: Set<Long>) = songs.filter { it.id in ids }
+    var addToPlaylistIds by remember { mutableStateOf<List<Long>?>(null) }
+    addToPlaylistIds?.let { ids ->
+        PlaylistSelectorSheetHost(
+            songIds = ids,
+            onDismiss = { addToPlaylistIds = null; selection.clear() },
+            onMessage = { msg -> scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(msg) } },
+        )
+    }
     MultiSelectActionBar(
         selection = selection,
         allIds = { songs.map { it.id } },
         snackbarHostState = snackbar,
         onPlayNext = { playback.playNext(pick(it)) },
         onAddToQueue = { playback.addToQueue(pick(it)) },
-        onAddToPlaylist = {},
+        onAddToPlaylist = { addToPlaylistIds = it.toList() },
         allFavorite = selection.selected.isNotEmpty() && selection.selected.all { byId[it]?.isFavorite == true },
         onFavoriteToggle = { ids, fav -> scope.launch { favorites.setSongsFavorite(pick(ids).associate { it.id to it.filePath }, fav) } },
         shareItems = { ids -> pick(ids).map { ShareHelper.Item(it.filePath, it.id, it.format?.let { f -> "audio/$f" }) } },

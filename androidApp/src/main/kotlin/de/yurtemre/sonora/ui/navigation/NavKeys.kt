@@ -29,3 +29,11 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 @Serializable data object Changelog : NavKey
 @Serializable data object Licenses : NavKey
 @Serializable data object DebugCaches : NavKey
+
+/** Album key for [song], matching what `AlbumGrouper.find` resolves (album artist, else first parsed artist). */
+fun albumKeyOf(song: de.yurtemre.sonora.shared.model.Song): Album =
+    Album(song.album, de.yurtemre.sonora.shared.library.AlbumGrouper.albumArtistOf(song))
+
+/** Artist key for [song]: its primary parsed artist, as `ArtistGrouper.find` expects. */
+fun artistKeyOf(song: de.yurtemre.sonora.shared.model.Song): Artist =
+    Artist(de.yurtemre.sonora.shared.library.ArtistParser.parse(song.artist).first())

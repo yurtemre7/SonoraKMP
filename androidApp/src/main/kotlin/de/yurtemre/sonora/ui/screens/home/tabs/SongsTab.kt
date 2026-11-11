@@ -59,12 +59,26 @@ import de.yurtemre.sonora.ui.screens.home.HomeTabReselect
 import de.yurtemre.sonora.ui.screens.home.HomeTabState
 import de.yurtemre.sonora.ui.screens.home.HomeViewModel
 import kotlinx.coroutines.launch
+import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.ui.navigation.albumKeyOf
+import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.sheets.PlaylistSelectorSheetHost
+import de.yurtemre.sonora.ui.sheets.SongActionsHost
+import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
 import org.koin.compose.koinInject
 
 /** Songs tab (UI-08) with the sync banner (UI-12). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongsTab(state: HomeTabState, vm: HomeViewModel, isSyncing: Boolean, snackbar: SnackbarHostState) {
+fun SongsTab(
+    state: HomeTabState,
+    vm: HomeViewModel,
+    isSyncing: Boolean,
+    snackbar: SnackbarHostState,
+    onNavigate: (NavKey) -> Unit = {},
+) {
+    val actions = rememberSongActionsState()
+    var addToPlaylistIds by remember { mutableStateOf<List<Long>?>(null) }
     val playback = koinInject<PlaybackConnection>()
     val favorites = koinInject<FavoritesRepository>()
     val player by playback.player.collectAsStateWithLifecycle()
@@ -145,6 +159,7 @@ fun SongsTab(state: HomeTabState, vm: HomeViewModel, isSyncing: Boolean, snackba
                                 onPlayNext = { playback.playNext(listOf(song)); snack(res.getString(R.string.songs_snack_play_next)) },
                                 onAddToQueue = { playback.addToQueue(listOf(song)); snack(res.getString(R.string.songs_snack_queued)) },
                                 onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
+                                onMore = { actions.show(song) },
                             )
                         }
                     }
@@ -162,13 +177,25 @@ fun SongsTab(state: HomeTabState, vm: HomeViewModel, isSyncing: Boolean, snackba
             snackbarHostState = snackbar,
             onPlayNext = { playback.playNext(pick(it)) },
             onAddToQueue = { playback.addToQueue(pick(it)) },
-            // Add to playlist arrives with P5.2; the bar has no flag to hide it yet.
-            onAddToPlaylist = {},
+            onAddToPlaylist = { addToPlaylistIds = it.toList() },
             allFavorite = selection.selected.isNotEmpty() && selection.selected.all { byId[it]?.isFavorite == true },
             onFavoriteToggle = { ids, fav ->
                 scope.launch { favorites.setSongsFavorite(pick(ids).associate { it.id to it.filePath }, fav) }
             },
             shareItems = { ids -> pick(ids).map { ShareHelper.Item(it.filePath, it.id, it.format?.let { f -> "audio/$f" }) } },
+        )
+    }
+    SongActionsHost(
+        state = actions,
+        snackbarHostState = snackbar,
+        onGoToAlbum = { onNavigate(albumKeyOf(it)) },
+        onGoToArtist = { onNavigate(artistKeyOf(it)) },
+    )
+    addToPlaylistIds?.let { ids ->
+        PlaylistSelectorSheetHost(
+            songIds = ids,
+            onDismiss = { addToPlaylistIds = null; selection.clear() },
+            onMessage = { snack(it) },
         )
     }
 }
@@ -184,8 +211,8 @@ private fun SongItem(
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onFavorite: () -> Unit,
+    onMore: () -> Unit,
 ) {
-    var menu by remember { mutableStateOf(false) }
     val playNext = stringResource(R.string.songs_play_next)
     val addQueue = stringResource(R.string.songs_add_to_queue)
     val fav = stringResource(if (song.isFavorite) R.string.songs_unfavorite else R.string.songs_favorite)
@@ -200,18 +227,13 @@ private fun SongItem(
             isPlaying = isPlaying,
             selected = selected,
             onLongClick = onLongClick,
-            onMoreClick = { menu = true },
+            onMoreClick = onMore,
             accessibilityActions = listOf(
                 SongRowAction(playNext, onPlayNext),
                 SongRowAction(addQueue, onAddToQueue),
                 SongRowAction(fav, onFavorite),
             ),
         )
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.align(Alignment.TopEnd)) {
-            DropdownMenuItem(text = { Text(playNext) }, onClick = { menu = false; onPlayNext() })
-            DropdownMenuItem(text = { Text(addQueue) }, onClick = { menu = false; onAddToQueue() })
-            DropdownMenuItem(text = { Text(fav) }, onClick = { menu = false; onFavorite() })
-        }
     }
 }
 

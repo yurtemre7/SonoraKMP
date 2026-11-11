@@ -1,5 +1,10 @@
 package de.yurtemre.sonora.ui.screens.favorites
 
+import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.navigation.albumKeyOf
+import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
+import de.yurtemre.sonora.ui.sheets.SongActionsHost
+import de.yurtemre.sonora.ui.sheets.PlaylistSelectorSheetHost
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -104,6 +109,8 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
+    val actions = rememberSongActionsState()
+    var addToPlaylistIds by remember { mutableStateOf<List<Long>?>(null) }
     val playback: PlaybackConnection = koinInject()
     val library: LibraryRepository = koinInject()
     val favorites: FavoritesRepository = koinInject()
@@ -158,7 +165,7 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                     snackbarHostState = snackbar,
                     onPlayNext = { playback.playNext(pick(it)) },
                     onAddToQueue = { playback.addToQueue(pick(it)) },
-                    onAddToPlaylist = {},
+                    onAddToPlaylist = { addToPlaylistIds = it.toList() },
                     allFavorite = true,
                     onFavoriteToggle = { ids, fav -> vm.favoriteBulk(pick(ids), fav) },
                     shareItems = { ids -> pick(ids).map { ShareHelper.Item(it.filePath, it.id, it.format?.let { f -> "audio/$f" }) } },
@@ -247,6 +254,7 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 selection.onLongPress(song.id)
                             },
                             onRemove = { removeWithUndo(FavoritesViewModel.songKey(song.id), song.title, song) },
+                            onMore = { actions.show(song) },
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -255,6 +263,19 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
         }
     }
 
+    SongActionsHost(
+        state = actions,
+        snackbarHostState = snackbar,
+        onGoToAlbum = { onNavigate(albumKeyOf(it)) },
+        onGoToArtist = { onNavigate(artistKeyOf(it)) },
+    )
+    addToPlaylistIds?.let { ids ->
+        PlaylistSelectorSheetHost(
+            songIds = ids,
+            onDismiss = { addToPlaylistIds = null; selection.clear() },
+            onMessage = { msg -> scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(msg) } },
+        )
+    }
     if (showSort) FavSortSheet(
         sort = ui.sort,
         ascending = ui.ascending,
@@ -272,6 +293,7 @@ private fun SwipeSongRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onRemove: () -> Unit,
+    onMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state = rememberSwipeToDismissBoxState()
@@ -299,6 +321,7 @@ private fun SwipeSongRow(
             showArtwork = true,
             isPlaying = isPlaying,
             selected = selected,
+            onMoreClick = onMore,
             accessibilityActions = listOf(SongRowAction(removeLabel, onRemove)),
             modifier = Modifier.background(MaterialTheme.colorScheme.surface),
         )

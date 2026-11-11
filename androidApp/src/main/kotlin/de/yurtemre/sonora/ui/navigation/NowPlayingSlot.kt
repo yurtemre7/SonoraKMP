@@ -127,8 +127,8 @@ fun NowPlayingSlot(
     val collapse = { state.expanded = false }
     NowPlayingOverlay(
         onCollapse = collapse,
-        onOpenAlbum = { collapse(); onNavigate(Album(it.album, it.albumArtist ?: it.artist)) },
-        onOpenArtist = { collapse(); onNavigate(Artist(it.artist)) },
+        onOpenAlbum = { collapse(); onNavigate(albumKeyOf(it)) },
+        onOpenArtist = { collapse(); onNavigate(artistKeyOf(it)) },
         snackbarHostState = snackbarHostState,
         dragModifier = Modifier.nowPlayingDrag(state),
         modifier = modifier
