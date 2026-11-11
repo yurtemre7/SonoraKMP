@@ -143,7 +143,7 @@ abstract class BundleDocsAssetsTask : DefaultTask() {
         val out = outputDir.get().asFile
         out.deleteRecursively()
         out.mkdirs()
-        docs.files.filter { it.isFile }.forEach { it.copyTo(java.io.File(out, it.name), overwrite = true) }
+        docs.files.filter { it.isFile }.forEach { it.copyTo(out.resolve(it.name), overwrite = true) }
     }
 }
 
