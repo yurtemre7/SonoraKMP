@@ -1,6 +1,6 @@
 package de.yurtemre.sonora.ui.screens.settings
 
-import android.text.format.DateUtils
+import de.yurtemre.sonora.ui.format.relativeTimeText
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,9 +72,7 @@ fun LibrarySyncCard(
                     )
                 }
             }
-            val last = lastSyncMs?.let {
-                DateUtils.getRelativeTimeSpanString(it, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
-            } ?: stringResource(R.string.never_synced)
+            val last = lastSyncMs?.let { relativeTimeText(it) } ?: stringResource(R.string.never_synced)
             Text(
                 stringResource(R.string.settings_library_last_sync, last),
                 style = MaterialTheme.typography.bodyMedium,

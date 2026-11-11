@@ -38,15 +38,14 @@ object DurationFormat {
 
     fun clockMs(ms: Long): String = clock(ms / 1000)
 
-    /** audit/data §10.2: d if >0, h if h%24>0, m if m%60>0 or (d==0&&h==0), always s. */
+    /** d if > 0, h if h%24 > 0, minutes always (FIX D-60: never "1h 5s"), always s. */
     fun totalParts(totalSeconds: Long): DurationParts {
         val s = totalSeconds.coerceAtLeast(0)
         val d = s / 86400; val h = (s / 3600) % 24; val m = (s / 60) % 60
-        val totalH = s / 3600
         return DurationParts(
             days = d.takeIf { it > 0 },
             hours = h.takeIf { it > 0 },
-            minutes = m.takeIf { it > 0 || (d == 0L && totalH == 0L) },
+            minutes = m,
             seconds = s % 60,
         )
     }

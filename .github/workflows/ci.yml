@@ -38,6 +38,9 @@ jobs:
       - name: Product name check
         run: ./scripts/check_product_name.sh
 
+      - name: Hardcoded string check
+        run: ./scripts/check_hardcoded_strings.sh
+
       - name: Lint, unit tests, debug build
         run: ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
 

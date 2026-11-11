@@ -26,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.BuildConfig
 import de.yurtemre.sonora.R
+import de.yurtemre.sonora.ui.format.DateFormats
+import de.yurtemre.sonora.ui.format.currentLocale
 import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
@@ -110,7 +112,7 @@ fun DebugCachesRoute(onBack: () -> Unit) {
             }
             item { Header(R.string.debug_section_sync) }
             item { Row(R.string.debug_last_sync_duration, s.settings.lastSyncDurationMs?.let { stringResource(R.string.debug_ms, it) } ?: "—") }
-            item { Row(R.string.debug_last_sync_at, s.settings.lastSyncTimestampMs?.let { java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it)) } ?: "—") }
+            item { Row(R.string.debug_last_sync_at, s.settings.lastSyncTimestampMs?.let { DateFormats.dateTime(java.time.Instant.ofEpochMilli(it), currentLocale()) } ?: "—") }
             item { Header(R.string.debug_section_settings) }
             items(settingLines, key = { it }) { line ->
                 SelectionContainer {
