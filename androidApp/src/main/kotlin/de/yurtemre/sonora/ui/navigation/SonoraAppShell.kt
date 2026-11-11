@@ -52,6 +52,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import de.yurtemre.sonora.ui.screens.nowplaying.NowPlayingTwoPane
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -148,9 +150,9 @@ fun SonoraAppShell(
         backStack.switchTab(defaultTab)
     }
 
-    val display: @Composable (Modifier) -> Unit = { modifier ->
+    val display: @Composable (Modifier, List<NavKey>) -> Unit = { modifier, stack ->
         NavDisplay(
-            backStack = backStack,
+            backStack = stack,
             modifier = modifier,
             onBack = goBack,
             entryDecorators = listOf(
@@ -168,21 +170,26 @@ fun SonoraAppShell(
                 entry<Favorites> { FavoritesRoute(goBack, navigate) }
                 entry<RecentlyPlayed> { RecentlyPlayedRoute(goBack, navigate) }
                 entry<Stats> { StatsRoute(goBack, navigate) }
-                entry<Settings> { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) }
-                entry<SettingsAppearance> { SettingsAppearanceRoute(goBack) }
-                entry<SettingsFormatting> { SettingsFormattingRoute(goBack) }
-                entry<SettingsPlayback> { SettingsPlaybackRoute(goBack) }
-                entry<SettingsPrivacy> { SettingsPrivacyRoute(goBack) }
-                entry<SettingsBackup> { SettingsBackupRoute(goBack) }
-                entry<SettingsInfo> { SettingsInfoRoute(goBack, navigate) }
-                entry<Changelog> { ChangelogRoute(goBack) }
-                entry<Licenses> { LicensesRoute(goBack) }
+                entry<Settings> { TextWidth { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) } }
+                entry<SettingsAppearance> { TextWidth { SettingsAppearanceRoute(goBack) } }
+                entry<SettingsFormatting> { TextWidth { SettingsFormattingRoute(goBack) } }
+                entry<SettingsPlayback> { TextWidth { SettingsPlaybackRoute(goBack) } }
+                entry<SettingsPrivacy> { TextWidth { SettingsPrivacyRoute(goBack) } }
+                entry<SettingsBackup> { TextWidth { SettingsBackupRoute(goBack) } }
+                entry<SettingsInfo> { TextWidth { SettingsInfoRoute(goBack, navigate) } }
+                entry<Changelog> { TextWidth { ChangelogRoute(goBack) } }
+                entry<Licenses> { TextWidth { LicensesRoute(goBack) } }
                 entry<DebugCaches> { DebugCachesRoute(goBack) }
             },
         )
     }
 
+    val overlayMode = widthSizeClass != WindowWidthSizeClass.Expanded
+    // Expanded widths show Now Playing as a pane; back collapses it there (the overlay's own handler is not composed).
+    BackHandler(enabled = !overlayMode && nowPlaying.expanded) { nowPlaying.expanded = false }
     CompositionLocalProvider(LocalNowPlayingController provides controller) { Box(Modifier.fillMaxSize()) {
+        // While the overlay covers the shell, TalkBack must not reach the content behind it (P6-03).
+        Box(Modifier.fillMaxSize().then(if (overlayMode && nowPlaying.expanded) Modifier.clearAndSetSemantics {} else Modifier)) {
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> Scaffold(
                 snackbarHost = { SnackbarHost(snackbar) },
@@ -200,7 +207,7 @@ fun SonoraAppShell(
                         }
                     }
                 } },
-            ) { padding -> display(Modifier.fillMaxSize().padAndConsume(PaddingValues(bottom = padding.calculateBottomPadding()))) }
+            ) { padding -> display(Modifier.fillMaxSize().padAndConsume(PaddingValues(bottom = padding.calculateBottomPadding())), backStack) }
 
             WindowWidthSizeClass.Medium -> Row(Modifier.fillMaxSize()) {
                 NavigationRail(
@@ -217,7 +224,7 @@ fun SonoraAppShell(
                         )
                     }
                 }
-                RailContent(hasMini = player.currentSong != null, display = display, mini = mini)
+                RailContent(hasMini = player.currentSong != null, display = { display(it, backStack) }, mini = mini)
             }
 
             else -> Row(Modifier.fillMaxSize()) {
@@ -237,7 +244,23 @@ fun SonoraAppShell(
                         )
                     }
                 }
-                RailContent(hasMini = player.currentSong != null, display = display, mini = mini)
+                ListDetail(
+                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, navigate) } }, mini = mini, modifier = m) },
+                    detail = when {
+                        nowPlaying.expanded && player.currentSong != null -> { m ->
+                            NowPlayingTwoPane(
+                                onCollapse = { nowPlaying.expanded = false },
+                                onOpenAlbum = { nowPlaying.expanded = false; navigate(albumKeyOf(it)) },
+                                onOpenArtist = { nowPlaying.expanded = false; navigate(artistKeyOf(it)) },
+                                snackbarHostState = snackbar,
+                                modifier = m.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.End)),
+                            )
+                        }
+                        backStack.size > 1 -> { m -> display(m, backStack.drop(1)) }
+                        else -> null
+                    },
+                    spineDivider = nowPlaying.expanded && player.currentSong != null,
+                )
             }
         }
         if (widthSizeClass != WindowWidthSizeClass.Compact) {
@@ -247,7 +270,8 @@ fun SonoraAppShell(
                     .padding(bottom = if (player.currentSong != null) 72.dp else 0.dp),
             )
         }
-        NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
+        }
+        if (overlayMode) NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
     } }
@@ -259,9 +283,13 @@ fun SonoraAppShell(
  * navigation bar itself and, when shown, consumes the bottom inset so screens above it don't pad for it twice.
  */
 @Composable
-private fun RowScope.RailContent(hasMini: Boolean, display: @Composable (Modifier) -> Unit, mini: @Composable () -> Unit) {
+private fun RowScope.RailContent(hasMini: Boolean, display: @Composable (Modifier) -> Unit, mini: @Composable () -> Unit) =
+    RailContent(hasMini, display, mini, Modifier.weight(1f))
+
+@Composable
+private fun RailContent(hasMini: Boolean, display: @Composable (Modifier) -> Unit, mini: @Composable () -> Unit, modifier: Modifier) {
     val navBottom = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
-    Column(Modifier.weight(1f).consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))) {
+    Column(modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))) {
         display(Modifier.weight(1f).then(if (hasMini) Modifier.consumeWindowInsets(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) else Modifier))
         if (hasMini) Box(Modifier.windowInsetsPadding(navBottom)) { mini() }
     }
