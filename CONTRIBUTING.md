@@ -139,3 +139,13 @@ Release builds need these repository secrets:
 
 Locally, put the same values in an untracked `keystore.properties` (`storeFile`, `storePassword`,
 `keyAlias`, `keyPassword`); without it release builds fall back to debug signing.
+
+## CI caching
+
+Gradle state is cached with `gradle/actions/setup-gradle`. Only CI runs on `main` write the
+cache; pull requests, nightlies and releases restore it read-only, so every branch starts from
+`main`'s warm cache. The **Cache cleanup** workflow (`.github/workflows/cache-cleanup.yml`, logic
+in `scripts/prune_caches.sh`) runs after each CI run on `main`, daily, and when a PR closes. It
+keeps only the newest entry of each cache family, removes older cache versions and closed-PR
+caches, and drops anything idle for 3 days. Preview it locally with
+`scripts/prune_caches.sh --dry-run`.

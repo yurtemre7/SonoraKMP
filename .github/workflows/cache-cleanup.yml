@@ -1,0 +1,57 @@
+name: Cache cleanup
+
+# Keeps the Actions cache small so restores stay fast and GitHub never evicts
+# the entries CI actually needs. See scripts/prune_caches.sh for the rules.
+on:
+  # Right after CI on main saved fresh caches: drop the ones they replace.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Closed PRs: their caches can never be restored again.
+  pull_request_target:
+    types: [closed]
+  # Safety net for idle entries.
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only list what would be deleted."
+        type: boolean
+        default: false
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: cache-cleanup
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune caches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Checks out the default branch only (the script, never PR code).
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: scripts/prune_caches.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Prune
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          args=()
+          [[ "$DRY_RUN" == "true" ]] && args+=(--dry-run)
+          [[ "$EVENT" == "pull_request_target" ]] && args+=(--pr "$PR_NUMBER")
+          bash scripts/prune_caches.sh "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
