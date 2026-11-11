@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="info2_changelog_missing">このビルドには変更履歴が含まれていません。</string>
+    <string name="info2_licenses_fonts">フォント</string>
+    <string name="info2_licenses_libraries">ライブラリ</string>
+    <string name="info2_font_name">Bricolage Grotesque</string>
+    <string name="info2_font_license">SIL Open Font License 1.1</string>
+    <string name="info2_licenses_loading">ライセンスを読み込んでいます…</string>
+    <string name="info2_close">閉じる</string>
+    <string name="info2_debug_environment">環境</string>
+    <string name="info2_debug_library">ライブラリ</string>
+    <string name="info2_debug_sync">同期</string>
+    <string name="info2_debug_artwork">アートワークのキャッシュ</string>
+    <string name="info2_debug_settings">設定</string>
+    <string name="info2_debug_songs">曲</string>
+    <string name="info2_debug_version">バージョン</string>
+    <string name="info2_debug_package">パッケージ</string>
+    <string name="info2_debug_device">端末</string>
+    <string name="info2_debug_android">Android</string>
+    <string name="info2_debug_songs_count">曲数</string>
+    <string name="info2_debug_albums_count">アルバム数</string>
+    <string name="info2_debug_artists_count">アーティスト数</string>
+    <string name="info2_debug_playlists_count">プレイリスト数</string>
+    <string name="info2_debug_favorites_count">お気に入りの曲</string>
+    <string name="info2_debug_artist_images">アーティスト画像</string>
+    <string name="info2_debug_with_artwork">アートワークのある曲</string>
+    <string name="info2_debug_files">ファイル数</string>
+    <string name="info2_debug_size">サイズ</string>
+    <string name="info2_debug_folder">フォルダ</string>
+    <string name="info2_debug_last_sync">最終同期</string>
+    <string name="info2_debug_last_sync_duration">最終同期の所要時間</string>
+    <string name="info2_debug_syncing">同期中</string>
+    <string name="info2_debug_none">なし</string>
+    <string name="info2_debug_yes">はい</string>
+    <string name="info2_debug_no">いいえ</string>
+    <string name="info2_debug_songs_more">ほか %1$d 曲</string>
+    <string name="info2_debug_read_only">読み取り専用です。下に引くか更新をタップすると再読み込みします。</string>
+</resources>

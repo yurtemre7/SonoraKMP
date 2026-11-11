@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lyrics_empty_title">歌詞がありません</string>
+    <string name="lyrics_empty_subtitle">曲と同じ名前の .lrc または .txt ファイルを同じフォルダに置いてください。</string>
+    <string name="lyrics_line_seek">この行に移動</string>
+    <string name="related_from_album">このアルバムから</string>
+    <string name="related_more_by_artist">このアーティストの他の曲</string>
+    <string name="related_open_album">アルバムを開く</string>
+    <string name="related_open_artist">アーティストを開く</string>
+    <string name="related_empty">関連する曲がライブラリにありません</string>
+</resources>

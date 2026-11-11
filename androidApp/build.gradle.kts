@@ -129,6 +129,35 @@ kotlin {
     }
 }
 
+/** P8-04: bundles CHANGELOG.md and the OFL font licence as generated assets (UI-36/37). Configuration-cache safe. */
+abstract class BundleDocsAssetsTask : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val docs: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = outputDir.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        docs.files.filter { it.isFile }.forEach { it.copyTo(java.io.File(out, it.name), overwrite = true) }
+    }
+}
+
+val bundleDocsAssets = tasks.register<BundleDocsAssetsTask>("bundleDocsAssets") {
+    docs.from(rootProject.layout.projectDirectory.file("CHANGELOG.md"))
+    docs.from(rootProject.layout.projectDirectory.file("docs/licenses/OFL-BricolageGrotesque.txt"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(bundleDocsAssets, BundleDocsAssetsTask::outputDir)
+    }
+}
+
 dependencies {
     implementation(project(":shared"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)

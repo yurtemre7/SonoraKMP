@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_sheet_title">アップデートがあります</string>
+    <string name="update_sheet_version">バージョン %1$s</string>
+    <string name="update_sheet_current">現在のバージョン：%1$s</string>
+    <string name="update_sheet_no_notes">このバージョンのリリースノートはありません。</string>
+    <string name="update_action_later">あとで</string>
+    <string name="update_action_download">ダウンロードしてインストール</string>
+    <string name="update_action_browser">ブラウザで開く</string>
+    <string name="update_action_retry">再試行</string>
+    <string name="update_action_check">今すぐ確認</string>
+    <string name="update_state_idle">GitHub で新しいリリースを確認します</string>
+    <string name="update_state_checking">アップデートを確認しています…</string>
+    <string name="update_state_up_to_date">最新バージョンを使用しています</string>
+    <string name="update_state_available">バージョン %1$s が利用できます</string>
+    <string name="update_state_last_checked">最終確認：%1$s</string>
+    <string name="update_error_no_network">ネットワークに接続されていません</string>
+    <string name="update_error_rate_limited">GitHub のリクエスト上限に達しました。%1$s 以降にもう一度お試しください。</string>
+    <string name="update_error_server">GitHub がエラーを返しました（%1$d）</string>
+    <string name="update_error_no_asset">このリリースにはまだインストールできる APK がありません</string>
+    <string name="update_error_malformed">リリース情報を読み取れませんでした</string>
+    <string name="update_error_unknown">アップデートの確認に失敗しました</string>
+    <string name="update_rate_limit_title">リクエスト上限に達しました</string>
+    <string name="update_rate_limit_message">GitHub では匿名のリクエスト数が 1 時間ごとに制限されています。%1$s 以降に再確認するか、今すぐリリースページを開いてください。</string>
+    <string name="update_download_pending">アプリ内でのダウンロードは近日対応予定です。代わりにリリースページを開きます。</string>
+    <string name="update_channel_title">アップデートチャンネル</string>
+    <string name="update_channel_stable">安定版</string>
+    <string name="update_channel_stable_desc">テスト済みのリリースのみ</string>
+    <string name="update_channel_prerelease">プレリリース</string>
+    <string name="update_channel_prerelease_desc">正式リリース前のベータ版やリリース候補</string>
+    <string name="update_channel_nightly">ナイトリー</string>
+    <string name="update_channel_nightly_desc">最新コードから毎日ビルドされる版</string>
+    <string name="update_channel_nightly_warning">ナイトリー版は未テストのため、不具合やデータ消失が起こる可能性があります。バックアップをお忘れなく。</string>
+    <string name="update_cd_warning">警告</string>
+</resources>

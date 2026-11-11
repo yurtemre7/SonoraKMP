@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lyrics_empty_title">No lyrics</string>
+    <string name="lyrics_empty_subtitle">Put a .lrc or .txt file with the same name next to the song.</string>
+    <string name="lyrics_line_seek">Seek to this line</string>
+    <string name="related_from_album">From this album</string>
+    <string name="related_more_by_artist">More by this artist</string>
+    <string name="related_open_album">Open album</string>
+    <string name="related_open_artist">Open artist</string>
+    <string name="related_empty">Nothing related in your library</string>
+</resources>

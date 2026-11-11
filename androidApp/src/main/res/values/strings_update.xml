@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_sheet_title">Update available</string>
+    <string name="update_sheet_version">Version %1$s</string>
+    <string name="update_sheet_current">You have %1$s</string>
+    <string name="update_sheet_no_notes">No release notes for this version.</string>
+    <string name="update_action_later">Later</string>
+    <string name="update_action_download">Download and install</string>
+    <string name="update_action_browser">Open in browser</string>
+    <string name="update_action_retry">Try again</string>
+    <string name="update_action_check">Check now</string>
+    <string name="update_state_idle">Check GitHub for a new release</string>
+    <string name="update_state_checking">Checking for updates…</string>
+    <string name="update_state_up_to_date">You\'re on the latest version</string>
+    <string name="update_state_available">Version %1$s is available</string>
+    <string name="update_state_last_checked">Last checked %1$s</string>
+    <string name="update_error_no_network">No network connection</string>
+    <string name="update_error_rate_limited">GitHub rate limit reached. Try again after %1$s.</string>
+    <string name="update_error_server">GitHub returned an error (%1$d)</string>
+    <string name="update_error_no_asset">This release has no installable APK yet</string>
+    <string name="update_error_malformed">Couldn\'t read the release information</string>
+    <string name="update_error_unknown">Update check failed</string>
+    <string name="update_rate_limit_title">Rate limit reached</string>
+    <string name="update_rate_limit_message">GitHub allows a limited number of anonymous requests per hour. You can check again after %1$s, or open the releases page now.</string>
+    <string name="update_download_pending">Downloading updates in the app is coming soon. Opening the release page instead.</string>
+    <string name="update_channel_title">Update channel</string>
+    <string name="update_channel_stable">Stable</string>
+    <string name="update_channel_stable_desc">Tested releases only</string>
+    <string name="update_channel_prerelease">Pre-release</string>
+    <string name="update_channel_prerelease_desc">Betas and release candidates before they ship</string>
+    <string name="update_channel_nightly">Nightly</string>
+    <string name="update_channel_nightly_desc">A fresh build of the latest code every day</string>
+    <string name="update_channel_nightly_warning">Nightly builds are untested and may break or lose data. Keep a backup.</string>
+    <string name="update_cd_warning">Warning</string>
+</resources>
