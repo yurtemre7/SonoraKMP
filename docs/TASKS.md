@@ -100,6 +100,9 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 **P4c**
 - [x] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
 
+## Progress log
+- 2026-11-11: P1–P5 and P7 done, P6 done except follow-ups P6-07 (EN sentence case), P6-08 (tablet NP spacing), P6-09 (exact MP3 durations, in progress). Library tabs now share one fixed header (single Library destination). Open: P5-23 (maintainer phone check of scan speed), P9-04/05 (site QA, screenshots), P10 (test trim, Room migrations, final verification).
+
 ## P5 UI screens; each task also owns its `AR/values*/strings_<task>.xml`
 
 ### P5.1 Usable app (first installable build)
@@ -161,6 +164,8 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 
 - [ ] **P6-07** English sentence case for generated strings — owns: `scripts/strings/**`, `AR/values/strings.xml` — done when: the generator supports English overrides and the ~430 Title Case strings carried over from Flutter read in sentence case (DESIGN §2).
 - [ ] **P6-08** Tall-pane Now Playing spacing — owns: `A/ui/screens/nowplaying/PlayerView.kt` — done when: on expanded panes the cover block sits closer to the controls (spacers weighted to the top) instead of floating mid-pane.
+
+- [ ] **P6-09** Exact MP3 durations — owns: `S/audio/Mp3Duration.kt`, library enrich pass — done when: VBR MP3s without a Xing header show their real length (fixture: 180 s file reported as 0:29 by MediaStore and ExoPlayer), measured by frame counting in the background enrich pass and stored per (path, size, mtime). Work in progress on branch `wip/mp3-duration` (2026-11-11). Already shipped on main: same time base at any speed, total = max(player, library, position), MP3 index seeking (D-67).
 
 ## P7 Auto-update installer end-to-end
 
