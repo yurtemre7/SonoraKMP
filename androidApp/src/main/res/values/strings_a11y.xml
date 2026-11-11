@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_just_now">just now</string>
+    <plurals name="a11y_minutes_ago">
+        <item quantity="one">%d minute ago</item>
+        <item quantity="other">%d minutes ago</item>
+    </plurals>
+    <plurals name="a11y_hours_ago">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
+    <string name="a11y_state_playing">Playing</string>
+    <string name="a11y_state_paused">Paused</string>
+    <string name="a11y_action_play">Play</string>
+    <string name="a11y_action_pause">Pause</string>
+    <string name="a11y_action_open">Open</string>
+    <string name="a11y_action_next">Next track</string>
+    <string name="a11y_seek_position">%1$s of %2$s</string>
+    <string name="a11y_fast_scroller">Fast scroll</string>
+    <string name="a11y_fast_scroller_state">%1$d%%</string>
+</resources>

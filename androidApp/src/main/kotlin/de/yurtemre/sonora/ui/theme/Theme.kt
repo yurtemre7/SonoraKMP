@@ -45,7 +45,7 @@ data class SleeveExtras(
 
 val LocalSleeveExtras = staticCompositionLocalOf { SleeveExtras() }
 
-/** Placeholder; P6-04 wires this to ANIMATOR_DURATION_SCALE. */
+/** A11Y-06: provided by [SonoraTheme] from the system animation scales. */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
 @Composable
@@ -64,17 +64,19 @@ fun SonoraTheme(
     val pitchBlack = amoled && dark
 
     val scheme = rememberSchemeFor(colorSource, dark, pitchBlack, seedColor)
+    val reduceMotion = rememberReduceMotion()
     val animated = animateColorScheme(
         colorScheme = scheme,
-        animationSpec = { tween(ColorTransitionMillis, easing = EmphasizedEasing) },
+        animationSpec = { if (reduceMotion) androidx.compose.animation.core.snap() else tween(ColorTransitionMillis, easing = EmphasizedEasing) },
     )
 
     CompositionLocalProvider(
         LocalSleeveExtras provides SleeveExtras(isDark = dark, isAmoled = pitchBlack),
+        LocalReduceMotion provides reduceMotion,
     ) {
         MaterialExpressiveTheme(
             colorScheme = animated,
-            motionScheme = MotionScheme.expressive(),
+            motionScheme = if (reduceMotion) ReducedMotionScheme else MotionScheme.expressive(),
             typography = SleeveTypography,
             shapes = SleeveShapes,
             content = content,
@@ -105,7 +107,15 @@ private fun rememberSchemeFor(
         style = PaletteStyle.TonalSpot,
         contrastLevel = Contrast.Default.value,
     )
-    val s = state.colorScheme
+    // A11Y-07: seeds whose TonalSpot scheme misses 4.5:1 fall back to medium contrast.
+    val medium = rememberDynamicMaterialThemeState(
+        seedColor = seed,
+        isDark = dark,
+        isAmoled = amoled,
+        style = PaletteStyle.TonalSpot,
+        contrastLevel = Contrast.Medium.value,
+    )
+    val s = if (ContrastMath.passes(state.colorScheme)) state.colorScheme else medium.colorScheme
     return if (amoled) s.withAmoledSurfaces() else s
 }
 

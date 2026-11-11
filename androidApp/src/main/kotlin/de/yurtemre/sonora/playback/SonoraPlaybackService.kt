@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import de.yurtemre.sonora.ui.format.withAppLocale
 import androidx.annotation.OptIn
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -163,7 +164,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             )
             .build()
         setMediaNotificationProvider(
-            DefaultMediaNotificationProvider.Builder(this)
+            DefaultMediaNotificationProvider.Builder(this.withAppLocale())
                 .setChannelId(CHANNEL_ID)
                 .setChannelName(R.string.playback_channel_name)
                 .build()

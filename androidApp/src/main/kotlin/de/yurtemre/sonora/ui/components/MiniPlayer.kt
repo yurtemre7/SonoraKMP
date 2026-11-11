@@ -2,6 +2,7 @@ package de.yurtemre.sonora.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -104,6 +105,9 @@ fun MiniPlayer(
     val prevLabel = stringResource(R.string.miniplayer_action_previous)
     val closeLabel = stringResource(R.string.miniplayer_action_close)
     val openLabel = stringResource(R.string.miniplayer_open)
+    val playPauseLabel = stringResource(if (state.isPlaying) R.string.a11y_action_pause else R.string.a11y_action_play)
+    val nextLabel = stringResource(R.string.a11y_action_next)
+    val cbToggle by rememberUpdatedState(onTogglePlay)
 
     val horizontal = rememberDraggableState { dx ->
         scope.launch { offsetX.snapTo(offsetX.value + dx) }
@@ -167,6 +171,8 @@ fun MiniPlayer(
             .semantics(mergeDescendants = false) {
                 contentDescription = desc
                 customActions = listOf(
+                    CustomAccessibilityAction(playPauseLabel) { cbToggle(); true },
+                    CustomAccessibilityAction(nextLabel) { if (canNext) { cbNext(); true } else false },
                     CustomAccessibilityAction(prevLabel) { cbPrev(); true },
                     CustomAccessibilityAction(closeLabel) { cbClose(); true },
                 )
@@ -183,6 +189,7 @@ fun MiniPlayer(
                 alpha = 1f - (abs(offsetX.value) / width).coerceIn(0f, 0.6f)
             },
             transitionSpec = {
+                if (reduce) return@AnimatedContent fadeIn(snap()) togetherWith fadeOut(snap())
                 val d = direction
                 (slideInHorizontally(slideSpec) { it / 3 * d } + fadeIn()) togetherWith
                     (slideOutHorizontally(slideSpec) { -it / 3 * d } + fadeOut())

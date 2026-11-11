@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.RemoteViews
 import de.yurtemre.sonora.R
+import de.yurtemre.sonora.ui.format.withAppLocale
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -75,7 +76,8 @@ object WidgetRenderer {
     private fun isLarge(options: Bundle?): Boolean =
         (options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0) >= LARGE_MIN_HEIGHT_DP
 
-    private fun buildViews(context: Context, state: WidgetState, large: Boolean, art: Bitmap?): RemoteViews {
+    private fun buildViews(baseContext: Context, state: WidgetState, large: Boolean, art: Bitmap?): RemoteViews {
+        val context = baseContext.withAppLocale()
         val layout = if (large) R.layout.widget_now_playing_large else R.layout.widget_now_playing
         val views = RemoteViews(context.packageName, layout)
         val openApp = WidgetActions.openApp(context)

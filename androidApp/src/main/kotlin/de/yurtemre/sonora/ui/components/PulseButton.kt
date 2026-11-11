@@ -33,6 +33,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -86,9 +88,11 @@ fun PulseButton(
             else -> R.string.miniplayer_play
         },
     )
+    val stateDesc = stringResource(if (isPlaying) R.string.a11y_state_playing else R.string.a11y_state_paused)
     Box(
         modifier
             .size(s)
+            .semantics { stateDescription = stateDesc }
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value

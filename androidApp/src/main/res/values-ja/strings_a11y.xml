@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_just_now">たった今</string>
+    <plurals name="a11y_minutes_ago">
+        <item quantity="other">%d分前</item>
+    </plurals>
+    <plurals name="a11y_hours_ago">
+        <item quantity="other">%d時間前</item>
+    </plurals>
+    <string name="a11y_state_playing">再生中</string>
+    <string name="a11y_state_paused">一時停止中</string>
+    <string name="a11y_action_play">再生</string>
+    <string name="a11y_action_pause">一時停止</string>
+    <string name="a11y_action_open">開く</string>
+    <string name="a11y_action_next">次の曲</string>
+    <string name="a11y_seek_position">%2$s中 %1$s</string>
+    <string name="a11y_fast_scroller">高速スクロール</string>
+    <string name="a11y_fast_scroller_state">%1$d%%</string>
+</resources>

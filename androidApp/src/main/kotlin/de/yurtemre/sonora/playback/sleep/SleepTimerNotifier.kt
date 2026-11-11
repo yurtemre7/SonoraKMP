@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import de.yurtemre.sonora.R
+import de.yurtemre.sonora.ui.format.withAppLocale
 
 /** Ongoing countdown notification (PLAY-27): channel `sleep_timer`, id 8888, chronometer + "+1 min"/"End timer". */
 class SleepTimerNotifier(
@@ -27,16 +28,16 @@ class SleepTimerNotifier(
         ensureChannel()
         val b = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle(context.getString(R.string.sleep_timer_notification_title))
+            .setContentTitle(context.withAppLocale().getString(R.string.sleep_timer_notification_title))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(0, context.getString(R.string.sleep_timer_action_extend), servicePi(ACTION_EXTEND, 1))
-            .addAction(0, context.getString(R.string.sleep_timer_action_end), servicePi(ACTION_END, 2))
+            .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_extend), servicePi(ACTION_EXTEND, 1))
+            .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_end), servicePi(ACTION_END, 2))
         if (finishingSong) {
-            b.setContentText(context.getString(R.string.sleep_timer_notification_finishing))
+            b.setContentText(context.withAppLocale().getString(R.string.sleep_timer_notification_finishing))
         } else {
             b.setUsesChronometer(true)
                 .setChronometerCountDown(true)
@@ -63,10 +64,10 @@ class SleepTimerNotifier(
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                context.getString(R.string.sleep_timer_channel_name),
+                context.withAppLocale().getString(R.string.sleep_timer_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = context.getString(R.string.sleep_timer_channel_description)
+                description = context.withAppLocale().getString(R.string.sleep_timer_channel_description)
                 setShowBadge(false)
             },
         )

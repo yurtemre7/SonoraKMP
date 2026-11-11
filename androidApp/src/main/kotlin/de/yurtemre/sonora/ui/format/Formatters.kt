@@ -128,3 +128,22 @@ fun relativeDayText(date: LocalDate, today: LocalDate = LocalDate.now()): String
 @Composable
 fun timeText(instant: Instant): String =
     DateFormats.time(instant, currentLocale(), DateFormat.is24HourFormat(LocalContext.current))
+
+object RelativeTime {
+    /** "just now" (< 1 min), "N minutes ago", "N hours ago", else localized date-time (app locale). */
+    fun ago(context: Context, thenMs: Long, nowMs: Long = System.currentTimeMillis(), locale: Locale = context.appLocale()): String {
+        val diff = (nowMs - thenMs).coerceAtLeast(0)
+        val min = diff / 60_000
+        val res = context.resources
+        return when {
+            min < 1 -> context.getString(R.string.a11y_just_now)
+            min < 60 -> res.getQuantityString(R.plurals.a11y_minutes_ago, min.toInt(), min.toInt())
+            min < 24 * 60 -> (min / 60).toInt().let { res.getQuantityString(R.plurals.a11y_hours_ago, it, it) }
+            else -> DateFormats.dateTime(Instant.ofEpochMilli(thenMs), locale)
+        }
+    }
+}
+
+@Composable
+fun relativeTimeText(thenMs: Long): String =
+    RelativeTime.ago(LocalContext.current, thenMs, System.currentTimeMillis(), currentLocale())
