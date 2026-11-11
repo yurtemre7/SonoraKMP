@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duration_part_days">%1$d日</string>
+    <string name="duration_part_hours">%1$d時間</string>
+    <string name="duration_part_minutes">%1$d分</string>
+    <string name="duration_part_separator"></string>
+</resources>

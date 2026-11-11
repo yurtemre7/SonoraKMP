@@ -52,15 +52,15 @@ object DurationFormat {
 
     /** Localized total text, e.g. "1d 2h 3m 4s" / "1日 2時間 3分 4秒". */
     fun totalText(context: Context, totalSeconds: Long, locale: Locale): String {
+        // All units come from resources so languages never mix (e.g. ja "56分21秒", not "56m 21秒").
         val p = totalParts(totalSeconds)
-        val fmt = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.NARROW)
-        fun f(v: Long, u: MeasureUnit) = fmt.format(Measure(v, u))
+        val res = context.resources
         return buildList {
-            p.days?.let { add(f(it, MeasureUnit.DAY)) }
-            p.hours?.let { add(f(it, MeasureUnit.HOUR)) }
-            p.minutes?.let { add(f(it, MeasureUnit.MINUTE)) }
-            add(context.getString(R.string.seconds_abbr, p.seconds.toInt()))
-        }.joinToString(" ")
+            p.days?.let { add(res.getString(R.string.duration_part_days, it.toInt())) }
+            p.hours?.let { add(res.getString(R.string.duration_part_hours, it.toInt())) }
+            p.minutes?.let { add(res.getString(R.string.duration_part_minutes, it.toInt())) }
+            add(res.getString(R.string.seconds_abbr, p.seconds.toInt()))
+        }.joinToString(res.getString(R.string.duration_part_separator))
     }
 }
 

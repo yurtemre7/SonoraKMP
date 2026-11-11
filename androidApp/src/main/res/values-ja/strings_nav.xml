@@ -18,7 +18,7 @@
     <string name="nav_title_settings_privacy">プライバシーと権限</string>
     <string name="nav_title_settings_backup">バックアップと復元</string>
     <string name="nav_title_settings_info">情報とサポート</string>
-    <string name="nav_title_changelog">変更履歴</string>
+    <string name="nav_title_changelog">更新履歴</string>
     <string name="nav_title_licenses">ライセンス</string>
     <string name="nav_title_debug_caches">デバッグキャッシュ</string>
     <string name="nav_title_onboarding">ようこそ</string>

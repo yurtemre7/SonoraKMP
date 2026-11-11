@@ -2,7 +2,7 @@
 <resources>
     <string name="gate_loading">ライブラリを読み込んでいます</string>
     <string name="gate_loading_slow">いつもより時間がかかっています。もう少しお待ちください。</string>
-    <string name="gate_error_title">SonoraKMP を起動できませんでした</string>
+    <string name="gate_error_title">SonoraKMPを起動できませんでした</string>
     <string name="gate_error_body">保存されたデータを読み込めませんでした。アプリを閉じて後でもう一度試すか、アプリのデータを消去してやり直してください。音楽ファイルはそのまま残ります。</string>
     <string name="gate_error_clear_retry">データを消去して再試行</string>
     <string name="gate_error_close_app">アプリを閉じる</string>

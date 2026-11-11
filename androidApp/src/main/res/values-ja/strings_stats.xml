@@ -13,7 +13,7 @@
     <string name="stats_playlists_played">再生したプレイリスト</string>
     <string name="stats_shuffle_sessions">シャッフル再生</string>
     <string name="stats_skips">スキップ</string>
-    <string name="stats_restarts">頭出し</string>
+    <string name="stats_restarts">最初から再生</string>
     <string name="stats_most_active_day">よく聴く曜日</string>
     <string name="stats_first_song">最初の曲</string>
     <string name="stats_first_song_since">%1$sから記録中</string>
@@ -24,14 +24,14 @@
     <string name="stats_top_artists">よく聴くアーティスト</string>
     <string name="stats_top_playlists">よく聴くプレイリスト</string>
     <string name="stats_rank">%1$d位</string>
-    <string name="stats_song_detail">%1$s・スキップ%2$s回・頭出し%3$s回</string>
+    <string name="stats_song_detail">%1$s・スキップ%2$s回・最初から再生%3$s回</string>
     <plurals name="stats_plays">
         <item quantity="other">%d回再生</item>
     </plurals>
     <plurals name="stats_playlist_songs">
         <item quantity="other">%d曲</item>
     </plurals>
-    <string name="stats_page_empty">まだ再生記録がありません。聴き続けてみましょう。</string>
+    <string name="stats_page_empty">まだ再生記録がありません。音楽を聴くと、ここに表示されます。</string>
     <string name="stats_playlists_empty">プレイリストから再生すると、ここに表示されます。</string>
     <string name="stats_empty_title">まだ記録がありません</string>
     <string name="stats_empty_subtitle">曲を最後まで聴くと、ここから数字が積み上がっていきます。</string>

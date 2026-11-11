@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cd_album_art">%1$s のアルバムアート</string>
-    <string name="cd_artist_avatar">%1$s のアーティスト画像</string>
+    <string name="cd_album_art">%1$sのアルバムアート</string>
+    <string name="cd_artist_avatar">%1$sのアーティスト画像</string>
     <string name="cd_more_options">その他のオプション</string>
     <string name="cd_now_playing">再生中</string>
     <string name="cd_selected">選択済み</string>
-    <string name="song_row_state_desc">%2$s の %1$s、%3$s</string>
+    <string name="song_row_state_desc">%2$sの「%1$s」、%3$s</string>
     <string name="action_play_next">次に再生</string>
     <string name="action_add_to_queue">キューに追加</string>
     <string name="confirm">確認</string>

@@ -5,8 +5,8 @@
     <string name="library_play">Play</string>
     <string name="library_play_next">Play next</string>
     <string name="library_add_to_queue">Add to queue</string>
-    <string name="library_favorite">Add to favourites</string>
-    <string name="library_unfavorite">Remove from favourites</string>
+    <string name="library_favorite">Add to favorites</string>
+    <string name="library_unfavorite">Remove from favorites</string>
     <string name="library_snack_play_next">Playing next</string>
     <string name="library_snack_queued">Added to queue</string>
     <string name="library_albums_header">All albums</string>
@@ -54,6 +54,6 @@
     <string name="library_artist_albums">Albums</string>
     <string name="library_artist_top_songs">Most played</string>
     <string name="library_artist_all_songs">All songs</string>
-    <string name="library_cd_favorite_album">Favourite album</string>
-    <string name="library_cd_favorite_artist">Favourite artist</string>
+    <string name="library_cd_favorite_album">Favorite album</string>
+    <string name="library_cd_favorite_artist">Favorite artist</string>
 </resources>

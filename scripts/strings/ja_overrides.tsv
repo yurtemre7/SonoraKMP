@@ -23,11 +23,11 @@ uniqueSongsPlayed	再生した曲数（重複なし）
 shuffleSessions	シャッフル再生の回数
 mostActiveDay	よく聴く曜日
 noLyricsAvailable	歌詞はありません
-updateAvailableMessage	バージョン {version} が公開されました。
+updateAvailableMessage	バージョン{version}が公開されました。
 privacyCardWakeLockTitle	スリープ防止（Wake Lock）
 setMusicDirectory	音楽フォルダを設定
 setupMusicDirectory	音楽フォルダを設定
-selectedDirectory	選択したフォルダ:
+selectedDirectory	選択したフォルダ：
 searchSongsHint	曲名・アーティストで検索…
 searchAlbumsHint	アルバムを検索…
 searchArtistsHint	アーティストを検索…
@@ -52,8 +52,25 @@ finishCurrentSong	曲の終わりまで再生してから停止
 pauseOnDuck	通知音で一時停止
 pauseOnDuckSubtitle	通知が鳴ったとき、音量を下げずに再生を一時停止します
 resetApplicationSubtitle	3秒間長押しすると、すべてのデータを削除します
-thankYouMessage	Sonoraを応援していただき、本当にありがとうございます。使ってくださる皆さんの存在が、何よりの励みです。私が大好きなSonoraを、あなたにも楽しんでいただけたら嬉しいです。
+thankYouMessage	Sonoraを応援していただき、本当にありがとうございます。皆さんの存在が何よりの励みです。私と同じくらいSonoraを楽しんでいただけたら嬉しいです。
 favoriteRemove	お気に入りから削除
 recentlyPlayedActivitySubtitle	最近聴いた曲を表示します
 mostPlayed	再生回数が多い順
 leastPlayed	再生回数が少ない順
+changelogLabel	更新履歴：
+displayedAs	表示形式：
+originalMetadata	元のメタデータ：
+exportedPlaylist	プレイリストをエクスポートしました：{name}
+noMusicFilesInFolderSubtitle	フォルダに音声ファイル（.mp3、.m4aなど）を配置してください：\n\n{folder}
+deletePlaylistConfirmMessage	「{name}」を削除しますか？この操作は元に戻せません。
+dangerZone	データの初期化
+infoSubtitle	アプリ情報、更新、更新履歴、データの初期化
+privacyCardDeleteDataContent	すべてのデータは自分で管理できます。「情報とサポート」タブの最下部にある「データの初期化」から、アプリ設定、統計、キャッシュをいつでもすぐに削除できます。
+privacyCardStorageContent	選択した音楽フォルダ内の音声トラックと、ローカルのアーティスト／アルバムアートワーク（例：artist.jpg や cover.png）をスキャンするために使用されます。\n\nプライバシーについて：Androidでは「写真とメディア」へのアクセス許可が表示されますが、Sonoraがスキャンするのは指定された音楽フォルダ内のファイルだけです。個人の写真ギャラリーやカメラロールの画像を読み取ることは一切ありません。
+privacyCardDataContent	このアプリは完全にオフラインで動作し、アプリ更新の確認でGitHubにアクセスする場合を除き、サーバーとは一切通信しません。ライブラリの統計、設定、再生時間のデータはすべて端末内にのみ保存され、外部に送信されることはありません。\n\n再生履歴はあなただけのものです。
+telegramContactSubtitle	@emredevに連絡
+colorSourceAlbumArt	アルバムアート
+backupRestoreConfirmContent	{date}のバックアップです。\n\n• バックアップの設定で現在の設定を上書きします。\n• プレイリストは統合されます。両方にあるプレイリストはバックアップの内容で上書きされます。\n• お気に入りは現在のお気に入りに追加されます。\n• 再生統計はすべて置き換えられます。\n\n曲は現在のライブラリと照合され、見つからない曲はスキップされます。
+syncLibraryDatabaseSubtitle	前回のライブラリ同期から1か月以上が経過しています。Sonoraはオフラインで動作するため、端末のフォルダに新しい音楽ファイルを追加した場合は、今すぐ同期してライブラリに取り込んでください。
+version	バージョン{version}
+chooseMusicFolder	ライブラリを作成するため、音声ファイル（MP3、FLAC、M4Aなど）が入っているメインフォルダを選択してください。

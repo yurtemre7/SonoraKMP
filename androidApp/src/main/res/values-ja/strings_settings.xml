@@ -56,7 +56,7 @@
     <string name="settings_swatch_hint">ライブラリのアートワークが解析されるにつれて、選べる色が増えます。</string>
     <string name="settings_section_display">表示</string>
     <string name="settings_amoled_title">真っ黒なダークテーマ</string>
-    <string name="settings_amoled_subtitle">ダークモードの背景を純粋な黒にします。有機ELの画面に最適です</string>
+    <string name="settings_amoled_subtitle">ダークモードの背景を純粋な黒にします。有機ELの画面に最適です。</string>
     <string name="settings_blur_title">ぼかし背景</string>
     <string name="settings_blur_subtitle">再生画面と歌詞の背景に、ぼかしたアートワークを使います</string>
     <string name="settings_requires_android_12">Android 12以降が必要です</string>
@@ -73,7 +73,7 @@
     <string name="settings_greeting">あいさつをタイトルに</string>
     <string name="settings_greeting_subtitle">アプリ名の代わりに「おはよう」などと表示します</string>
     <string name="settings_name">あなたの名前</string>
-    <string name="settings_name_dialog_title">なんとお呼びしましょう？</string>
+    <string name="settings_name_dialog_title">お名前を教えてください</string>
 
     <string name="settings_formatting_preview">プレビュー</string>
     <string name="settings_formatting_original">元のタイトル</string>
@@ -105,23 +105,23 @@
     <string name="settings_resume_on_connect_subtitle">切断で一時停止したときだけ再開します</string>
     <string name="settings_bt_patch">Bluetoothエフェクト修正</string>
     <string name="settings_bt_patch_subtitle">一部のBluetooth機器でエフェクトが効かない問題を回避します</string>
-    <string name="settings_sleep_default">標準の時間</string>
-    <string name="settings_sleep_default_subtitle">スリープタイマーを開いたときに選ばれている時間</string>
+    <string name="settings_sleep_default">デフォルトの時間</string>
+    <string name="settings_sleep_default_subtitle">スリープタイマーを開いたときに選択されている時間です</string>
     <string name="settings_sleep_fade">フェードアウト</string>
     <string name="settings_sleep_fade_subtitle">停止する前に少しずつ音量を下げます</string>
     <string name="settings_minutes" tools:ignore="PluralsCandidate">%1$d分</string>
     <string name="settings_seconds" tools:ignore="PluralsCandidate">%1$d秒</string>
     <string name="settings_off">オフ</string>
-    <string name="settings_finish_song">今の曲を最後まで</string>
+    <string name="settings_finish_song">今の曲を最後まで再生</string>
     <string name="settings_finish_song_subtitle">曲が終わるのを待ってから停止します</string>
     <string name="settings_start_page">最初に開くタブ</string>
-    <string name="settings_start_page_subtitle">ライブラリを開いたときに表示されるタブ</string>
+    <string name="settings_start_page_subtitle">ライブラリを開いたときに表示されるタブです</string>
     <string name="settings_tab_songs">曲</string>
     <string name="settings_tab_albums">アルバム</string>
     <string name="settings_tab_artists">アーティスト</string>
     <string name="settings_tab_playlists">プレイリスト</string>
 
-    <string name="settings_privacy_data_title">データは端末の中だけに</string>
+    <string name="settings_privacy_data_title">データは端末の中だけに保存されます</string>
     <string name="settings_privacy_data_body">SonoraKMPにはアカウントも分析ツールも広告もありません。ライブラリ、プレイリスト、お気に入り、再生統計が端末の外に出ることはありません。通信するのは、GitHubで新しいバージョンを確認するときだけです。</string>
     <string name="settings_section_permissions">権限について</string>
     <string name="settings_perm_audio_title">音楽とオーディオ</string>
@@ -148,7 +148,7 @@
     <string name="settings_backup_restoring">バックアップを復元中…</string>
 
     <string name="settings_about_title">SonoraKMPについて</string>
-    <string name="settings_about_version">バージョン %1$s（%2$d）</string>
+    <string name="settings_about_version">バージョン%1$s（%2$d）</string>
     <string name="settings_about_description">KotlinとMaterial 3 Expressiveでネイティブに作られた、Android向けのローカル音楽プレーヤーです。</string>
     <string name="settings_about_made_with">yurtemreが心を込めて開発</string>
     <string name="settings_section_updates">アップデート</string>
@@ -158,16 +158,16 @@
     <string name="settings_changelog_subtitle">各バージョンの変更点</string>
     <string name="settings_licenses">オープンソースライセンス</string>
     <string name="settings_licenses_subtitle">SonoraKMPを支えるライブラリとフォント</string>
-    <string name="settings_thanks_title">ありがとう</string>
-    <string name="settings_thanks_title_name">%1$sさん、ありがとう</string>
-    <string name="settings_thanks_body">SonoraKMPで音楽を聴いてくれてありがとうございます。個人で作っているアプリなので、一人ひとりのリスナーがとても大きな励みです。</string>
+    <string name="settings_thanks_title">ありがとうございます</string>
+    <string name="settings_thanks_title_name">%1$sさん、ありがとうございます</string>
+    <string name="settings_thanks_body">SonoraKMPで音楽を聴いていただき、ありがとうございます。個人で開発しているアプリなので、一人ひとりのリスナーが大きな励みになっています。</string>
     <string name="settings_section_community">コミュニティとサポート</string>
     <string name="settings_source">ソースコード</string>
     <string name="settings_source_subtitle">GitHubでコードを見たり、問題を報告したりできます</string>
     <string name="settings_developer">開発者</string>
-    <string name="settings_developer_subtitle">GitHubの yurtemre7</string>
+    <string name="settings_developer_subtitle">GitHubのyurtemre7</string>
     <string name="settings_telegram">Telegram</string>
-    <string name="settings_telegram_subtitle">@emredev に気軽にどうぞ</string>
+    <string name="settings_telegram_subtitle">\@emredevまでお気軽にどうぞ</string>
     <string name="settings_link_failed">このリンクを開けるアプリがありません</string>
     <string name="settings_section_danger">データの初期化</string>
     <string name="settings_reset_title">アプリをリセット</string>

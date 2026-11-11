@@ -13,7 +13,7 @@
     <string name="np_favorite">お気に入り</string>
     <string name="np_mfx">サウンドエフェクト</string>
     <string name="np_sleep_timer">スリープタイマー</string>
-    <string name="np_view_up_next">次に再生</string>
+    <string name="np_view_up_next">再生待ち</string>
     <string name="np_open_artist">アーティスト：%1$s</string>
     <string name="np_open_album">アルバム：%1$s</string>
     <string name="np_immersive_enter">操作ボタンを隠す</string>

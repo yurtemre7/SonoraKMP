@@ -40,9 +40,9 @@
         <item quantity="other">%d曲をプレイリストに追加</item>
     </plurals>
     <string name="sheets_selector_new">新しいプレイリスト</string>
-    <string name="sheets_selector_empty">プレイリストはまだありません。作成して始めましょう。</string>
-    <string name="sheets_selector_added">%1$sに追加しました</string>
-    <string name="sheets_selector_removed">%1$sから削除しました</string>
+    <string name="sheets_selector_empty">プレイリストはまだありません。新しく作成してください。</string>
+    <string name="sheets_selector_added">「%1$s」に追加しました</string>
+    <string name="sheets_selector_removed">「%1$s」から削除しました</string>
     <plurals name="sheets_selector_batch_added">
         <item quantity="other">%1$d曲を%2$sに追加しました</item>
     </plurals>
@@ -59,8 +59,8 @@
     <string name="sheets_dialog_create">作成</string>
     <string name="sheets_dialog_save">保存</string>
     <string name="sheets_dialog_cancel">キャンセル</string>
-    <string name="sheets_dialog_saved_queue">%1$sを保存しました</string>
-    <string name="sheets_dialog_default_queue_name">キュー %1$s</string>
+    <string name="sheets_dialog_saved_queue">「%1$s」を保存しました</string>
+    <string name="sheets_dialog_default_queue_name">キュー%1$s</string>
 
     <string name="sheets_actions_play_next">次に再生</string>
     <string name="sheets_actions_add_to_queue">キューに追加</string>

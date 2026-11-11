@@ -24,6 +24,6 @@
     <string name="songs_banner_title">ライブラリを同期しますか？</string>
     <string name="songs_banner_subtitle">前回の同期から1か月が経ちました。新しい音楽ファイルを取り込むには、今すぐ同期してください。</string>
     <string name="songs_banner_sync_now">今すぐ同期</string>
-    <string name="songs_banner_remind_later">来月に通知</string>
+    <string name="songs_banner_remind_later">来月にもう一度通知</string>
     <string name="songs_banner_postponed">1か月後にまたお知らせします</string>
 </resources>

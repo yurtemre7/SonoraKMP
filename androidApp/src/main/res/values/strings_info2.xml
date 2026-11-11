@@ -21,7 +21,7 @@
     <string name="info2_debug_albums_count">Albums</string>
     <string name="info2_debug_artists_count">Artists</string>
     <string name="info2_debug_playlists_count">Playlists</string>
-    <string name="info2_debug_favorites_count">Favourite songs</string>
+    <string name="info2_debug_favorites_count">Favorite songs</string>
     <string name="info2_debug_artist_images">Artist images</string>
     <string name="info2_debug_with_artwork">Songs with artwork</string>
     <string name="info2_debug_files">Files</string>

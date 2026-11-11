@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Total-duration parts, e.g. "1d 2h 3m 4s" (seconds use seconds_abbr). -->
+    <string name="duration_part_days" tools:ignore="PluralsCandidate">%1$dd</string>
+    <string name="duration_part_hours" tools:ignore="PluralsCandidate">%1$dh</string>
+    <string name="duration_part_minutes" tools:ignore="PluralsCandidate">%1$dm</string>
+    <string name="duration_part_separator"> </string>
+</resources>

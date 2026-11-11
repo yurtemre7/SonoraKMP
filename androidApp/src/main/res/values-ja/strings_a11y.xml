@@ -13,7 +13,7 @@
     <string name="a11y_action_pause">一時停止</string>
     <string name="a11y_action_open">開く</string>
     <string name="a11y_action_next">次の曲</string>
-    <string name="a11y_seek_position">%2$s中 %1$s</string>
+    <string name="a11y_seek_position">%1$s / %2$s</string>
     <string name="a11y_fast_scroller">高速スクロール</string>
     <string name="a11y_fast_scroller_state">%1$d%%</string>
 </resources>
