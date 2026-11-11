@@ -11,6 +11,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalHapticFeedback
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.platform.ShareHelper
@@ -79,6 +80,7 @@ fun SongActionsHost(
     val favorites: FavoritesRepository = koinInject()
     val favMap by favorites.favoriteSongs.collectAsState(initial = null)
     val context = LocalContext.current
+    val resources = LocalResources.current
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     fun snack(msg: String) = scope.launch {
@@ -97,12 +99,12 @@ fun SongActionsHost(
             onPlayNext = {
                 playback.playNext(listOf(song))
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                snack(context.getString(R.string.sheets_actions_snack_play_next, song.title))
+                snack(resources.getString(R.string.sheets_actions_snack_play_next, song.title))
             },
             onAddToQueue = {
                 playback.addToQueue(listOf(song))
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                snack(context.getString(R.string.sheets_actions_snack_queued, song.title))
+                snack(resources.getString(R.string.sheets_actions_snack_queued, song.title))
             },
             onAddToPlaylist = { state.mode = SongActionsState.Mode.Playlist },
             onToggleFavorite = {
@@ -110,12 +112,12 @@ fun SongActionsHost(
                 favOverride = next
                 haptics.performHapticFeedback(if (next) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                 scope.launch(NonCancellable) { favorites.setSongsFavorite(mapOf(song.id to song.filePath), next) }
-                snack(context.getString(if (next) R.string.sheets_actions_snack_favorited else R.string.sheets_actions_snack_unfavorited))
+                snack(resources.getString(if (next) R.string.sheets_actions_snack_favorited else R.string.sheets_actions_snack_unfavorited))
             },
             onInfo = { state.mode = SongActionsState.Mode.Info },
             onShare = {
                 if (!ShareHelper.share(context, listOf(ShareHelper.Item(song.filePath, song.id.takeIf { it > 0 })))) {
-                    snack(context.getString(R.string.sheets_info_share_failed))
+                    snack(resources.getString(R.string.sheets_info_share_failed))
                 }
             },
             onGoToAlbum = onGoToAlbum?.let { { it(song) } },
