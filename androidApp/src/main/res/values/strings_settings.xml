@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Root (SET-01, L10N-03) -->
+    <string name="settings_section_library">Library</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_data">Your data</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_section_developer">Developer tools</string>
+    <string name="settings_library_no_folder">No music folder yet</string>
+    <plurals name="settings_library_song_count">
+        <item quantity="one">%1$d song in your library</item>
+        <item quantity="other">%1$d songs in your library</item>
+    </plurals>
+    <string name="settings_library_last_sync">Last sync: %1$s</string>
+    <string name="settings_library_choose_folder">Choose folder</string>
+    <string name="settings_library_change_folder">Change folder</string>
+    <string name="settings_library_sync_now">Sync now</string>
+    <string name="settings_library_syncing">Syncing…</string>
+    <plurals name="settings_library_sync_done">
+        <item quantity="one">Synced %1$d song in %2$.1f s</item>
+        <item quantity="other">Synced %1$d songs in %2$.1f s</item>
+    </plurals>
+    <string name="settings_library_sync_folder_missing">The music folder can\'t be found any more. Choose it again.</string>
+    <string name="settings_library_sync_failed">Sync failed. Try again in a moment.</string>
+    <string name="settings_library_folder_invalid">That folder can\'t be used. Pick one on your device storage.</string>
+    <string name="settings_stats_title">Statistics</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_dialog_title">Choose a language</string>
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_language_japanese" translatable="false">日本語</string>
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_subtitle">Theme, colors, now playing look</string>
+    <string name="settings_formatting_title">Title formatting</string>
+    <string name="settings_playback_subtitle">Volume levelling, headphones, sleep timer</string>
+    <string name="settings_privacy_title">Privacy and permissions</string>
+    <string name="settings_backup_title">Backup and restore</string>
+    <string name="settings_backup_subtitle">Save or restore playlists, favorites, stats and settings</string>
+    <string name="settings_updates_title">Updates</string>
+    <string name="settings_updates_subtitle">Check for a new version, pick a channel</string>
+    <string name="settings_info_title">Info and support</string>
+    <string name="settings_info_subtitle">About, links, changelog, danger zone</string>
+    <string name="settings_debug_title">Debug caches</string>
+    <string name="settings_debug_subtitle">Raw cache data, artist images and sync state</string>
+
+    <!-- Appearance (SET-02, UI-33) -->
+    <string name="settings_section_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_section_colors">Colors</string>
+    <string name="settings_color_sleeve">Sleeve</string>
+    <string name="settings_color_system">Material You</string>
+    <string name="settings_color_album">Album art</string>
+    <string name="settings_color_custom">Custom</string>
+    <string name="settings_color_sleeve_desc">The hand-tuned SonoraKMP palette: cobalt, ink and label yellow.</string>
+    <string name="settings_color_system_desc">Colors follow your wallpaper.</string>
+    <string name="settings_color_album_desc">Colors follow the artwork of the song that is playing. The fallback color is used when nothing is playing.</string>
+    <string name="settings_color_custom_desc">One accent color for the whole app.</string>
+    <string name="settings_fallback_color">Fallback color</string>
+    <string name="settings_accent_color">Accent color</string>
+    <string name="settings_swatch_description">Color %1$d of %2$d</string>
+    <string name="settings_swatch_hint">More colors appear as artwork from your library is analysed.</string>
+    <string name="settings_section_display">Display</string>
+    <string name="settings_amoled_title">Pitch black dark theme</string>
+    <string name="settings_amoled_subtitle">Pure black surfaces in dark mode, easier on OLED screens</string>
+    <string name="settings_blur_title">Blurred backgrounds</string>
+    <string name="settings_blur_subtitle">Use blurred artwork behind now playing and lyrics</string>
+    <string name="settings_requires_android_12">Needs Android 12 or newer</string>
+    <string name="settings_section_now_playing">Now playing</string>
+    <string name="settings_np_style_title">Player style</string>
+    <string name="settings_np_style_modern">Modern</string>
+    <string name="settings_np_style_vinyl">Vinyl</string>
+    <string name="settings_np_style_minimalist">Minimalist</string>
+    <string name="settings_local_artist_images">Local artist images</string>
+    <string name="settings_local_artist_images_subtitle">Use images like artist.jpg from your music folders</string>
+    <string name="settings_visualizer">Visualizer</string>
+    <string name="settings_visualizer_subtitle">Show an animated visualizer on now playing</string>
+    <string name="settings_section_personal">Personal</string>
+    <string name="settings_greeting">Greeting title</string>
+    <string name="settings_greeting_subtitle">Say good morning instead of showing the app name</string>
+    <string name="settings_name">Your name</string>
+    <string name="settings_name_dialog_title">What should we call you?</string>
+    <string name="settings_name_default" translatable="false">User</string>
+
+    <!-- Formatting (SET-03) -->
+    <string name="settings_formatting_preview">Preview</string>
+    <string name="settings_formatting_original">Original</string>
+    <string name="settings_formatting_displayed">Displayed as</string>
+    <string name="settings_formatting_sample_title" translatable="false">Awesome Artist - The Greatest Hit (feat. Someone)</string>
+    <string name="settings_formatting_sample_artist" translatable="false">Awesome Artist</string>
+    <string name="settings_section_title_filters">Title filters</string>
+    <string name="settings_filter_features">Hide featured artists</string>
+    <string name="settings_filter_features_subtitle">Removes (feat. …) and [ft. …] from titles</string>
+    <string name="settings_filter_artist">Hide artist name in titles</string>
+    <string name="settings_filter_artist_subtitle">Removes a leading or trailing “Artist -” from titles</string>
+
+    <!-- Playback (SET-04) -->
+    <string name="settings_section_while_playing">While playing</string>
+    <string name="settings_section_headphones">Headphones and Bluetooth</string>
+    <string name="settings_section_sleep_timer">Sleep timer</string>
+    <string name="settings_section_startup">Start-up</string>
+    <string name="settings_keep_playing">Keep playing when closed</string>
+    <string name="settings_keep_playing_subtitle">Music continues after you swipe the app away from recents</string>
+    <string name="settings_restore_last">Remember the last song</string>
+    <string name="settings_restore_last_subtitle">Restore the last song and queue when the app starts</string>
+    <string name="settings_replay_gain">Volume levelling</string>
+    <string name="settings_replay_gain_subtitle">Uses ReplayGain tags so songs play at a similar loudness</string>
+    <string name="settings_replay_gain_off">Off</string>
+    <string name="settings_replay_gain_track">Track</string>
+    <string name="settings_replay_gain_album">Album</string>
+    <string name="settings_pause_on_duck">Pause for notifications</string>
+    <string name="settings_pause_on_duck_subtitle">Pause instead of lowering the volume when another app speaks briefly</string>
+    <string name="settings_pause_on_disconnect">Pause when headphones disconnect</string>
+    <string name="settings_pause_on_disconnect_subtitle">Wired or Bluetooth</string>
+    <string name="settings_resume_on_connect">Resume when headphones connect</string>
+    <string name="settings_resume_on_connect_subtitle">Only after playback was paused by a disconnect</string>
+    <string name="settings_bt_patch">Bluetooth effects patch</string>
+    <string name="settings_bt_patch_subtitle">Fixes audio effects not applying on some Bluetooth devices</string>
+    <string name="settings_sleep_default">Default duration</string>
+    <string name="settings_sleep_default_subtitle">Preselected when you open the sleep timer</string>
+    <string name="settings_sleep_fade">Fade out</string>
+    <string name="settings_sleep_fade_subtitle">Lower the volume gradually before stopping</string>
+    <string name="settings_minutes" tools:ignore="PluralsCandidate">%1$d min</string>
+    <string name="settings_seconds" tools:ignore="PluralsCandidate">%1$d s</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_finish_song">Finish the current song</string>
+    <string name="settings_finish_song_subtitle">Wait for the song to end before stopping</string>
+    <string name="settings_start_page">Start page</string>
+    <string name="settings_start_page_subtitle">The tab the library opens on</string>
+    <string name="settings_tab_songs">Songs</string>
+    <string name="settings_tab_albums">Albums</string>
+    <string name="settings_tab_artists">Artists</string>
+    <string name="settings_tab_playlists">Playlists</string>
+
+    <!-- Privacy (SET-05) -->
+    <string name="settings_privacy_data_title">Your data stays on your phone</string>
+    <string name="settings_privacy_data_body">SonoraKMP has no account, no analytics and no ads. Your library, playlists, favorites and listening stats never leave your device. The only network request checks GitHub for new versions.</string>
+    <string name="settings_section_permissions">Permissions, explained</string>
+    <string name="settings_perm_audio_title">Music and audio</string>
+    <string name="settings_perm_audio_body">Reads the audio files in the folder you chose, plus cover images such as cover.jpg stored next to them. SonoraKMP does not ask for access to your photos or videos.</string>
+    <string name="settings_perm_notifications_title">Notifications and background playback</string>
+    <string name="settings_perm_notifications_body">Shows playback controls in the notification shade and on the lock screen. A media foreground service keeps music playing while the app is in the background.</string>
+    <string name="settings_perm_wake_title">Keep awake</string>
+    <string name="settings_perm_wake_body">Stops the device from sleeping in the middle of a song.</string>
+    <string name="settings_perm_internet_title">Internet</string>
+    <string name="settings_perm_internet_body">Only used to fetch release information and the changelog from GitHub. Your music and data are never uploaded.</string>
+    <string name="settings_perm_install_title">Install updates</string>
+    <string name="settings_perm_install_body">Lets SonoraKMP hand a downloaded update to the Android installer. Nothing is installed without your confirmation.</string>
+    <string name="settings_privacy_delete_title">Delete everything</string>
+    <string name="settings_privacy_delete_body">You can wipe all settings, playlists, favorites, stats and caches at any time from the danger zone in Info and support.</string>
+
+    <!-- Backup (SET-06, BAK-06) -->
+    <string name="settings_backup_export_title">Export a backup</string>
+    <string name="settings_backup_export_body">Save a backup file anywhere you like</string>
+    <string name="settings_backup_import_title">Restore a backup</string>
+    <string name="settings_backup_import_body">Pick a backup file to restore it</string>
+    <string name="settings_backup_contents_title">What\'s included</string>
+    <string name="settings_backup_confirm_title">Restore this backup?</string>
+    <string name="settings_backup_confirm_body">Settings from the backup replace your current ones. Playlists are merged, favorites are added and listening stats are replaced. Songs that aren\'t in your library are skipped.</string>
+    <string name="settings_backup_exporting">Saving backup…</string>
+    <string name="settings_backup_restoring">Restoring backup…</string>
+
+    <!-- Info & danger zone (SET-07, SET-08) -->
+    <string name="settings_about_title">About SonoraKMP</string>
+    <string name="settings_about_version">Version %1$s (%2$d)</string>
+    <string name="settings_about_description">A local music player for Android, built natively with Kotlin and Material 3 Expressive.</string>
+    <string name="settings_about_made_with">Made with love by yurtemre</string>
+    <string name="settings_about_tech" translatable="false">Kotlin • Material 3 Expressive</string>
+    <string name="settings_section_updates">Updates</string>
+    <string name="settings_auto_updates">Check automatically</string>
+    <string name="settings_auto_updates_subtitle">Look for a new version on GitHub when the app opens</string>
+    <string name="settings_changelog">Changelog</string>
+    <string name="settings_changelog_subtitle">What changed in each version</string>
+    <string name="settings_licenses">Open-source licenses</string>
+    <string name="settings_licenses_subtitle">Libraries and fonts SonoraKMP is built on</string>
+    <string name="settings_thanks_title">Thank you</string>
+    <string name="settings_thanks_title_name">Thank you, %1$s</string>
+    <string name="settings_thanks_body">Thanks for listening with SonoraKMP. It\'s a one-person project, and every listener means a lot.</string>
+    <string name="settings_section_community">Community and support</string>
+    <string name="settings_source">Source code</string>
+    <string name="settings_source_subtitle">Browse the code and report issues on GitHub</string>
+    <string name="settings_developer">Developer</string>
+    <string name="settings_developer_subtitle">yurtemre7 on GitHub</string>
+    <string name="settings_telegram">Telegram</string>
+    <string name="settings_telegram_subtitle">Say hi to @emredev</string>
+    <string name="settings_link_failed">No app can open this link</string>
+    <string name="settings_section_danger">Danger zone</string>
+    <string name="settings_reset_title">Reset the app</string>
+    <string name="settings_reset_hold">Hold for 3 seconds to wipe everything</string>
+    <string name="settings_reset_confirm_title">Wipe all data?</string>
+    <string name="settings_reset_confirm_body">This deletes your settings, playlists, favorites, listening stats, covers and caches, and forgets your music folder. Your music files are not touched. This can\'t be undone.</string>
+    <string name="settings_reset_action">Wipe everything</string>
+    <string name="settings_reset_wiping">Wiping…</string>
+    <string name="settings_reset_failed">The reset didn\'t finish. Try again.</string>
+    <string name="settings_close">Close</string>
+</resources>

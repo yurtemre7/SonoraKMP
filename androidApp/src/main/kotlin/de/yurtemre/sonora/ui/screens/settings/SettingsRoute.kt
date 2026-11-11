@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,7 +48,7 @@ import org.koin.compose.koinInject
 
 /**
  * Settings root (SET-01, L10N-03): library card, stats, language, sub-screens, updates, debug.
- * [onNavigate] pushes a destination; [onOpenUpdates] opens the update/channel screen (P5-22).
+ * [onNavigate] pushes a destination; [onOpenUpdates] opens the update/channel screen (P5-22); without one the Info screen hosts the update tiles.
  */
 @Composable
 fun SettingsRoute(
@@ -61,6 +62,7 @@ fun SettingsRoute(
     val songs by libraryRepository.songs.collectAsStateWithLifecycle(emptyList())
     val repoSyncing by libraryRepository.isSyncing.collectAsStateWithLifecycle(false)
     val context = LocalContext.current
+    val contextRes = LocalResources.current
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -77,13 +79,13 @@ fun SettingsRoute(
             val msg = when (outcome) {
                 is SyncOutcome.Success -> {
                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                    context.resources.getQuantityString(
+                    contextRes.getQuantityString(
                         R.plurals.settings_library_sync_done, outcome.songCount, outcome.songCount,
                         (outcome.durationMs / 100) / 10.0,
                     )
                 }
-                SyncOutcome.FolderMissing -> context.getString(R.string.settings_library_sync_folder_missing)
-                is SyncOutcome.Failed -> context.getString(R.string.settings_library_sync_failed)
+                SyncOutcome.FolderMissing -> contextRes.getString(R.string.settings_library_sync_folder_missing)
+                is SyncOutcome.Failed -> contextRes.getString(R.string.settings_library_sync_failed)
             }
             snackbar.currentSnackbarData?.dismiss()
             snackbar.showSnackbar(msg)
@@ -94,7 +96,7 @@ fun SettingsRoute(
         if (uri == null) return@rememberLauncherForActivityResult
         val picked = FolderPicker.persist(context, uri)
         if (picked == null) {
-            scope.launch { snackbar.showSnackbar(context.getString(R.string.settings_library_folder_invalid)) }
+            scope.launch { snackbar.showSnackbar(contextRes.getString(R.string.settings_library_folder_invalid)) }
             return@rememberLauncherForActivityResult
         }
         scope.launch {
@@ -166,8 +168,8 @@ fun SettingsRoute(
         }
         item(key = "backup") {
             SettingsRow(
-                stringResource(R.string.backup_restore), icon = Icons.Rounded.SettingsBackupRestore,
-                subtitle = stringResource(R.string.backup_restore_subtitle), chevron = true,
+                stringResource(R.string.settings_backup_title), icon = Icons.Rounded.SettingsBackupRestore,
+                subtitle = stringResource(R.string.settings_backup_subtitle), chevron = true,
                 onClick = { onNavigate(SettingsBackup) },
             )
         }
@@ -177,8 +179,7 @@ fun SettingsRoute(
             SettingsRow(
                 stringResource(R.string.settings_updates_title), icon = Icons.Rounded.SystemUpdate,
                 subtitle = stringResource(R.string.settings_updates_subtitle), chevron = true,
-                enabled = onOpenUpdates != null,
-                onClick = { onOpenUpdates?.invoke() },
+                onClick = { onOpenUpdates?.invoke() ?: onNavigate(SettingsInfo) },
             )
         }
         item(key = "info") {

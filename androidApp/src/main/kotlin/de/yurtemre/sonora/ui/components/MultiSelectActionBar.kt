@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
@@ -55,6 +56,7 @@ fun MultiSelectActionBar(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val contextRes = LocalResources.current
     val scope = rememberCoroutineScope()
     val res = context.resources
     fun snack(text: String) = scope.launch { snackbarHostState.showSnackbar(text) }

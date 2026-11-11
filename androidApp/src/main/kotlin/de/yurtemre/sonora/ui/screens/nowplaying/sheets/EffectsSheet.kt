@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.nowplaying.sheets
 
+import de.yurtemre.sonora.ui.format.currentLocale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -143,7 +144,7 @@ private fun CustomSpeed(mfx: MfxUiState, onCommit: (Float) -> Unit) {
     val enabled = mfx.isCustomSpeedEnabled
     Column {
         Text(
-            if (enabled) stringResource(R.string.effects_custom_speed, "%.2f".format(Locale.getDefault(), drag))
+            if (enabled) stringResource(R.string.effects_custom_speed, "%.2f".format(currentLocale(), drag))
             else stringResource(R.string.effects_custom_speed_disabled),
             style = MaterialTheme.typography.titleSmall,
         )
@@ -189,7 +190,7 @@ private fun EqBands(mfx: MfxUiState, onBand: (Int, Float) -> Unit) {
             val label = bandLabel(hz)
             val state = remember(band, minDb, maxDb) { SliderState(gain, 0, minDb..maxDb) }
             LaunchedEffect(gain) { if (!state.isDragging) state.value = gain }
-            val desc = stringResource(R.string.effects_band_desc, label, "%.1f".format(Locale.getDefault(), state.value))
+            val desc = stringResource(R.string.effects_band_desc, label, "%.1f".format(currentLocale(), state.value))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 VerticalSlider(
                     state = state,
@@ -206,7 +207,7 @@ private fun EqBands(mfx: MfxUiState, onBand: (Int, Float) -> Unit) {
 
 @Composable
 private fun bandLabel(hz: Int): String =
-    if (hz >= 1000) stringResource(R.string.effects_band_khz, "%.1f".format(Locale.getDefault(), hz / 1000f).removeSuffix(".0").removeSuffix(",0"))
+    if (hz >= 1000) stringResource(R.string.effects_band_khz, "%.1f".format(currentLocale(), hz / 1000f).removeSuffix(".0").removeSuffix(",0"))
     else stringResource(R.string.effects_band_hz, hz)
 
 private fun presetLabel(p: MfxPreset): Int = when (p) {

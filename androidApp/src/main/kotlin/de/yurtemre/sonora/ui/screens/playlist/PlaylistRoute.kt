@@ -71,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -154,6 +155,7 @@ private fun PlaylistDetailScreen(
     onNavigate: ((NavKey) -> Unit)?,
 ) {
     val context = LocalContext.current
+    val contextRes = LocalResources.current
     val res = context.resources
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()

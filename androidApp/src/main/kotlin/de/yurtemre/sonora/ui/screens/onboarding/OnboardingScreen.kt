@@ -60,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -89,6 +90,7 @@ fun OnboardingScreen(onFinished: (message: String) -> Unit) {
     val settingsRepository: SettingsRepository = koinInject()
     val libraryRepository: LibraryRepository = koinInject()
     val context = LocalContext.current
+    val contextRes = LocalResources.current
     val scope = rememberCoroutineScope()
 
     var page by rememberSaveable { mutableStateOf(0) }

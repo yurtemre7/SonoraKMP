@@ -163,7 +163,7 @@ fun SonoraAppShell(
                 entry<SettingsPlayback> { SettingsPlaybackRoute(goBack) }
                 entry<SettingsPrivacy> { SettingsPrivacyRoute(goBack) }
                 entry<SettingsBackup> { SettingsBackupRoute(goBack) }
-                entry<SettingsInfo> { SettingsInfoRoute(goBack) }
+                entry<SettingsInfo> { SettingsInfoRoute(goBack, navigate) }
                 entry<Changelog> { ChangelogRoute(goBack) }
                 entry<Licenses> { LicensesRoute(goBack) }
                 entry<DebugCaches> { DebugCachesRoute(goBack) }
