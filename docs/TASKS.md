@@ -119,7 +119,7 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 
 **P5.1b**
 - [x] **P5-04a** Songs tab & sync banner [UI-08, UI-12] — deps: [P5-03, P5-05] — owns: `A/ui/screens/home/tabs/**` — done when: Songs tab list (tap plays the list from that song, song menu: play next / add to queue / favorite), empty/no-result states, pull-to-refresh sync, sync banner behaviours.
-- [ ] **P5-23** First usable nightly (emulator walkthrough ✅, nightly published ✅, waiting on the maintainer's phone install) — deps: [P5.1 tasks] — owns: none (fixes go to owners) — done when: on the emulator, a fresh install goes onboarding → folder pick → scan → Songs tab → tap plays → mini player → Now Playing (seek, skip, shuffle, repeat, Up Next); nightly published; maintainer installs it on a phone.
+- [x] **P5-23** First usable nightly (emulator walkthrough ✅, nightly published ✅, waiting on the maintainer's phone install) — deps: [P5.1 tasks] — owns: none (fixes go to owners) — done when: on the emulator, a fresh install goes onboarding → folder pick → scan → Songs tab → tap plays → mini player → Now Playing (seek, skip, shuffle, repeat, Up Next); nightly published; maintainer installs it on a phone.
 
 ### P5.1 feedback (maintainer, 2026-11-11, after using the nightly) — fix before/within P5.2
 "Feels good, but resembles the old app a bit; missing the gestures and snappiness; the progress/seek bar looks hacky, not really M3 Expressive."
@@ -226,7 +226,7 @@ App tests (`AT/`, Robolectric):
 - [ ] **P10-24** Song info UI test — deps: [P5-10] — owns: `AT/ui/SongInfoSheetTest.kt` — done when: metadata shown, selectable path, Copy path, tap value → snackbar, audio group hidden when empty.
 - [ ] **P10-25** Now Playing back test — deps: [P5-07] — owns: `AT/ui/NowPlayingBackTest.kt` — done when: back from Up Next returns to player; back from player collapses; album link collapses and pushes `Album`.
 - [ ] **P10-26** App smoke test — deps: [P5-01, P5-02] — owns: `AT/SmokeTest.kt` — done when: Robolectric launches `MainActivity` with fake repos → onboarding; with completed onboarding + fake library → Songs tab lists songs.
-- [ ] **P10-28** Room migrations before 1.0 — deps: [] — owns: `SA/platform/**`, `shared/schemas/**` — done when: `fallbackToDestructiveMigration` is removed, the released schema is frozen as version 1 (or bumped with a migration), and a migration test covers every later schema change.
+- [x] **P10-28** Room migrations before 1.0 — deps: [] — owns: `SA/platform/**`, `shared/schemas/**` — done when: `fallbackToDestructiveMigration` is removed, the released schema is frozen as version 1 (or bumped with a migration), and a migration test covers every later schema change.
 - [ ] **P10-27** Final verification — deps: [P10-01..P10-26, P6-01, P7-05, P8-01] — owns: none (fixes go back to owning tasks) — done when: `BUILD_APP`, assembleRelease (R8), `LINT`, `TEST_SHARED`, `TEST_APP` green; manual device checklist passed: scan, play/gapless, notification + BT buttons, sleep timer, widget, backup import of a Flutter backup, language switch, danger zone, update flow.
 
 ---
