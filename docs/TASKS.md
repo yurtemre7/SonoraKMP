@@ -162,8 +162,8 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 **P6b**
 - [x] **P6-01** Strings parity & Japanese review [L10N-01, L10N-02] — deps: [P6-02..P6-06] — owns: `AR/values*/strings*.xml`, `AT/l10n/StringsParityTest.kt` — done when: per-feature `strings_*.xml` files are kept (decision D-66: no merge into `strings.xml`, which the generator owns), every key exists in en and ja with matching format args, the whole ja set is reviewed for natural, consistent phrasing, and a parity unit test guards it; `LINT` clean.
 
-- [ ] **P6-07** English sentence case for generated strings — owns: `scripts/strings/**`, `AR/values/strings.xml` — done when: the generator supports English overrides and the ~430 Title Case strings carried over from Flutter read in sentence case (DESIGN §2).
-- [ ] **P6-08** Tall-pane Now Playing spacing — owns: `A/ui/screens/nowplaying/PlayerView.kt` — done when: on expanded panes the cover block sits closer to the controls (spacers weighted to the top) instead of floating mid-pane.
+- [x] **P6-07** English sentence case for generated strings — owns: `scripts/strings/**`, `AR/values/strings.xml` — done when: the generator supports English overrides and the ~430 Title Case strings carried over from Flutter read in sentence case (DESIGN §2).
+- [x] **P6-08** Tall-pane Now Playing spacing — owns: `A/ui/screens/nowplaying/PlayerView.kt` — done when: on expanded panes the cover block sits closer to the controls (spacers weighted to the top) instead of floating mid-pane.
 
 - [x] **P6-09** Exact MP3 durations — owns: `S/audio/Mp3Duration.kt`, library enrich pass — done when: VBR MP3s without a Xing header show their real length (fixture: 180 s file reported as 0:29 by MediaStore and ExoPlayer), measured by frame counting in the background enrich pass and stored per (path, size, mtime). Work in progress on branch `wip/mp3-duration` (2026-11-11). Already shipped on main: same time base at any speed, total = max(player, library, position), MP3 index seeking (D-67).
 
