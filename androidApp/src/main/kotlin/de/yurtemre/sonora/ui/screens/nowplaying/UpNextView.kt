@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,13 +69,26 @@ fun UpNextView(
     LaunchedEffect(queue.items) { items = queue.items }
     val currentUid = queue.items.getOrNull(queue.currentIndex)?.entryUid ?: player.currentEntryUid
 
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        items = items.toMutableList().apply { add(to.index, removeAt(from.index)) }
-        connection.moveQueueItem(from.index, to.index)
+    // Only one played song is shown above the current one, so the current song sits second and is in view
+    // without scrolling. The full history stays in the queue; [offset] maps list rows to queue positions.
+    // It is held still during a drag so rows don't shift under the finger.
+    var offset by remember { mutableIntStateOf(0) }
+    var dragging by remember { mutableStateOf(false) }
+    LaunchedEffect(items, currentUid, dragging) {
+        if (!dragging) offset = (items.indexOfFirst { it.entryUid == currentUid } - 1).coerceAtLeast(0)
     }
+    val shown = items.drop(offset)
+
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        dragging = true
+        items = items.toMutableList().apply { add(to.index + offset, removeAt(from.index + offset)) }
+        connection.moveQueueItem(from.index + offset, to.index + offset)
+    }
+    LaunchedEffect(reorderState.isAnyItemDragging) { if (!reorderState.isAnyItemDragging) dragging = false }
 
     val removedText = stringResource(R.string.up_next_removed, "%s")
     val undoLabel = stringResource(R.string.up_next_undo)
+    /** [index] is the queue position (not the list row). */
     fun remove(item: QueueItemUi, index: Int) {
         items = items.filterNot { it.entryUid == item.entryUid }
         connection.removeFromQueue(item.entryUid)
@@ -117,7 +131,8 @@ fun UpNextView(
 
     Box(modifier.fillMaxSize()) {
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            itemsIndexed(items, key = { _, it -> it.entryUid }) { index, item ->
+            itemsIndexed(shown, key = { _, it -> it.entryUid }) { row, item ->
+                val index = row + offset
                 ReorderableItem(reorderState, key = item.entryUid) { _ ->
                     val dismissState = rememberSwipeToDismissBoxState()
                     SwipeToDismissBox(
@@ -139,11 +154,15 @@ fun UpNextView(
                             }
                         },
                     ) {
+                        val isCurrent = item.entryUid == currentUid
+                        // Current song: a quiet full-width tint (row and drag handle) plus the playing bars and
+                        // accent title from SongRow; readable in light, dark and every dynamic scheme.
                         Row(
-                            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface),
+                            Modifier.fillMaxWidth().background(
+                                if (isCurrent) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surface,
+                            ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            val isCurrent = item.entryUid == currentUid
                             SongRow(
                                 title = item.song.displayTitle(),
                                 artist = item.song.artist,
@@ -153,7 +172,6 @@ fun UpNextView(
                                 artwork = item.song.artworkPath,
                                 showArtwork = true,
                                 isPlaying = isCurrent,
-                                selected = isCurrent,
                                 accessibilityActions = buildList {
                                     add(SongRowAction(removeLabel) { remove(item, index) })
                                     if (index > 0) add(SongRowAction(upLabel) {
@@ -175,10 +193,10 @@ fun UpNextView(
                 }
             }
         }
-        val currentIndex = items.indexOfFirst { it.entryUid == currentUid }
-        if (currentIndex >= 0) {
+        val currentRow = shown.indexOfFirst { it.entryUid == currentUid }
+        if (currentRow >= 0) {
             SmallFloatingActionButton(
-                onClick = { scope.launch { listState.animateScrollToItem(currentIndex) } },
+                onClick = { scope.launch { listState.animateScrollToItem((currentRow - 1).coerceAtLeast(0)) } },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             ) {
                 Icon(
