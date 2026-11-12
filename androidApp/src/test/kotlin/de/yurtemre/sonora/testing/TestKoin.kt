@@ -106,6 +106,7 @@ class FakePlayback(current: Song? = null) : PlaybackConnection {
     override fun seekBy(deltaMs: Long) {}
     override fun setUserVolume(volume: Float) {}
     override fun setCustomSpeed(speed: Float) {}
+    override fun setCustomPitch(pitch: Float) {}
     override fun setMfxPreset(preset: MfxPreset) {}
     override fun setBassBoost(enabled: Boolean) {}
     override fun setWarmth(enabled: Boolean) {}

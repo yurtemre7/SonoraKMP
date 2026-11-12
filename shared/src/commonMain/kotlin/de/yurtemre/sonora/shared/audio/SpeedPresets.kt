@@ -8,6 +8,8 @@ import kotlin.math.roundToLong
 object SpeedPresets {
     const val MIN_SPEED = 0.5
     const val MAX_SPEED = 2.0
+    const val MIN_PITCH = 0.5
+    const val MAX_PITCH = 2.0
     val sliderStops: List<Double> = listOf(0.5, 1.0, 1.25, 1.5, 2.0)
 
     /** Exact preset speeds (= pitch), Flutter `MfxPreset` order. */
@@ -23,16 +25,18 @@ object SpeedPresets {
 
     fun clampSpeed(value: Double): Double = value.coerceIn(MIN_SPEED, MAX_SPEED)
 
+    fun clampPitch(value: Double): Double = value.coerceIn(MIN_PITCH, MAX_PITCH)
+
     /** Normal/null → no preset. */
     fun normalize(preset: MfxPreset?): MfxPreset? = preset?.takeUnless { it == MfxPreset.Normal }
 
     fun fromSpeed(speed: Double?): MfxPreset? =
         speed?.let { s -> table.entries.firstOrNull { abs(it.value - s) < 0.001 }?.key }
 
-    /** Speed and pitch to apply: preset speed=pitch, else custom speed with pitch 1.0. */
-    fun playbackParameters(preset: MfxPreset?, customSpeed: Double): Pair<Double, Double> {
+    /** Speed and pitch to apply: preset speed=pitch, else custom speed and custom pitch. */
+    fun playbackParameters(preset: MfxPreset?, customSpeed: Double, customPitch: Double = 1.0): Pair<Double, Double> {
         val p = normalize(preset)
-        return if (p != null) speedOf(p).let { it to it } else customSpeed to 1.0
+        return if (p != null) speedOf(p).let { it to it } else customSpeed to customPitch
     }
 
     fun effectiveSpeed(preset: MfxPreset?, customSpeed: Double): Double = playbackParameters(preset, customSpeed).first

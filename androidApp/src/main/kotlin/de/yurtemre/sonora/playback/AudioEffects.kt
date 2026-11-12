@@ -98,7 +98,11 @@ class AudioEffects(
     }
 
     private fun applySpeed(s: AppSettings) {
-        val (speed, pitch) = SpeedPresets.playbackParameters(s.mfxPreset, SpeedPresets.clampSpeed(s.speed))
+        val (speed, pitch) = SpeedPresets.playbackParameters(
+            s.mfxPreset,
+            SpeedPresets.clampSpeed(s.speed),
+            SpeedPresets.clampPitch(s.pitch),
+        )
         val params = PlaybackParameters(speed.toFloat(), pitch.toFloat())
         if (player.playbackParameters != params) player.playbackParameters = params
     }

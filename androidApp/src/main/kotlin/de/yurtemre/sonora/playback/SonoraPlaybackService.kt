@@ -131,7 +131,13 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             val wanted = ids.toSet()
             library.songs.first().filter { it.id in wanted }.associateBy { it.id }
         }, displayTitle = { // LIB-14: notification, lock screen and Auto show the filtered title
-            TitleFormatter.displayTitle(it.title, it.artist, settings.filterTitleFeatures, settings.filterTitleArtist)
+            TitleFormatter.displayTitle(
+                it.title,
+                it.artist,
+                settings.filterTitleFeatures,
+                settings.filterTitleArtist,
+                settings.filterTitleVideoTags,
+            )
         })
         recorder = ListenStatsRecorder(player, stats, scope, songIdOf = { item ->
             item.mediaId.removePrefix(QueueController.ID_PREFIX).toLongOrNull()
@@ -321,6 +327,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 persist { setVolume(v) }
             }
             C.SET_SPEED -> persist { setSpeed(SpeedPresets.clampSpeed(a.getFloat(C.ARG_VALUE).toDouble())) }
+            C.SET_PITCH -> persist { setPitch(SpeedPresets.clampPitch(a.getFloat(C.ARG_VALUE).toDouble())) }
             C.SET_MFX_PRESET -> persist {
                 setMfxPreset(SpeedPresets.normalize(MfxPreset.fromStorage(a.getString(C.ARG_NAME))))
             }
@@ -346,7 +353,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 setEqToggle(custom = true)
             }
             C.RESET_EFFECTS -> persist {
-                setSpeed(1.0); setMfxPreset(null)
+                setSpeed(1.0); setPitch(1.0); setMfxPreset(null)
                 setMfxBassBoostEnabled(false); setMfxReverbEnabled(false); setMfxLofiEnabled(false)
                 setMfxCustomEqEnabled(false); setMfxCustomEqGains(null)
             }

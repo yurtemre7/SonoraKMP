@@ -19,6 +19,12 @@
     <string name="effects_speed_presets">Speed and pitch</string>
     <string name="effects_custom_speed">Custom speed: %1$s×</string>
     <string name="effects_custom_speed_disabled">Custom speed is off while a preset is active</string>
+    <string name="effects_speed_pitch_section">Speed &amp; pitch</string>
+    <string name="effects_custom_speed_label">Speed</string>
+    <string name="effects_custom_pitch_label">Pitch</string>
+    <string name="effects_speed_pitch_value">%1$s×</string>
+    <string name="effects_speed_pitch_preset_hint">Controlled by the active preset</string>
+    <string name="effects_reset_short">Reset</string>
     <string name="effects_preset_superSlowed">Super slowed</string>
     <string name="effects_preset_slowed075">Slowed 0.75×</string>
     <string name="effects_preset_slowed080">Slowed 0.8×</string>

@@ -59,6 +59,8 @@ data class MfxUiState(
     val preset: MfxPreset = MfxPreset.entries.first { it.isNormal },
     /** Custom speed [0.5, 2.0]; disabled while a non-normal preset is active. */
     val customSpeed: Float = 1f,
+    /** Custom pitch [0.5, 2.0]; disabled while a non-normal preset is active. */
+    val customPitch: Float = 1f,
     val bassBoost: Boolean = false,
     val warmth: Boolean = false,
     val loFi: Boolean = false,
@@ -71,5 +73,7 @@ data class MfxUiState(
     val activeEqMode: EqMode = EqMode.Off,
 ) {
     val effectiveSpeed: Float get() = if (preset.isNormal) customSpeed else preset.speed
+    val effectivePitch: Float get() = if (preset.isNormal) customPitch else preset.pitch
     val isCustomSpeedEnabled: Boolean get() = preset.isNormal
+    val isCustomPitchEnabled: Boolean get() = preset.isNormal
 }

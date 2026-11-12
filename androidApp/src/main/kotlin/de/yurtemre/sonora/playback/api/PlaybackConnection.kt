@@ -53,6 +53,7 @@ interface PlaybackConnection {
 
     // PLAY-12..16 effects
     fun setCustomSpeed(speed: Float)
+    fun setCustomPitch(pitch: Float)
     fun setMfxPreset(preset: MfxPreset)
     fun setBassBoost(enabled: Boolean)
     fun setWarmth(enabled: Boolean)

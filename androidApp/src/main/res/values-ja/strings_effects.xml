@@ -19,6 +19,12 @@
     <string name="effects_speed_presets">速度とピッチ</string>
     <string name="effects_custom_speed">カスタム速度：%1$s×</string>
     <string name="effects_custom_speed_disabled">プリセット使用中はカスタム速度を変更できません</string>
+    <string name="effects_speed_pitch_section">速度とピッチ</string>
+    <string name="effects_custom_speed_label">速度</string>
+    <string name="effects_custom_pitch_label">ピッチ</string>
+    <string name="effects_speed_pitch_value">%1$s×</string>
+    <string name="effects_speed_pitch_preset_hint">プリセットによって制御されています</string>
+    <string name="effects_reset_short">リセット</string>
     <string name="effects_preset_superSlowed">超スロー</string>
     <string name="effects_preset_slowed075">スロー 0.75×</string>
     <string name="effects_preset_slowed080">スロー 0.8×</string>

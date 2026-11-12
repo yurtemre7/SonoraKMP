@@ -211,6 +211,7 @@ class PlaybackConnectionImpl(
         _mfx.value = MfxUiState(
             preset = s.mfxPreset ?: MfxPreset.Normal,
             customSpeed = s.speed.toFloat(),
+            customPitch = s.pitch.toFloat(),
             bassBoost = s.mfxBassBoostEnabled,
             warmth = s.mfxReverbEnabled,
             loFi = s.mfxLofiEnabled,
@@ -297,6 +298,7 @@ class PlaybackConnectionImpl(
     override fun setUserVolume(volume: Float) = send(C.SET_VOLUME, float(volume))
 
     override fun setCustomSpeed(speed: Float) = send(C.SET_SPEED, float(speed))
+    override fun setCustomPitch(pitch: Float) = send(C.SET_PITCH, float(pitch))
     override fun setMfxPreset(preset: MfxPreset) = send(C.SET_MFX_PRESET, name(preset.storageName))
     override fun setBassBoost(enabled: Boolean) = send(C.SET_BASS_BOOST, bool(enabled))
     override fun setWarmth(enabled: Boolean) = send(C.SET_WARMTH, bool(enabled))
