@@ -18,6 +18,7 @@ import de.yurtemre.sonora.shared.model.ThemeColorSource
 import de.yurtemre.sonora.shared.model.ThemeModeSetting
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.components.DisplayPrefs
+import de.yurtemre.sonora.ui.components.LocalAudioPlaying
 import de.yurtemre.sonora.ui.components.LocalDisplayPrefs
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.SonoraAppShell
@@ -42,6 +43,8 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val settings by settingsRepository.settings.collectAsStateWithLifecycle(AppSettings())
             val windowSize = calculateWindowSizeClass(this)
+            val audioPlaying by remember { playback.player.map { it.isPlaying }.distinctUntilChanged() }
+                .collectAsStateWithLifecycle(false)
             val songSeed by remember { playback.player.map { it.currentSong?.seedColor }.distinctUntilChanged() }
                 .collectAsStateWithLifecycle(null)
             // Album art: the current song's seed, the chosen swatch as fallback; Custom: the chosen swatch.
@@ -57,7 +60,7 @@ class MainActivity : AppCompatActivity() {
                 seedColor = seed,
             ) {
                 val prefs = DisplayPrefs(settings.filterTitleFeatures, settings.filterTitleArtist, settings.preferLocalArtistImages)
-                CompositionLocalProvider(LocalDisplayPrefs provides prefs) {
+                CompositionLocalProvider(LocalDisplayPrefs provides prefs, LocalAudioPlaying provides audioPlaying) {
                     GateHost {
                         SonoraAppShell(
                             widthSizeClass = windowSize.widthSizeClass,

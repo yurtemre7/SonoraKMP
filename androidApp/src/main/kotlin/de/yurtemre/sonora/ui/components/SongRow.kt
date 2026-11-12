@@ -45,6 +45,7 @@ import org.koin.compose.koinInject
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -252,9 +253,16 @@ private fun SongRowContent(
     }
 }
 
+/**
+ * Whether audio is actually playing (not just which song is current), provided by `MainActivity`. The
+ * equalizer bars only animate while it is true: an endless animation on a paused song kept the screen
+ * redrawing 60 times a second.
+ */
+val LocalAudioPlaying = compositionLocalOf { true }
+
 @Composable
 private fun EqualizerBars(color: Color) {
-    val reduce = LocalReduceMotion.current
+    val reduce = LocalReduceMotion.current || !LocalAudioPlaying.current
     val heights: List<State<Float>> = if (reduce) {
         listOf(0.5f, 0.85f, 0.65f).map { remember { mutableFloatStateOf(it) } }
     } else {
