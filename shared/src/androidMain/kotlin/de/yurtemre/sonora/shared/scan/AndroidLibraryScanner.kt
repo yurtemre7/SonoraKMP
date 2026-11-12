@@ -99,7 +99,7 @@ class AndroidLibraryScanner(
             val art = if (albumSongs.isEmpty()) emptyMap() else {
                 val sources = albumSongs.mapValues { (_, s) -> s.first().let { ArtworkCache.Source(it.filePath, it.id) } }
                 artworkCache.extractAll(albumSongs.keys, sources) { d, t -> onProgress(BackgroundWork.Stage.Artwork, d, t) }.also { runCatching { artworkCache.prune(albumSongs.keys) } }
-            }
+            } + folderCovers(albumSongs, index)
             val lyrics = HashSet<String>()
             songs.forEachIndexed { i, s ->
                 if (LyricsLocator.hasLyrics(s.filePath, index)) lyrics += s.filePath
@@ -107,6 +107,35 @@ class AndroidLibraryScanner(
             }
             ScanEnrichment(art, lyrics, artistImages(songs, root, index) { d, t -> onProgress(BackgroundWork.Stage.ArtistImages, d, t) })
         }
+
+    /**
+     * Albums MediaStore has no art for (e.g. Opus without an embedded picture) take a `cover.*` / `folder.*`
+     * image from the song's folder, else its parent folder (as the directory scan does). The image is copied
+     * into the album-art cache, so later syncs pick it up as cached art. Albums that already have art are skipped.
+     */
+    private fun folderCovers(albumSongs: Map<Long, List<Song>>, index: TreeSidecarIndex): Map<Long, String> {
+        val treeImages = index.artistImageCandidates().entries.associate { (path, uri) -> path.lowercase() to uri }
+        val out = HashMap<Long, String>()
+        for ((albumId, list) in albumSongs) {
+            if (artworkCache.cachedPath(albumId) != null) continue
+            val dirs = list.map { it.filePath.substringBeforeLast('/', "") }.distinct()
+                .flatMap { listOf(it, it.substringBeforeLast('/', "")) }.filter { it.isNotEmpty() }.distinct()
+            val candidate = dirs.asSequence().flatMap { d -> FOLDER_COVER_NAMES.asSequence().map { "$d/$it" } }
+                .firstOrNull { File(it).canRead() || it.lowercase() in treeImages } ?: continue
+            runCatching {
+                val target = artworkCache.artFile(albumId)
+                val tmp = File(target.path + ".tmp")
+                val file = File(candidate)
+                val input = if (file.canRead()) file.inputStream() else resolver.openInputStream(treeImages.getValue(candidate.lowercase()))
+                input?.use { i -> tmp.outputStream().use { i.copyTo(it) } }
+                if (tmp.length() > 0 && tmp.renameTo(target)) {
+                    artworkCache.noneMarker(albumId).delete()
+                    out[albumId] = target.absolutePath
+                } else tmp.delete()
+            }
+        }
+        return out
+    }
 
     private fun fromMediaStore(rows: List<MediaStoreRow>, cached: List<Song>): ScanResult {
         // Only already-cached covers (cheap File checks); missing ones are extracted in [enrich].
@@ -184,6 +213,11 @@ class AndroidLibraryScanner(
             if (tmp.length() == 0L || !tmp.renameTo(target)) { tmp.delete(); null } else target.absolutePath
         } else target.absolutePath
     } catch (e: Exception) { null }
+
+    private companion object {
+        /** Tree (SAF) paths match case-insensitively; plain File paths need the exact spelling, hence both cases. */
+        val FOLDER_COVER_NAMES = listOf("cover.jpg", "cover.png", "cover.webp", "Cover.jpg", "folder.jpg", "Folder.jpg")
+    }
 
     private fun sha1(s: String): String =
         MessageDigest.getInstance("SHA-1").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
