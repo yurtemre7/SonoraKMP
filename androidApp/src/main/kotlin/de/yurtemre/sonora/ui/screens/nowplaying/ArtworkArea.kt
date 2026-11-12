@@ -1,6 +1,8 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
@@ -9,7 +11,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,13 +64,27 @@ fun ArtworkArea(
     val latestSkip by rememberUpdatedState(onSkipTo)
     val spec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
 
-    // Player → pager: follow skips made elsewhere (transport, notification, Up Next).
+    // Only settles caused by a finger may skip; programmatic follow-scrolls (possibly interrupted by a newer
+    // skip, e.g. "next" tapped twice fast) must never feed back into the player.
+    var userSwiped by remember { mutableStateOf(false) }
+    val dragged by pager.interactionSource.collectIsDraggedAsState()
+    LaunchedEffect(pager) {
+        pager.interactionSource.interactions.collect { if (it is DragInteraction.Start) userSwiped = true }
+    }
+
+    // Player → pager: follow skips made elsewhere (transport, notification, Up Next). A newer skip
+    // interrupts a running follow animation; only an active drag is left alone.
     LaunchedEffect(current) {
-        if (pager.currentPage != current && !pager.isScrollInProgress) pager.animateScrollToPage(current, animationSpec = spec)
+        if (pager.currentPage != current && !dragged) {
+            userSwiped = false
+            pager.animateScrollToPage(current, animationSpec = spec)
+        }
     }
     // Pager → player: a user swipe that settles on another sleeve skips to it.
     LaunchedEffect(pager) {
         snapshotFlow { pager.settledPage }.distinctUntilChanged().drop(1).collect { page ->
+            if (!userSwiped) return@collect
+            userSwiped = false
             val item = latestItems.getOrNull(page) ?: return@collect
             if (page != latestCurrent) {
                 haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
