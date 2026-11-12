@@ -116,13 +116,13 @@ internal fun MinimalPlayer(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(24.dp))
-                visualizer?.invoke()
-                seekBar()
-                Transport(state, actions)
+                Spacer(Modifier.height(16.dp))
             }
         }
-        // Full width below the Spine so the view switcher labels are never cut off.
+        // Full width below the Spine: the seek bar gets the whole screen width and labels are never cut off.
+        visualizer?.invoke()
+        seekBar()
+        Transport(state, actions)
         if (!immersive) {
             SecondaryRow(state, isFavorite, actions)
             ViewSwitcher(NowPlayingView.Player, onViewChange)
