@@ -101,6 +101,7 @@ New user-visible strings during P5–P6 go into `AR/values/strings_<task>.xml` (
 - [x] **P4-12** PlaybackConnection impl — deps: [P4-11] — owns: `A/playback/PlaybackConnectionImpl.kt` — done when: MediaController-backed StateFlows for `PlayerUiState`/queue/timer/MFX and all command methods; bound in Koin via own module file `A/playback/PlaybackModule.kt`.
 
 ## Progress log
+- 2026-11-12 (paused): in progress on branch `wip/p11` (unfinished, not compiling-verified): P5-28..30 player styles / blur / visualizer; P5-31 back-press order (overlay must close before the screen under it — maintainer bug: Settings popped before Now Playing); P5-32 sleep timer duration + finish-song together; P5-33 settings wiring audit + one SettingsTest (partial audit in docs/audit/settings_wiring.md if present).
 - 2026-11-11: P1–P5 and P7 done, P6 done except follow-ups P6-07 (EN sentence case), P6-08 (tablet NP spacing), P6-09 (exact MP3 durations, in progress). Library tabs now share one fixed header (single Library destination). Open: P5-23 (maintainer phone check of scan speed), P9-04/05 (site QA, screenshots), P10 (test trim, Room migrations, final verification).
 
 ## P5 UI screens; each task also owns its `AR/values*/strings_<task>.xml`
@@ -131,6 +132,10 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [ ] **P5-28** Now Playing styles — owns: `A/ui/screens/nowplaying/**` — done when: the "vinyl" and "minimal" player styles render their own Sleeve-style layouts (or the setting is removed), found in the final report.
 - [ ] **P5-29** Blurred backgrounds — owns: `A/ui/components/TintedBackdrop.kt` — done when: the setting draws the API 31+ blur per DESIGN §6.3 (or the switch is removed).
 - [ ] **P5-30** Visualizer — owns: `A/ui/screens/nowplaying/**` — done when: the visualizer setting shows a reduce-motion-aware animation (or the switch is removed).
+
+- [ ] **P5-31** Back-press order — owns: `A/ui/navigation/**` — done when: back closes sheets/dialogs, then Now Playing, then search/selection, then pops the screen; BackOrderTest reproduces the Settings + player report.
+- [ ] **P5-32** Sleep timer duration + finish song — owns: `S/audio/SleepTimerState.kt`, `A/playback/sleep/**`, sleep sheet — done when: duration and "finish the current song" combine (timer runs out, then the current track plays to its end).
+- [ ] **P5-33** Settings wiring audit — done when: every AppSettings field is traced to a runtime consumer, unwired ones fixed, one SettingsTest covers defaults + round-trips.
 
 ### P5.2 Everything else (built while the app is in daily use)
 
