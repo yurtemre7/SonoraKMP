@@ -32,6 +32,11 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.ui.screens.home.BackgroundWorkProgress
+import org.koin.compose.koinInject
 import de.yurtemre.sonora.ui.format.FolderDisplay
 
 /** SET-01 library card: folder ("Music › X"), change folder (SAF), sync now, last sync. */
@@ -79,6 +84,8 @@ fun LibrarySyncCard(
                 color = cs.onSurfaceVariant,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
+            val work by koinInject<LibraryRepository>().backgroundWork.collectAsStateWithLifecycle()
+            BackgroundWorkProgress(work)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onChangeFolder, enabled = !syncing, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(if (folderPath == null) R.string.settings_library_choose_folder else R.string.settings_library_change_folder))

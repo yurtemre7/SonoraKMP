@@ -2,6 +2,7 @@ package de.yurtemre.sonora.shared.repo.api
 
 import de.yurtemre.sonora.shared.model.Song
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /** Song library cache in Room `songs` (SPEC §5.2, LIB-03..07). */
 interface LibraryRepository {
@@ -10,6 +11,8 @@ interface LibraryRepository {
     /** LIB-07: artist nameLower → image path. */
     val artistImages: Flow<Map<String, String>>
     val isSyncing: Flow<Boolean>
+    /** Progress of the background enrichment after a sync (artwork, lyrics, …); null when idle. */
+    val backgroundWork: StateFlow<BackgroundWork?>
 
     suspend fun getSong(id: Long): Song?
     suspend fun getSongByPath(filePath: String): Song?
@@ -33,4 +36,9 @@ sealed interface SyncOutcome {
     data class Success(val songCount: Int, val durationMs: Long, val idRemap: Map<Long, Long>) : SyncOutcome
     data object FolderMissing : SyncOutcome
     data class Failed(val error: Throwable) : SyncOutcome
+}
+
+/** One running background enrichment stage with item progress ([done] of [total]). */
+data class BackgroundWork(val stage: Stage, val done: Int, val total: Int) {
+    enum class Stage { Artwork, Lyrics, ArtistImages, ReplayGain, Durations, Colors }
 }

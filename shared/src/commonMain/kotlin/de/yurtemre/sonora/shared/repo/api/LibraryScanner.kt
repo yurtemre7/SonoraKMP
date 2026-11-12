@@ -18,6 +18,14 @@ interface LibraryScanner {
      * images). Run by the repository in the background after the songs are persisted; null = nothing.
      */
     suspend fun enrich(folderPath: String?, folderUri: String?, songs: List<Song>): ScanEnrichment? = null
+
+    /** [enrich] with per-item progress reports (stage, done, total); default ignores [onProgress]. */
+    suspend fun enrich(
+        folderPath: String?,
+        folderUri: String?,
+        songs: List<Song>,
+        onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
+    ): ScanEnrichment? = enrich(folderPath, folderUri, songs)
 }
 
 data class ScanEnrichment(

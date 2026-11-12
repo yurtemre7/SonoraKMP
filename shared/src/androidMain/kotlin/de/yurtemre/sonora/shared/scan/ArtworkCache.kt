@@ -148,7 +148,11 @@ class ArtworkCache(private val context: Context) {
      * Cold mode: extracts all [albumIds] on a pool of clamp(cores,1,4) threads, bounded by 5 min.
      * Returns albumId → path for those that succeeded.
      */
-    suspend fun extractAll(albumIds: Collection<Long>, sources: Map<Long, Source> = emptyMap()): Map<Long, String> {
+    suspend fun extractAll(
+        albumIds: Collection<Long>,
+        sources: Map<Long, Source> = emptyMap(),
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): Map<Long, String> {
         val ids = albumIds.filter { needsExtraction(it) }.distinct()
         val result = HashMap<Long, String>()
         albumIds.forEach { id -> cachedPath(id)?.let { result[id] = it } }
@@ -157,9 +161,14 @@ class ArtworkCache(private val context: Context) {
         val pool = Executors.newFixedThreadPool(threads).asCoroutineDispatcher()
         try {
             val found = java.util.concurrent.ConcurrentHashMap<Long, String>()
+            val done = java.util.concurrent.atomic.AtomicInteger()
+            onProgress(0, ids.size)
             withTimeoutOrNull(COLD_TIMEOUT_MS) {
                 withContext(pool) {
-                    ids.map { id -> async { extract(id, sources[id])?.let { found[id] = it } } }.awaitAll()
+                    ids.map { id -> async {
+                        extract(id, sources[id])?.let { found[id] = it }
+                        onProgress(done.incrementAndGet(), ids.size)
+                    } }.awaitAll()
                 }
             }
             result.putAll(found)

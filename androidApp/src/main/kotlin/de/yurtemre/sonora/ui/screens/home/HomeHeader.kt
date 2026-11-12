@@ -58,6 +58,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.yurtemre.sonora.R
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.yurtemre.sonora.shared.repo.api.BackgroundWork
+import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.ui.theme.LocalReduceMotion
+import org.koin.compose.koinInject
 import de.yurtemre.sonora.ui.components.DevBadge
 import de.yurtemre.sonora.ui.format.DurationFormat
 import de.yurtemre.sonora.ui.navigation.LibraryTab
@@ -119,7 +137,70 @@ fun HomeHeader(
                 }
             }
         }
+        val work by koinInject<LibraryRepository>().backgroundWork.collectAsStateWithLifecycle()
+        BackgroundWorkProgress(work, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         if (isSyncing) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
+    }
+}
+
+/** Stage label for a [BackgroundWork.Stage]. */
+@Composable
+internal fun stageLabel(stage: BackgroundWork.Stage): String = stringResource(
+    when (stage) {
+        BackgroundWork.Stage.Artwork -> R.string.progress_stage_artwork
+        BackgroundWork.Stage.Lyrics -> R.string.progress_stage_lyrics
+        BackgroundWork.Stage.ArtistImages -> R.string.progress_stage_artist_images
+        BackgroundWork.Stage.ReplayGain -> R.string.progress_stage_replay_gain
+        BackgroundWork.Stage.Durations -> R.string.progress_stage_durations
+        BackgroundWork.Stage.Colors -> R.string.progress_stage_colors
+    },
+)
+
+/**
+ * Slim determinate wavy bar + caption ("Getting artwork 120 of 583") for background enrichment. Expands
+ * and fades in while [work] is non-null and collapses when it finishes; TalkBack announces only stage
+ * changes (polite live region on the stage name, not the count).
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun BackgroundWorkProgress(work: BackgroundWork?, modifier: Modifier = Modifier) {
+    var last by remember { mutableStateOf(work) }
+    if (work != null) last = work
+    val reduceMotion = LocalReduceMotion.current
+    AnimatedVisibility(
+        visible = work != null,
+        enter = expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+        exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+        label = "bgWork",
+    ) {
+        val w = last ?: return@AnimatedVisibility
+        val fraction by animateFloatAsState(
+            if (w.total > 0) w.done.toFloat() / w.total else 0f,
+            MaterialTheme.motionScheme.defaultEffectsSpec(),
+            label = "bgWorkFraction",
+        )
+        val label = stageLabel(w.stage)
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.progress_stage_count, label, w.done, w.total),
+                style = MaterialTheme.typography.labelMedium.tabular(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = label
+                    liveRegion = LiveRegionMode.Polite
+                },
+            )
+            LinearWavyProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.fillMaxWidth().height(10.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                amplitude = { if (reduceMotion) 0f else 1f },
+                waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2,
+            )
+        }
     }
 }
 

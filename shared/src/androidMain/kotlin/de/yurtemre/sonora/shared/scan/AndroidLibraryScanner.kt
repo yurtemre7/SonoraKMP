@@ -7,6 +7,7 @@ import android.os.Build
 import de.yurtemre.sonora.shared.library.TrackNumbers
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.platform.TreeUriPaths
+import de.yurtemre.sonora.shared.repo.api.BackgroundWork
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
 import de.yurtemre.sonora.shared.repo.api.ScanEnrichment
 import de.yurtemre.sonora.shared.repo.api.ScanResult
@@ -82,6 +83,14 @@ class AndroidLibraryScanner(
 
     /** Background half of a scan (see [LibraryScanner.enrich]): no per-song work blocks the UI result. */
     override suspend fun enrich(folderPath: String?, folderUri: String?, songs: List<Song>): ScanEnrichment? =
+        enrich(folderPath, folderUri, songs) { _, _, _ -> }
+
+    override suspend fun enrich(
+        folderPath: String?,
+        folderUri: String?,
+        songs: List<Song>,
+        onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
+    ): ScanEnrichment? =
         withContext(Dispatchers.IO) {
             val treeUri: Uri? = folderUri?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
             val root = folderPath?.takeIf { it.isNotBlank() } ?: treeUri?.let { TreeUriPaths.treeUriToPath(it) }
@@ -89,10 +98,14 @@ class AndroidLibraryScanner(
             val albumSongs = songs.filter { (it.albumId ?: 0) > 0 }.groupBy { it.albumId!! }
             val art = if (albumSongs.isEmpty()) emptyMap() else {
                 val sources = albumSongs.mapValues { (_, s) -> s.first().let { ArtworkCache.Source(it.filePath, it.id) } }
-                artworkCache.extractAll(albumSongs.keys, sources).also { runCatching { artworkCache.prune(albumSongs.keys) } }
+                artworkCache.extractAll(albumSongs.keys, sources) { d, t -> onProgress(BackgroundWork.Stage.Artwork, d, t) }.also { runCatching { artworkCache.prune(albumSongs.keys) } }
             }
-            val lyrics = songs.filter { LyricsLocator.hasLyrics(it.filePath, index) }.mapTo(HashSet()) { it.filePath }
-            ScanEnrichment(art, lyrics, artistImages(songs, root, index))
+            val lyrics = HashSet<String>()
+            songs.forEachIndexed { i, s ->
+                if (LyricsLocator.hasLyrics(s.filePath, index)) lyrics += s.filePath
+                onProgress(BackgroundWork.Stage.Lyrics, i + 1, songs.size)
+            }
+            ScanEnrichment(art, lyrics, artistImages(songs, root, index) { d, t -> onProgress(BackgroundWork.Stage.ArtistImages, d, t) })
         }
 
     private fun fromMediaStore(rows: List<MediaStoreRow>, cached: List<Song>): ScanResult {
@@ -140,9 +153,17 @@ class AndroidLibraryScanner(
     }
 
     /** LIB-07; index-only (SAF) matches are copied into `filesDir/artist_images` so they are File-readable. */
-    private fun artistImages(songs: List<Song>, root: String?, index: TreeSidecarIndex): Map<String, String> {
+    private fun artistImages(
+        songs: List<Song>,
+        root: String?,
+        index: TreeSidecarIndex,
+        onProgress: (Int, Int) -> Unit = { _, _ -> },
+    ): Map<String, String> {
         val scanner = ArtistImageScanner(root, index)
-        for (s in songs) runCatching { scanner.addSong(s.filePath, s.artist) }
+        songs.forEachIndexed { i, s ->
+            runCatching { scanner.addSong(s.filePath, s.artist) }
+            onProgress(i + 1, songs.size)
+        }
         val out = LinkedHashMap<String, String>()
         for ((artist, path) in scanner.images) {
             val f = File(path)

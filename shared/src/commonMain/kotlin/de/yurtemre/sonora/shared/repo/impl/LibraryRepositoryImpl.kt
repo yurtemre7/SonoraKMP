@@ -15,6 +15,8 @@ import de.yurtemre.sonora.shared.library.LibrarySearchIndex
 import de.yurtemre.sonora.shared.model.AlbumGroup
 import de.yurtemre.sonora.shared.model.ArtistGroup
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.shared.repo.api.BackgroundWork
+import de.yurtemre.sonora.shared.repo.api.BackgroundWork.Stage
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
@@ -27,9 +29,12 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -65,6 +70,19 @@ class LibraryRepositoryImpl(
         db.artistImageDao().observeAll().map { l -> l.associate { it.artistKey to it.path } }
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
 
+    /** Running stages → latest progress; published (lowest stage first) at most every [PROGRESS_THROTTLE_MS]. */
+    private val activeWork = MutableStateFlow<Map<Stage, BackgroundWork>>(emptyMap())
+    private val _backgroundWork = MutableStateFlow<BackgroundWork?>(null)
+    override val backgroundWork: StateFlow<BackgroundWork?> = _backgroundWork.asStateFlow()
+
+    private fun report(stage: Stage, done: Int, total: Int) {
+        if (total <= 0) return
+        activeWork.update { it + (stage to BackgroundWork(stage, done.coerceIn(0, total), total)) }
+    }
+    private fun advance(stage: Stage, total: Int) =
+        activeWork.update { m -> m + (stage to BackgroundWork(stage, ((m[stage]?.done ?: 0) + 1).coerceAtMost(total), total)) }
+    private fun finish(vararg stages: Stage) = activeWork.update { it - stages.toSet() }
+
     val albums: Flow<List<AlbumGroup>> = songs.map { AlbumGrouper.build(it) }
     val artists: Flow<List<ArtistGroup>> = combine(songs, artistImages) { s, img -> ArtistGrouper.build(s, AlbumGrouper.build(s), img) }
     val searchIndex: Flow<LibrarySearchIndex> = songs.map { LibrarySearchIndex(it) }
@@ -72,6 +90,13 @@ class LibraryRepositoryImpl(
     init {
         // D-20: patch rows when background art extraction finishes.
         scope.launch { platform.backgroundArt.collect { m -> m.forEach { (album, path) -> songDao.updateArtworkForAlbum(album, path) } } }
+        // StateFlow collection is conflated, so the delay throttles emissions to >= 150 ms apart.
+        scope.launch {
+            activeWork.collect { m ->
+                _backgroundWork.value = m.values.minByOrNull { it.stage.ordinal }
+                delay(PROGRESS_THROTTLE_MS)
+            }
+        }
     }
 
     override suspend fun getSong(id: Long): Song? = songDao.getById(id)?.let { e ->
@@ -131,7 +156,11 @@ class LibraryRepositoryImpl(
     private fun startEnrichment(path: String?, uri: String?, songs: List<Song>) {
         enrichJob?.cancel()
         enrichJob = scope.launch {
-            val e = try { scanner.enrich(path, uri, songs) } catch (c: CancellationException) { throw c } catch (t: Throwable) { null }
+            val e = try {
+                scanner.enrich(path, uri, songs) { stage, done, total -> report(stage, done, total) }
+            } catch (c: CancellationException) { throw c } catch (t: Throwable) { null } finally {
+                finish(Stage.Artwork, Stage.Lyrics, Stage.ArtistImages)
+            }
             if (e != null) applyEnrichment(songs, e)
             startSeedPass()
         }
@@ -156,16 +185,20 @@ class LibraryRepositoryImpl(
     suspend fun fillReplayGain() = withContext(Dispatchers.IO) {
         val pending = songDao.getAll().filter { !it.rgScanned }.map { it.toModel() }
         if (pending.isEmpty()) return@withContext
-        val gate = Semaphore(4)
-        val done = pending.map { s ->
-            async {
-                gate.withPermit {
-                    val r = ReplayGainReader.tryRead { platform.openByteSource(s.filePath) }
-                    if (r.failed) null else s.copy(replayGain = r.info, replayGainScanned = true)
+        report(Stage.ReplayGain, 0, pending.size)
+        try {
+            val gate = Semaphore(4)
+            val done = pending.map { s ->
+                async {
+                    gate.withPermit {
+                        val r = ReplayGainReader.tryRead { platform.openByteSource(s.filePath) }
+                        advance(Stage.ReplayGain, pending.size)
+                        if (r.failed) null else s.copy(replayGain = r.info, replayGainScanned = true)
+                    }
                 }
-            }
-        }.awaitAll().filterNotNull()
-        updateReplayGain(done)
+            }.awaitAll().filterNotNull()
+            updateReplayGain(done)
+        } finally { finish(Stage.ReplayGain) }
     }
 
     /**
@@ -175,6 +208,11 @@ class LibraryRepositoryImpl(
     suspend fun fillDurations() = withContext(Dispatchers.IO) {
         val pending = songDao.getAll().filter { !it.durationVerified && it.filePath.endsWith(".mp3", ignoreCase = true) }
         if (pending.isEmpty()) return@withContext
+        report(Stage.Durations, 0, pending.size)
+        try { fillDurations(pending) } finally { finish(Stage.Durations) }
+    }
+
+    private suspend fun fillDurations(pending: List<de.yurtemre.sonora.shared.db.SongEntity>) = coroutineScope {
         val gate = Semaphore(2)
         val corrected = pending.map { s ->
             async {
@@ -183,6 +221,7 @@ class LibraryRepositoryImpl(
                         val src = platform.openByteSource(s.filePath)
                         try { Mp3Duration.measureMs(src) } finally { (src as? AutoCloseable)?.close() }
                     }.getOrNull()
+                    advance(Stage.Durations, pending.size)
                     if (ms != null && abs(ms - s.durationMs) > 1_000) s.id to ms else null
                 }
             }
@@ -204,11 +243,16 @@ class LibraryRepositoryImpl(
             val todo = songDao.getAll().filter { it.seedColor == null && it.artworkPath != null && it.artworkPath !in colorless }
             val byArt = todo.groupBy { it.artworkPath!! }
             val found = mutableMapOf<Long, Int>(); val failed = mutableSetOf<String>()
-            for ((art, rows) in byArt) {
-                val c = runCatching { platform.extractSeedColor(art) }.getOrNull()
-                if (c == null) failed += art else rows.forEach { found[it.id] = c }
-                delay(seedItemDelayMs)
-            }
+            try {
+                var i = 0
+                report(Stage.Colors, 0, byArt.size)
+                for ((art, rows) in byArt) {
+                    val c = runCatching { platform.extractSeedColor(art) }.getOrNull()
+                    if (c == null) failed += art else rows.forEach { found[it.id] = c }
+                    report(Stage.Colors, ++i, byArt.size)
+                    delay(seedItemDelayMs)
+                }
+            } finally { finish(Stage.Colors) }
             if (found.isNotEmpty()) db.useWriterConnection { t -> t.immediateTransaction { found.forEach { (id, c) -> songDao.updateSeedColor(id, c) } } }
             settings.addColorless(failed)
         }
@@ -256,6 +300,7 @@ class LibraryRepositoryImpl(
     }
 
     companion object {
+        const val PROGRESS_THROTTLE_MS = 150L
         const val REMINDER_MS = 30L * 24 * 60 * 60 * 1000
     }
 }

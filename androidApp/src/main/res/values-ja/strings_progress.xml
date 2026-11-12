@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="progress_stage_artwork">アートワークを取得中</string>
+    <string name="progress_stage_lyrics">歌詞を検索中</string>
+    <string name="progress_stage_artist_images">アーティスト画像を検索中</string>
+    <string name="progress_stage_replay_gain">音量レベルを読み込み中</string>
+    <string name="progress_stage_durations">曲の長さを確認中</string>
+    <string name="progress_stage_colors">ジャケットの色を抽出中</string>
+    <string name="progress_stage_count">%1$s（%2$d / %3$d）</string>
+</resources>
