@@ -452,6 +452,8 @@
     <string name="listens_never">未再生</string>
     <string name="widget_label">再生中</string>
     <string name="widget_description">再生中の曲を表示し、再生を操作できます</string>
+    <string name="widget_square_label">再生中（スクエア）</string>
+    <string name="widget_square_description">アルバムアートを全面に表示し、再生を操作できるスクエアウィジェット</string>
     <string name="widget_nothing_playing">再生中の曲はありません</string>
     <string name="widget_tap_to_open">タップしてSonoraKMPを開く</string>
     <string name="widget_album_art">アルバムアート</string>

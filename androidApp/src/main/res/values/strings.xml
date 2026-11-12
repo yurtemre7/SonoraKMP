@@ -464,6 +464,8 @@
     <string name="listens_never">Never played</string>
     <string name="widget_label">Now playing</string>
     <string name="widget_description">Shows the current song with playback controls</string>
+    <string name="widget_square_label">Now playing (square)</string>
+    <string name="widget_square_description">Square now playing card with full-bleed artwork and playback controls</string>
     <string name="widget_nothing_playing">Nothing playing</string>
     <string name="widget_tap_to_open">Tap to open SonoraKMP</string>
     <string name="widget_album_art">Album art</string>

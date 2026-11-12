@@ -8,4 +8,8 @@
     <color name="widget_on_primary">#FFFFFFFF</color>
     <color name="widget_placeholder">#FF2A44D4</color>
     <color name="widget_on_placeholder">#FFFFFFFF</color>
+    <!-- Square widget: content drawn on dimmed artwork (same in light and dark). -->
+    <color name="widget_on_art">#FFFFFFFF</color>
+    <color name="widget_on_art_variant">#D9FFFFFF</color>
+    <color name="widget_on_art_button">#FF141A2E</color>
 </resources>

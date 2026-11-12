@@ -9,4 +9,6 @@
     <dimen name="widget_art_size_large">96dp</dimen>
     <dimen name="widget_button_size">40dp</dimen>
     <dimen name="widget_button_padding">8dp</dimen>
+    <dimen name="widget_button_size_square">48dp</dimen>
+    <dimen name="widget_button_padding_square">12dp</dimen>
 </resources>

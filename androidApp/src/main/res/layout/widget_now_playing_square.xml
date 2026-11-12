@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Square now playing widget (2x2 and up): the artwork fills the box (dimmed, drawn by WidgetRenderer with the
+  widget's corners), title and artist sit on top, controls along the bottom. Shares view ids with the other layouts.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_square_background">
+    <ImageView
+        android:id="@+id/widget_art"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/widget_album_art"
+        android:scaleType="fitXY" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding_large">
+        <LinearLayout
+            android:id="@+id/widget_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="top"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="2"
+                android:shadowColor="#80000000"
+                android:shadowRadius="4"
+                android:text="@string/widget_nothing_playing"
+                android:textColor="@color/widget_on_art"
+                android:textSize="16sp" />
+            <TextView
+                android:id="@+id/widget_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:shadowColor="#80000000"
+                android:shadowRadius="4"
+                android:text="@string/widget_tap_to_open"
+                android:textColor="@color/widget_on_art_variant"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/widget_previous"
+                android:layout_width="@dimen/widget_button_size"
+                android:layout_height="@dimen/widget_button_size"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/widget_previous"
+                android:padding="@dimen/widget_button_padding"
+                android:src="@drawable/widget_ic_previous"
+                android:tint="@color/widget_on_art" />
+            <ImageView
+                android:id="@+id/widget_play_pause"
+                android:layout_width="@dimen/widget_button_size_square"
+                android:layout_height="@dimen/widget_button_size_square"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/widget_square_play_background"
+                android:contentDescription="@string/widget_play"
+                android:padding="@dimen/widget_button_padding_square"
+                android:src="@drawable/widget_ic_play"
+                android:tint="@color/widget_on_art_button" />
+            <ImageView
+                android:id="@+id/widget_next"
+                android:layout_width="@dimen/widget_button_size"
+                android:layout_height="@dimen/widget_button_size"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/widget_next"
+                android:padding="@dimen/widget_button_padding"
+                android:src="@drawable/widget_ic_next"
+                android:tint="@color/widget_on_art" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

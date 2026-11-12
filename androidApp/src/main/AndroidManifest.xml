@@ -73,6 +73,17 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/now_playing_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.SquareNowPlayingWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_square_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/now_playing_square_widget_info" />
+        </receiver>
 
         <!-- PackageInstaller session result (UPD-08) -->
         <receiver
