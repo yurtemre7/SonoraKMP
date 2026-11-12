@@ -30,6 +30,8 @@ data class Song(
     val albumId: Long? = null,
     val replayGain: ReplayGainInfo? = null,
     val replayGainScanned: Boolean = false,
+    /** Duration measured from the file itself (see Mp3Duration); MediaStore's value is kept otherwise. */
+    val durationVerified: Boolean = false,
     val isFavorite: Boolean = false,
     val favoriteDateMs: Long? = null,
 ) {

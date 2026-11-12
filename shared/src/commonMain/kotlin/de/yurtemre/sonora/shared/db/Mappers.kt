@@ -12,6 +12,7 @@ fun SongEntity.toModel(favorite: FavoriteSongEntity? = null): Song = Song(
     replayGain = if (rgTrackGain == null && rgAlbumGain == null && rgTrackPeak == null && rgAlbumPeak == null) null
     else ReplayGainInfo(rgTrackGain, rgAlbumGain, rgTrackPeak, rgAlbumPeak),
     replayGainScanned = rgScanned,
+    durationVerified = durationVerified,
     isFavorite = favorite != null,
     favoriteDateMs = favorite?.favoritedAtMs,
 )
@@ -23,6 +24,7 @@ fun Song.toEntity(): SongEntity = SongEntity(
     trackNumber = trackNumber, discNumber = discNumber, albumArtist = albumArtist, genre = genre, year = year, albumId = albumId,
     rgTrackGain = replayGain?.trackGain, rgAlbumGain = replayGain?.albumGain,
     rgTrackPeak = replayGain?.trackPeak, rgAlbumPeak = replayGain?.albumPeak, rgScanned = replayGainScanned,
+    durationVerified = durationVerified,
 )
 
 /** Entries must belong to this playlist; order by position. */

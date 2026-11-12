@@ -34,6 +34,7 @@ class DebugLibraryProbe : BroadcastReceiver(), KoinComponent {
             try {
                 val folder = intent.getStringExtra("folder") ?: "/storage/emulated/0/Music/SonoraTest"
                 settings.setScanFolder(folder, intent.getStringExtra("uri"))
+                settings.setOnboardingCompleted(true)
                 val outcome = library.sync()
                 val songs = library.songs.first()
                 val impl = library as? LibraryRepositoryImpl

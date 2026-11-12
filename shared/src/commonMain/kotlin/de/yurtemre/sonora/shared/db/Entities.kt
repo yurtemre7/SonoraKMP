@@ -35,6 +35,8 @@ data class SongEntity(
     @ColumnInfo(name = "rg_track_peak") val rgTrackPeak: Double? = null,
     @ColumnInfo(name = "rg_album_peak") val rgAlbumPeak: Double? = null,
     @ColumnInfo(name = "rg_scanned") val rgScanned: Boolean = false,
+    /** Duration re-measured from the file (MP3 frame walk); reset when path/size/mtime change. */
+    @ColumnInfo(name = "duration_verified", defaultValue = "0") val durationVerified: Boolean = false,
 )
 
 /** Song favorite; [filePath] enables relink when MediaStore ids change (D-26/D-49). */

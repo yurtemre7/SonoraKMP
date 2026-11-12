@@ -2,7 +2,9 @@ package de.yurtemre.sonora.shared.repo.impl
 
 import androidx.room.immediateTransaction
 import androidx.room.useWriterConnection
+import de.yurtemre.sonora.shared.audio.Mp3Duration
 import de.yurtemre.sonora.shared.audio.replaygain.ReplayGainReader
+import kotlin.math.abs
 import de.yurtemre.sonora.shared.db.ArtistImageEntity
 import de.yurtemre.sonora.shared.db.SonoraDatabase
 import de.yurtemre.sonora.shared.db.toEntity
@@ -102,6 +104,7 @@ class LibraryRepositoryImpl(
             settings.recordSync(clock.nowMs(), duration)
             // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
             scope.launch { fillReplayGain() }
+            scope.launch { fillDurations() }
             startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
@@ -163,6 +166,33 @@ class LibraryRepositoryImpl(
             }
         }.awaitAll().filterNotNull()
         updateReplayGain(done)
+    }
+
+    /**
+     * Exact MP3 lengths (MediaStore/ExoPlayer misread header-less VBR files). Runs once per file: merge keeps
+     * the verified flag while path, size and mtime are unchanged. Only differences over 1 s are written.
+     */
+    suspend fun fillDurations() = withContext(Dispatchers.IO) {
+        val pending = songDao.getAll().filter { !it.durationVerified && it.filePath.endsWith(".mp3", ignoreCase = true) }
+        if (pending.isEmpty()) return@withContext
+        val gate = Semaphore(2)
+        val corrected = pending.map { s ->
+            async {
+                gate.withPermit {
+                    val ms = runCatching {
+                        val src = platform.openByteSource(s.filePath)
+                        try { Mp3Duration.measureMs(src) } finally { (src as? AutoCloseable)?.close() }
+                    }.getOrNull()
+                    if (ms != null && abs(ms - s.durationMs) > 1_000) s.id to ms else null
+                }
+            }
+        }.awaitAll().filterNotNull().toMap()
+        db.useWriterConnection { c ->
+            c.immediateTransaction {
+                corrected.forEach { (id, ms) -> songDao.updateVerifiedDuration(id, ms) }
+                pending.map { it.id }.filter { it !in corrected }.chunked(500).forEach { songDao.markDurationVerified(it) }
+            }
+        }
     }
 
     /** LIB-22: background seed pass, 3 s after load, 100 ms between images, one batch write. */
