@@ -1,0 +1,149 @@
+# key	en (sentence case per docs/DESIGN.md §2; applied over docs/audit/strings.tsv by gen_strings.py)
+accessAudioAndImageFiles	Access audio & image files
+addToQueue	Add to queue
+allPermissionsGranted	All permissions granted
+amoledDark	AMOLED pure black
+appLanguage	App language
+autoCheckUpdates	Automatically check for updates
+cancelTimer	Cancel timer
+changeCover	Change cover
+changeFolder	Change folder
+checkForUpdates	Check for updates
+communityAndSupport	Community & support
+configurePermissions	Configure permissions
+customSpeed	Custom speed
+dangerZone	Danger zone
+dataManagement	Data management
+dateCreated	Date created
+dateModified	Date modified
+defaultSleepTimer	Default sleep timer
+defaultStartPage	Default start page
+deletePlaylist	Delete playlist
+deletePlaylistConfirmTitle	Delete playlist?
+developerProfile	Developer profile
+displayedAs	Displayed as:
+enterYourName	Enter your name
+favoriteRemove	Remove favorite
+favoriteSong	Favorite song
+fileSize	File size
+filterTitleArtistSubtitle	Hides "artist - " from the beginning of song titles.
+getStarted	Get started
+infoSettings	Info & support
+lastSync	Last sync
+libraryFormatting	Library formatting
+librarySync	Library sync
+listeningStatistics	Listening statistics
+mfxBassBoosted	Bass boosted
+mfxLoFi	Lo-Fi / vintage room
+mfxResetAll	Reset all effects
+mfxWarmthSubtitle	Simulated via EQ (Bass boost, high cut)
+mfxBluetoothPatch	Bluetooth audio device patch
+musicEffects	Music effects
+openGithubReleases	Open GitHub releases
+originalMetadata	Original metadata:
+permissionsExplained	Permissions explained
+permissionsNeeded	Permissions needed
+playNext	Play next
+preferLocalArtistImages	Prefer local artist images
+presetSpeedAndPitch	Preset speed & pitch
+privacyCardDataTitle	Your data is yours
+privacyCardDeleteDataContent	You have full control. You can wipe all app settings, statistics, and caches instantly at any time from the danger zone located at the bottom of the info & support tab.
+privacyCardDeleteDataTitle	Delete all data
+privacyCardNotificationsTitle	Notifications & foreground service
+privacyCardStorageContent	Used to scan your selected music folder for audio tracks and local artist/album artwork (e.g., artist.jpg or cover.png).\n\nTransparent privacy guarantee: although Android prompts for "photos & media" access, Sonora strictly scans files inside your designated music directory. We NEVER read, inspect, or access your personal photo gallery, camera roll, or private images.
+privacyCardStorageTitle	Storage, audio & cover images
+privacyCardWakeLockTitle	Wake lock
+privacySettings	Privacy & permissions
+rateLimitTitle	Rate limit exceeded
+removeCover	Remove cover
+renamePlaylist	Rename playlist
+resetApplication	Reset application
+resetApplicationConfirmTitle	Reset application?
+resetStatistics	Reset statistics
+resetStatisticsTitle	Reset statistics?
+saveAsPlaylist	Save as playlist
+saveQueueAsPlaylist	Save queue as playlist
+selectFolder	Select folder
+selectLanguage	Select language
+selectedDirectory	Selected directory:
+setMusicDirectory	Set music directory
+setSyncFolder	Set sync folder
+setupMusicDirectory	Setup music directory
+showAudioVisualizer	Show audio visualizer
+showNotifications	Show notifications
+shufflePlay	Shuffle play
+sleepTimer	Sleep timer
+songInfo	Song info
+songInformation	Song information
+sortAlbumsBy	Sort albums by
+sortArtistsBy	Sort artists by
+sortAscending	Sort ascending
+sortByAlbumCount	Album count
+sortByAlbumName	Album name
+sortByArtistName	Artist name
+sortByDateFavorited	Date favorited
+sortByPlaylistName	Playlist name
+sortByRecentlyAdded	Recently added
+sortBySongCount	Song count
+sortByTrackCount	Track count
+sortDescending	Sort descending
+sortPlaylistsBy	Sort playlists by
+sortSongsBy	Sort songs by
+sourceCode	Source code
+startTimer	Start timer
+syncLibraryDatabase	Sync library database?
+syncNow	Sync now
+systemDefault	System default
+telegramContact	Telegram contact
+themeMode	Theme mode
+titleFilters	Title filters
+tryAgain	Try again
+updateAvailable	Update available
+useGreetingTitle	Use greeting title
+viewStatistics	View statistics
+yourName	Your name
+yourNameOptional	Your name (Optional)
+fileInfoGroup	File info
+audioPropertiesGroup	Audio properties
+filePathLabel	File path
+openFolder	Open folder
+copyPath	Copy path
+shareFile	Share file
+sampleRateLabel	Sample rate
+mfxSuperSlowed	Super slowed
+mfxSpedUp	Sped up
+mfxSuperSpedUp	Super sped up
+mfxSpeedSubtitle	{speed}x speed
+customEqualizer	Custom equalizer
+funFacts	Fun facts
+firstSongPlayed	First song played
+mostPlayedSong	Most played song
+uniqueSongsPlayed	Unique songs played
+shuffleSessions	Shuffle sessions
+mostActiveDay	Most active day
+mostPlayedSongs	Most played songs
+mostPlayedAlbums	Most played albums
+mostPlayedArtists	Most played artists
+mostPlayedPlaylists	Most played playlists
+playlistIsEmptySubtitle	Go to the songs list and use the song menu to add music to this playlist.
+nowPlaying	Now playing
+debugCacheInfo	Debug cache info
+pauseOnDisconnect	Pause on disconnect
+resumeOnConnect	Resume on connect
+sleepTimerFadeOut	Sleep timer fade out
+nowPlayingStyle	Now playing style
+styleVinyl	Vinyl turntable
+selectAll	Select all
+deselectAll	Deselect all
+themeColorsHeader	Theme colors & accent
+displayAndContrast	Display & contrast
+playerScreenAesthetics	Player screen aesthetics
+wallpaperColorActive	Wallpaper palette active
+colorSourceAlbumArt	Album art
+fallbackColorHeader	Fallback color (when no song is playing)
+customColorHeader	Choose accent color
+allSongs	All songs
+recentlyPlayed	Recently played
+mostPlayed	Most played
+leastPlayed	Least played
+thisWeek	This week

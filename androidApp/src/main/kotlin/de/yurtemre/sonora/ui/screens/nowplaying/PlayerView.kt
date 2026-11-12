@@ -148,7 +148,8 @@ fun PlayerView(
             }
         } else {
             // Spine runs alongside the sleeve from the same top edge; the sleeve takes the width left by the spine
-            // (capped by the slot height minus the chips), and the spare height is split above and below the block.
+            // (capped by the slot height minus the chips). Spare height goes mostly above the block so the cover and chips
+            // sit near the controls on tall panes instead of floating mid-pane.
             androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val chips = if (immersive) 0.dp else 124.dp
                 val art = minOf(maxWidth - 80.dp, maxHeight - chips).coerceAtLeast(0.dp)
@@ -166,7 +167,7 @@ fun PlayerView(
                             MetaChips(song, actions)
                         }
                     }
-                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.weight(0.3f))
                 }
             }
         }

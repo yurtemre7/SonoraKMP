@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Android string resources from docs/audit/strings.tsv (+ ja_overrides.tsv).
+"""Generate Android string resources from docs/audit/strings.tsv (+ ja_overrides.tsv, en_overrides.tsv).
 
 Usage (from repo root): python3 -I scripts/strings/gen_strings.py
 Output: androidApp/src/main/res/values{,-ja}/strings.xml  (see SPEC §8.2)
@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 TSV = os.path.join(ROOT, "docs", "audit", "strings.tsv")
 OVERRIDES = os.path.join(HERE, "ja_overrides.tsv")
+EN_OVERRIDES = os.path.join(HERE, "en_overrides.tsv")  # sentence case, DESIGN.md §2
 RES = os.path.join(ROOT, "androidApp", "src", "main", "res")
 
 # Extra keys not in the Flutter ARB: (name, en, ja, translatable)
@@ -105,6 +106,17 @@ def brand(text):
     return PRODUCT_RE.sub("SonoraKMP", text)
 
 
+def load_overrides(path):
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line and not line.startswith("#"):
+                k, v = line.split("\t", 1)
+                out[k] = v
+    return out
+
+
 def main():
     rows = []
     with open(TSV, encoding="utf-8") as f:
@@ -115,15 +127,10 @@ def main():
             if line:
                 k, en, ja, ph = (line.split("\t") + [""])[:4]
                 rows.append((k, en, ja, ph))
-    overrides = {}
-    with open(OVERRIDES, encoding="utf-8") as f:
-        for line in f:
-            line = line.rstrip("\n")
-            if line and not line.startswith("#"):
-                k, v = line.split("\t", 1)
-                overrides[k] = v
+    overrides = load_overrides(OVERRIDES)
+    en_overrides = load_overrides(EN_OVERRIDES)
     known = {r[0] for r in rows}
-    bad = set(overrides) - known
+    bad = (set(overrides) | set(en_overrides)) - known
     if bad:
         sys.exit("overrides for unknown keys: %s" % sorted(bad))
 
@@ -134,6 +141,7 @@ def main():
         assert name not in names, name
         names.add(name)
         ja = overrides.get(k, ja)
+        en = en_overrides.get(k, en)
         phs = parse_placeholders(ph)
         cases = parse_plural(en)
         if cases:
@@ -166,8 +174,8 @@ def main():
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "strings.xml"), "w", encoding="utf-8") as f:
             f.write(brand(head + "\n".join(body) + "\n</resources>\n"))
-    print("keys from tsv: %d, plurals: %d, extra: %d, ja overrides: %d"
-          % (len(rows), n_plurals, len(EXTRA), len(overrides)))
+    print("keys from tsv: %d, plurals: %d, extra: %d, ja overrides: %d, en overrides: %d"
+          % (len(rows), n_plurals, len(EXTRA), len(overrides), len(en_overrides)))
 
 
 if __name__ == "__main__":
