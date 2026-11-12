@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.playlist
 
 import androidx.compose.runtime.snapshotFlow
+import de.yurtemre.sonora.ui.components.displayTitle
 import de.yurtemre.sonora.ui.components.rememberQueueSwipeActions
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -366,7 +367,7 @@ private fun PlaylistDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             SongRow(
-                                title = song.title,
+                                title = song.displayTitle(),
                                 artist = song.artist,
                                 durationMs = song.durationMs,
                                 artwork = song.artworkPath,

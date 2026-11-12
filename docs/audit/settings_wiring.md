@@ -1,6 +1,6 @@
 # Settings wiring audit (P5-33)
 
-Snapshot of `wip/p11`, 2026-11-12. Paths are relative to `androidApp/src/main/kotlin/de/yurtemre/sonora/`
+Snapshot of `wip/p11`, 2026-11-12, updated after the fixes. Paths are relative to `androidApp/src/main/kotlin/de/yurtemre/sonora/`
 (app) or `shared/src/commonMain/kotlin/de/yurtemre/sonora/shared/` (shared). Every setter lives in
 `shared/settings/SettingsRepository.kt`; keys in `shared/settings/SettingsKeys.kt`.
 
@@ -18,13 +18,13 @@ It proves storage only; runtime effects below are not covered by tests.
 | Setting | UI control | Runtime reader | Effect / timing | Mark | Bak |
 |---|---|---|---|---|---|
 | themeMode | ConnectedChoice | `MainActivity.kt:38` → SonoraTheme | recomposition | ✅ | B |
-| themeColorSource | ConnectedChoice | `MainActivity.kt:37` | System/Afterglow work; **AlbumArt and Custom fall back to Sleeve** because MainActivity passes no `seedColor` (`ui/theme/Theme.kt:99`, `seed == null`) | ⚠️ | B |
-| defaultThemeColor | SeedSwatchRow (`:114`) | only the settings screen itself (`:69`) | never reaches SonoraTheme | ❌ | B |
+| themeColorSource | ConnectedChoice | `MainActivity.kt` | Album art seeds from the current song (chosen swatch while nothing plays); Custom uses `defaultThemeColor` | ✅ | B |
+| defaultThemeColor | SeedSwatchRow (`:114`) | `MainActivity.kt` → `SonoraTheme(seedColor)` | Custom seed and Album-art fallback, recomposition | ✅ | B |
 | amoledDark | Switch `:123` | `MainActivity.kt:39` | immediate | ✅ | B |
-| blurredBackgrounds | Switch `:129` | `nowplaying/NowPlayingViewModel.kt:44` → `NowPlayingOverlay.kt:61` | next frame | 🚧 | B |
-| nowPlayingStyle | ChoiceRow `:143` | `NowPlayingViewModel.kt:41` | immediate | 🚧 | B |
-| preferLocalArtistImages | Switch `:153` | none; `ArtistsTab.kt:110`, `ArtistRoute.kt:154`, `FavoritesRoute.kt:382`, `StatsRoute.kt:206` always prefer `localImagePath` | toggle has no effect | ❌ | B |
-| showVisualizer | Switch `:160` | `NowPlayingViewModel.kt:47` → `NowPlayingOverlay.kt:113` | immediate | 🚧 | B |
+| blurredBackgrounds | Switch `:129` | `NowPlayingViewModel.kt` → `TintedBackdrop` | blur on API 31+ under a 0.88 surface overlay, flat tint below 31 | ✅ | B |
+| nowPlayingStyle | ChoiceRow `:143` | `NowPlayingViewModel.kt` → `PlayerView` | Modern / Vinyl / Minimalist, immediate | ✅ | B |
+| preferLocalArtistImages | Switch `:153` | `ui/components/DisplayPrefs.kt` `preferredArtistImage` (Artists tab, artist page, favourites, stats) | recomposition | ✅ | B |
+| showVisualizer | Switch `:160` | `NowPlayingViewModel.kt` → `Visualizer` above the seek bar | animates while playing, frozen when paused / reduce motion | ✅ | B |
 | immersiveMode | (Now playing toggle) | `NowPlayingViewModel.kt:38`/`:74` | immediate | ✅ | B |
 | useGreetingTitle / userName | Switch `:169`, name dialog `:177`; onboarding | `home/HomeViewModel.kt:84` | immediate | ✅ | B |
 | appLocale | LanguageDialog (`SettingsRoute.kt:211`) | `locale/AppLocales.kt:16` (AppCompat) | activity recreate | ✅ | B |
@@ -34,8 +34,8 @@ It proves storage only; runtime effects below are not covered by tests.
 
 | Setting | Runtime reader | Effect | Mark | Bak |
 |---|---|---|---|---|
-| filterTitleFeatures | preview only (`:47`); `playback/QueueController.kt:46` hard-codes `{ it.title }`; SongRow etc. use raw title | no effect outside the preview | ❌ | B |
-| filterTitleArtist | same | same | ❌ | B |
+| filterTitleFeatures | `LocalDisplayPrefs` → `Song.displayTitle()` in rows, mini player, Now Playing, sheets; `SonoraPlaybackService` → `QueueController` for notification/Auto/widget | UI immediate; session titles 🕑 for items loaded after the change | ✅ | B |
+| filterTitleArtist | same | same | ✅ | B |
 
 ## Playback (`ui/screens/settings/playback/SettingsPlaybackRoute.kt`)
 
@@ -48,9 +48,9 @@ It proves storage only; runtime effects below are not covered by tests.
 | pauseOnDisconnect | `playback/NoisyAndReconnectHandler.kt:44` | next disconnect | ✅ | B |
 | resumeOnConnect | `NoisyAndReconnectHandler.kt:52` | next reconnect | ✅ | B |
 | bluetoothMfxPatch | `playback/AudioEffects.kt:116` | immediate EQ recompute | ✅ | B |
-| sleepTimerDefaultMinutes | none; `nowplaying/sheets/SleepTimerSheet.kt:71` starts with `selected = null` | no preselection | ❌ | B |
+| sleepTimerDefaultMinutes | `SleepTimerSheet.kt` preselects the preset (or custom slider) | 🕑 next sheet open | 🕑 | B |
 | sleepTimerFadeOutSeconds | `SleepTimerSheet.kt:76`; `SonoraPlaybackService.kt:384` (extend) | 🕑 next sheet open | 🕑 | B |
-| sleepTimerFinishSong | `SleepTimerSheet.kt:75`; `SonoraPlaybackService.kt:384` | 🕑 next sheet open (behaviour being changed by another agent) | 🕑 | B |
+| sleepTimerFinishSong | `SleepTimerSheet.kt`; `SonoraPlaybackService.kt` (extend) | 🕑 next sheet open; combines with a duration (P5-32) | 🕑 | B |
 
 ## Not on a settings screen (set from player / lists / system)
 
@@ -61,8 +61,8 @@ It proves storage only; runtime effects below are not covered by tests.
 | speed, mfxPreset | MFX sheet → `AudioEffects.kt:101` | ✅ | B |
 | mfxReverb/Lofi/BassBoost/CustomEq, mfxCustomEqGains | MFX sheet → `AudioEffects.kt:109-116`, `SonoraPlaybackService.kt:332/374` | ✅ | B |
 | song/album/artist/playlist sort | Home sort menu → `home/HomeViewModel.kt:177-182` | ✅ | B |
-| favoritesSortBy/Ascending | **no writer, no reader**: `favorites/FavoritesViewModel.kt:41` keeps a local `MutableStateFlow(FavSort.Date to false)` | ❌ (not persisted) | B |
-| songActivityView | **no writer, no reader**: `HomeViewModel.kt:100` derives view from the Plays sort direction | ❌ | B |
+| favoritesSortBy/Ascending | Favourites sort menu → `favorites/FavoritesViewModel.kt` (reads and writes settings) | ✅ | B |
+| songActivityView | `HomeViewModel.setSort` stores it, derived from the songs sort (Plays asc → leastPlayed, desc → mostPlayed, else all) | ✅ (stored for backup parity) | B |
 | autoCheckUpdates | Info switch `:115` → `update/UpdateScheduler.kt:21` | 🕑 next scheduled check | B |
 | updateChannel | updates screen → `update/UpdateViewModel.kt:96/124` | ✅ next check | B |
 | lastUpdateCheckMs, updateRateLimitResetMs | `UpdateScheduler.kt:22` | ✅ (internal) | – |
@@ -73,4 +73,4 @@ It proves storage only; runtime effects below are not covered by tests.
 
 ## Counts
 
-✅ 30 · 🕑 7 · ❌ 7 · ⚠️ 1 · 🚧 3 (rows above; grouped rows counted per field).
+✅ 31 rows · 🕑 7 rows · no ❌, ⚠️ or 🚧 left (grouped settings share a row).

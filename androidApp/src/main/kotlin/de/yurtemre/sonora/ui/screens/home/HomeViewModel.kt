@@ -14,6 +14,7 @@ import de.yurtemre.sonora.shared.model.ArtistSort
 import de.yurtemre.sonora.shared.model.Playlist
 import de.yurtemre.sonora.shared.model.PlaylistSort
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.shared.model.SongActivityView
 import de.yurtemre.sonora.shared.model.SongSort
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
@@ -165,7 +166,16 @@ class HomeViewModel(
             when (tab) {
                 LibraryTab.Songs -> {
                     val prev = SongSort.fromStorage(current.key); val next = SongSort.fromStorage(key)
-                    settingsRepo.setSongSort(next, ascending ?: LibrarySorter.directionOnSortChange(prev, next, current.ascending))
+                    val asc = ascending ?: LibrarySorter.directionOnSortChange(prev, next, current.ascending)
+                    settingsRepo.setSongSort(next, asc)
+                    // song_activity_view is derived from the songs sort and stored for Flutter backup parity.
+                    settingsRepo.setSongActivityView(
+                        when {
+                            next != SongSort.Plays -> SongActivityView.All
+                            asc -> SongActivityView.LeastPlayed
+                            else -> SongActivityView.MostPlayed
+                        },
+                    )
                 }
                 LibraryTab.Albums -> settingsRepo.setAlbumSort(AlbumSort.fromStorage(key), ascending ?: current.ascending)
                 LibraryTab.Artists -> settingsRepo.setArtistSort(ArtistSort.fromStorage(key), ascending ?: current.ascending)

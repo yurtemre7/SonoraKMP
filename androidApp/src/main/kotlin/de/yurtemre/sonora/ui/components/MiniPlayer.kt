@@ -101,7 +101,7 @@ fun MiniPlayer(
     val spring = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val slideSpec = MaterialTheme.motionScheme.fastSpatialSpec<androidx.compose.ui.unit.IntOffset>()
     val primary = MaterialTheme.colorScheme.primary
-    val desc = stringResource(R.string.miniplayer_description, song.title, song.artist)
+    val desc = stringResource(R.string.miniplayer_description, song.displayTitle(), song.artist)
     val prevLabel = stringResource(R.string.miniplayer_action_previous)
     val closeLabel = stringResource(R.string.miniplayer_action_close)
     val openLabel = stringResource(R.string.miniplayer_open)
@@ -200,7 +200,7 @@ fun MiniPlayer(
                 AlbumArt(s.artworkPath, s.title, Modifier.size(44.dp), decorative = true, artist = s.artist)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(s.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(s.displayTitle(), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         s.artist,
                         style = MaterialTheme.typography.bodySmall,

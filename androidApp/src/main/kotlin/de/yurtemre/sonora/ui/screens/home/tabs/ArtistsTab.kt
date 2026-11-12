@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.home.tabs
 
 import androidx.compose.foundation.layout.Box
+import de.yurtemre.sonora.ui.components.preferredArtistImage
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -107,7 +108,7 @@ private fun ArtistRow(artist: ArtistGroup, onClick: () -> Unit) {
         modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
         leadingContent = {
-            ArtistAvatar(artist.localImagePath ?: artist.songs.firstNotNullOfOrNull { it.artworkPath }, artist.name, Modifier.size(56.dp))
+            ArtistAvatar(preferredArtistImage(artist.localImagePath) ?: artist.songs.firstNotNullOfOrNull { it.artworkPath }, artist.name, Modifier.size(56.dp))
         },
         headlineContent = { Text(artist.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = { Text(counts, maxLines = 1) },

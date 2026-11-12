@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.playlist
 
 import androidx.compose.foundation.layout.Box
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -71,7 +72,7 @@ internal fun AddSongsSheet(existing: Set<Long>, onAdd: (List<Long>) -> Unit, onD
                 LazyColumn {
                     items(visible, key = { it.id }) { s ->
                         SongRow(
-                            title = s.title, artist = s.artist, durationMs = s.durationMs,
+                            title = s.displayTitle(), artist = s.artist, durationMs = s.durationMs,
                             artwork = s.artworkPath, showArtwork = true,
                             selected = s.id in picked,
                             onClick = { picked = LinkedHashSet(picked).apply { if (!remove(s.id)) add(s.id) } },

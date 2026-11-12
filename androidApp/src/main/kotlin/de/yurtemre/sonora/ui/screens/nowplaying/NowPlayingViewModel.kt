@@ -41,6 +41,12 @@ class NowPlayingViewModel(
     val style: StateFlow<NowPlayingStyle> = settings.settings.map { it.nowPlayingStyle }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), NowPlayingStyle.Modern)
 
+    val blurredBackgrounds: StateFlow<Boolean> = settings.settings.map { it.blurredBackgrounds }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), false)
+
+    val showVisualizer: StateFlow<Boolean> = settings.settings.map { it.showVisualizer }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), false)
+
     fun togglePlayPause() = playback.togglePlayPause()
     fun next() = playback.skipToNext()
     fun previous() = playback.skipToPrevious()

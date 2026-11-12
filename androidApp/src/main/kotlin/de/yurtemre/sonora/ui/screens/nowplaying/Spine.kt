@@ -25,9 +25,14 @@ fun spineIsHorizontal(fontScale: Float) = fontScale >= SPINE_FALLBACK_FONT_SCALE
  * clipped by the edge rather than shrunk. The rotated glyphs are decorative; the title is exposed once as a heading.
  */
 @Composable
-fun Spine(title: String, modifier: Modifier = Modifier) {
+fun Spine(
+    title: String,
+    modifier: Modifier = Modifier,
+    /** Lay the title out horizontally (large fonts, or panes too short for a vertical spine). */
+    horizontal: Boolean = spineIsHorizontal(LocalDensity.current.fontScale),
+) {
     val color = MaterialTheme.colorScheme.onSurface
-    if (spineIsHorizontal(LocalDensity.current.fontScale)) {
+    if (horizontal) {
         Text(
             title,
             modifier = modifier.semantics { heading() },

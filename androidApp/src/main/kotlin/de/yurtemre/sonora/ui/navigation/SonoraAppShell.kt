@@ -98,9 +98,9 @@ fun SonoraAppShell(
     widthSizeClass: WindowWidthSizeClass,
     defaultTab: LibraryTab,
     onOpenNowPlaying: (() -> Unit)? = null,
+    backStack: NavBackStack<NavKey> = rememberNavBackStack(Library),
+    nowPlaying: NowPlayingSlotState = rememberNowPlayingSlotState(),
 ) {
-    val backStack = rememberNavBackStack(Library)
-    val nowPlaying = rememberNowPlayingSlotState()
     val controller = rememberNowPlayingController(nowPlaying)
     val openNowPlaying: () -> Unit = onOpenNowPlaying ?: controller::expand
     val playback: PlaybackConnection = koinInject()
@@ -157,6 +157,7 @@ fun SonoraAppShell(
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
+                remember { predictiveBackCorners() },
             ),
             transitionSpec = { push() },
             popTransitionSpec = { pop() },
@@ -184,8 +185,10 @@ fun SonoraAppShell(
     }
 
     val overlayMode = widthSizeClass != WindowWidthSizeClass.Expanded
-    // Expanded widths show Now Playing as a pane; back collapses it there (the overlay's own handler is not composed).
-    BackHandler(enabled = !overlayMode && nowPlaying.expanded) { nowPlaying.expanded = false }
+    // Expanded widths: the detail pane shows only backStack.drop(1); with a single detail entry NavDisplay has nothing
+    // to pop, so the shell closes the detail pane (detail first, then the list). Registered before the panes so any
+    // screen handler inside the detail (selection, search) still wins.
+    BackHandler(enabled = !overlayMode && backStack.size == 2 && !nowPlaying.expanded) { goBack() }
     CompositionLocalProvider(LocalNowPlayingController provides controller) { Box(Modifier.fillMaxSize()) {
         // While the overlay covers the shell, TalkBack must not reach the content behind it (P6-03).
         Box(Modifier.fillMaxSize().then(if (overlayMode && nowPlaying.expanded) Modifier.clearAndSetSemantics {} else Modifier)) {
@@ -271,6 +274,9 @@ fun SonoraAppShell(
         }
         }
         if (overlayMode) NowPlayingSlot(nowPlaying, snackbarHostState = snackbar, onNavigate = navigate)
+        // Expanded widths show Now Playing as a pane; back collapses it there. Composed (registered) only while
+        // expanded and after the panes, so it is the topmost callback and beats the list's handlers.
+        if (!overlayMode && nowPlaying.expanded) BackHandler { nowPlaying.expanded = false }
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
     } }

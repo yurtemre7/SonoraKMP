@@ -1,6 +1,8 @@
 package de.yurtemre.sonora.ui.screens.stats
 
 import androidx.compose.foundation.background
+import de.yurtemre.sonora.ui.components.preferredArtistImage
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -203,7 +205,7 @@ fun StatsRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                             entries = ui.topArtists.map { r ->
                                 RankedEntry(
                                     key = r.item.key(), title = r.item.name, subtitle = null, plays = r.plays,
-                                    art = r.item.localImagePath, isArtist = true,
+                                    art = preferredArtistImage(r.item.localImagePath), isArtist = true,
                                     onClick = { onNavigate(Artist(r.item.name)) },
                                 )
                             },
@@ -310,7 +312,7 @@ private fun OverviewPage(ui: StatsUi, contentPadding: PaddingValues, onOpenRecen
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.stats_first_song), style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
-                    Text(song.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.displayTitle(), style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (since != null) Text(
                         stringResource(R.string.stats_first_song_since, since),
                         style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant,

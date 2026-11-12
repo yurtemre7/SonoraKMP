@@ -7,8 +7,8 @@ Material 3 Expressive, Android only)
 
 The native port is feature-complete for daily use and builds, tests and releases through CI. Behaviour follows
 the Flutter app; the look is new ("Sleeve", see [DESIGN.md](DESIGN.md)). Flutter bugs were fixed rather than
-copied (decisions D-56–D-64 in [SPEC.md](SPEC.md)). Three cosmetic settings from the Flutter app are present in
-Settings but not implemented yet (see Known gaps).
+copied (decisions D-56–D-64 in [SPEC.md](SPEC.md)). Every setting is wired to the code that reads it
+([audit/settings_wiring.md](audit/settings_wiring.md)).
 
 | Definition of done | Status |
 | --- | --- |
@@ -65,17 +65,18 @@ Numbers: 160 planned tasks done, 29 tests, 68 recorded decisions, ~110 commits.
 
 ## Known gaps
 
-1. **Three settings do nothing yet:** Now Playing style (vinyl/minimal), blurred backgrounds, visualizer.
-   Either implement them in the Sleeve style or remove the switches. Tracked as P5-28, P5-29, P5-30.
+1. **Checked only on the emulator:** Now Playing styles (vinyl spins and freezes on pause, minimal), blurred
+   backgrounds (API 31+), visualizer, back order (Settings + player). The sleep timer's duration-then-finish
+   path is covered by `SleepTimerStateTest`, not listened to.
 2. **Not tested on a device:** home-screen widget placement, Bluetooth headset buttons, danger-zone wipe,
-   sleep-timer finish-song mode, display cutouts (checked in code only), equalizer/fades/speed by ear.
-3. **No stable release yet:** the website and the Stable update channel fall back to the nightly until
-   `release: 1.0.0` is pushed.
+   display cutouts (checked in code only), equalizer/fades/speed by ear.
+3. **No stable release yet, on purpose:** 1.0.0 is still some way off; the website and the Stable update
+   channel fall back to the nightly until the maintainer cuts it.
 4. **Side by side with Flutter Sonora:** different app ID and signing key, so no in-place upgrade; users move
    over by restoring a Flutter backup (open question Q-2).
 5. **Material 3 1.5.0-rc01:** a release candidate (needed for the expressive components); move to the stable
    release when it ships.
-6. Minor: predictive-back corner radius on screen transitions not added; one leftover 404 seen once in the
+6. Minor: predictive-back corners (32 dp) are in code but not tried with a real gesture; one leftover 404 seen once in the
    site console during QA, not re-checked.
 
 ## Manual steps for the maintainer
@@ -84,7 +85,7 @@ Already done: GitHub signing secrets set, GitHub Pages enabled (source: GitHub A
 
 1. **Back up the signing key** in `~/.sonora-signing/` (keystore + `keystore.properties`). Losing it means no
    more updates over existing installs.
-2. **Cut the first release:**
+2. **Cut the first release (later, when 1.0 is ready):**
 
    ```bash
    git commit --allow-empty -m "release: 1.0.0"

@@ -1,6 +1,8 @@
 package de.yurtemre.sonora.ui.screens.favorites
 
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
+import de.yurtemre.sonora.ui.components.preferredArtistImage
+import de.yurtemre.sonora.ui.components.displayTitle
 import de.yurtemre.sonora.ui.navigation.albumKeyOf
 import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
 import de.yurtemre.sonora.ui.sheets.SongActionsHost
@@ -114,7 +116,8 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     val playback: PlaybackConnection = koinInject()
     val library: LibraryRepository = koinInject()
     val favorites: FavoritesRepository = koinInject()
-    val vm = viewModel { FavoritesViewModel(library, favorites) }
+    val settingsRepository: de.yurtemre.sonora.shared.settings.SettingsRepository = koinInject()
+    val vm = viewModel { FavoritesViewModel(library, favorites, settingsRepository) }
     val ui by vm.ui.collectAsStateWithLifecycle()
     val player by playback.player.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -313,7 +316,7 @@ private fun SwipeSongRow(
         },
     ) {
         SongRow(
-            title = song.title,
+            title = song.displayTitle(),
             artist = song.artist,
             durationMs = song.durationMs,
             onClick = onClick,
@@ -379,7 +382,7 @@ private fun ArtistStrip(artists: List<ArtistGroup>, onOpen: (ArtistGroup) -> Uni
                     .combinedClickable(onClick = { onOpen(artist) }, onLongClick = { onRemove(artist) }),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                ArtistAvatar(artist.localImagePath, artist.name, Modifier.size(88.dp))
+                ArtistAvatar(preferredArtistImage(artist.localImagePath), artist.name, Modifier.size(88.dp))
                 Spacer(Modifier.height(6.dp))
                 Text(artist.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

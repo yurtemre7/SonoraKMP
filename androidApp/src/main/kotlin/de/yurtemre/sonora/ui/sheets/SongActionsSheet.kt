@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.sheets
 
 import androidx.compose.foundation.clickable
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,7 +78,7 @@ fun SongActionsSheet(
             ) {
                 AlbumArt(song.artworkPath, song.album, Modifier.size(56.dp), shape = SleeveShape, decorative = true)
                 Column(Modifier.weight(1f)) {
-                    Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.displayTitle(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         song.artist, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
                         overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant,

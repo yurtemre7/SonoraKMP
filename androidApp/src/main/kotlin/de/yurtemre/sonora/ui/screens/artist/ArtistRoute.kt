@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.artist
 
 import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.ui.components.preferredArtistImage
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
 import de.yurtemre.sonora.ui.navigation.albumKeyOf
 import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
@@ -151,7 +152,7 @@ fun ArtistRoute(
                         onPlay = { playback.playSong(tracks.first(), tracks) },
                         onShuffle = { playback.playShuffled(tracks) },
                         art = { m ->
-                            ArtistAvatar(a.localImagePath ?: tracks.firstNotNullOfOrNull { it.artworkPath }, a.name, m.aspectRatio(1f), ArtSize.Large)
+                            ArtistAvatar(preferredArtistImage(a.localImagePath) ?: tracks.firstNotNullOfOrNull { it.artworkPath }, a.name, m.aspectRatio(1f), ArtSize.Large)
                         },
                     )
                 }

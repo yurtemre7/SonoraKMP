@@ -19,9 +19,9 @@ Everything still to do, so you can continue on your own. Written 2026-11-12.
 
 ## Where the code is
 
-- **`main`**: green in CI, published as the nightly. Everything up to the final report.
-- **`wip/p11`**: unfinished work, rebased on `main`. It **compiles**; nothing in it has been run through
-  lint, the full tests or the emulator yet.
+- **`main`**: green in CI, published as the nightly. Includes the former `wip/p11` (P5-28…P5-33).
+- **`wip/p11`**: P5-28…P5-33 finished, lint + unit tests + `assembleDebug` green, player features checked on
+  the emulator (API 37). Not merged into `main` yet.
 
   ```bash
   git switch wip/p11
@@ -29,43 +29,28 @@ Everything still to do, so you can continue on your own. Written 2026-11-12.
 
 ## To do
 
-### 1. Finish `wip/p11`
+### 1–2. Done on `wip/p11` (2026-11-12)
 
-| Task | State on the branch | Still to do |
-| --- | --- | --- |
-| **P5-28** Now Playing styles | `VinylArtwork.kt`, `MinimalPlayer.kt`, `PlayerView.kt` switch | Check vinyl (record spins while playing, frozen with reduce motion) and minimal (Spine full height, big time, controls) on screen; gestures still work; landscape/tablet fallbacks; delete `TODO(P5-07)` in `NowPlayingOverlay.kt` |
-| **P5-29** Blurred backgrounds | `TintedBackdrop.kt` | Verify blur on API 31+ under a flat ~0.88 surface overlay; flat tint below 31 and when off |
-| **P5-30** Visualizer | `ui/components/Visualizer.kt` | Place it above the controls when the setting is on; animate only while playing; freeze with reduce motion |
-| **P5-31** Back-press order | `ui/navigation/{NowPlayingSlot,SonoraAppShell,Transitions}.kt`, `test/.../ui/BackOrderTest.kt` | Make the expanded player's back handler win over the screen below it (bug: Settings + player → back popped Settings). Then sheets/dialogs → player → search/selection → screen. Run `BackOrderTest`, reproduce on a device |
-| **P5-32** Sleep timer: duration + finish song | `SleepTimerState.kt` reducer, `playback/sleep/*`, `SleepTimerSheet.kt`, `strings_sleep2.xml`, `SleepTimerStateTest.kt` | Duration runs out → the current track plays to its end (fade over its last seconds) → stop. Finish-only stops after this song. +1 min while finishing returns to counting. Sheet: independent switch; preselect `sleepTimerDefaultMinutes`. Run the test |
-| **P5-33** Settings audit | ✅ done: `audit/settings_wiring.md`, `SettingsTest` | Fix the findings in §2 |
+- P5-28 styles: vinyl spins while playing and freezes on pause; minimal has the controls full width under the
+  Spine (labels were cut off) and a compact scrolling form below 560 dp height (landscape pane clipped the
+  transport). P5-29 blur and P5-30 visualizer checked on screen.
+- P5-31: the branch's back-handler fix was right; `BackOrderTest` failed only because it pressed back before
+  the player's handler was registered. Settings + player → back collapses the player on the emulator too.
+- P5-32: duration + finish song, finish-only, +1 min while finishing; the sheet preselects the default minutes.
+- §2 settings: colour source Album art / Custom and `defaultThemeColor`, title filters (UI via
+  `LocalDisplayPrefs`, notification/Auto/widget via `QueueController`), local artist images, favourites sort and
+  `songActivityView` are wired; see [audit/settings_wiring.md](audit/settings_wiring.md).
+- Lint: predictive-back corners use the public navigationevent transition state, not `Transition.isSeeking`.
+- Not checked: vinyl in landscape, tablet sizes, the sleep timer's fade by ear.
 
-### 2. Settings that do nothing yet (from the audit)
+### 3. Before 1.0
 
-| Setting | Fix in |
-| --- | --- |
-| Colour source Album art / Custom (⚠️) and `defaultThemeColor` (❌) | `MainActivity.kt`: pass `seedColor` to `SonoraTheme`: current song's seed colour for Album art, `defaultThemeColor` for Custom |
-| `preferLocalArtistImages` | `ArtistAvatar` (or `ArtistsTab.kt:110`, `ArtistRoute.kt:154`, `FavoritesRoute.kt:382`, `StatsRoute.kt:206`) |
-| `filterTitleFeatures`, `filterTitleArtist` | `playback/QueueController.kt:46` (titles are `{ it.title }`) and title display in `SongRow`, `MiniPlayer`, Now Playing: use shared `TitleFormatter` |
-| `sleepTimerDefaultMinutes` | `SleepTimerSheet.kt` (part of P5-32) |
-| `favoritesSortBy`, `favoritesSortAscending` | `favorites/FavoritesViewModel.kt:41` (sort only kept in memory) |
-| `songActivityView` | `home/HomeViewModel.kt:100` (derived from the plays sort direction instead) |
+`wip/p11` is merged into `main` (2026-11-12). 1.0.0 is **not** close: keep shipping nightlies and only cut
+`release: 1.0.0` when the maintainer decides the app is ready. Open items:
 
-Afterwards, add a row per setting to the audit table and set it to ✅.
-
-### 3. Merge and release
-
-1. Run the CI command and the two checks (below) on `wip/p11`; fix lint errors.
-2. Check on a device: player styles, blur, visualizer, back order, sleep timer.
-3. Merge into `main` (squash is fine), push, confirm CI, then run a nightly
-   (*Actions → Nightly → Run workflow*, tick `force`).
-4. Tick P5-28…P5-33 in TASKS.md and update the gaps in FINAL_REPORT.md.
-5. First real release:
-
-   ```bash
-   git commit --allow-empty -m "release: 1.0.0"
-   git push origin main
-   ```
+1. Optional: vinyl in landscape and on a tablet.
+2. Run a nightly after big merges (*Actions → Nightly → Run workflow*, tick `force`).
+3. The device checks in §4.
 
 ### 4. Still untested on a device
 

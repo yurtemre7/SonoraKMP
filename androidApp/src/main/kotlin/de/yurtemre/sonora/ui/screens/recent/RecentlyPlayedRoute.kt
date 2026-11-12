@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.recent
 
 import androidx.compose.runtime.mutableStateOf
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
@@ -167,7 +168,7 @@ fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                     items(day.songs, key = { it.id }) { song ->
                         val plays = ui.plays[song.id] ?: 0
                         SongRow(
-                            title = song.title,
+                            title = song.displayTitle(),
                             artist = stringResource(
                                 R.string.recent_row_artist, song.artist,
                                 pluralStringResource(R.plurals.recent_plays, plays, plays),

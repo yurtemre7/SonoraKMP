@@ -75,6 +75,7 @@ object SessionCommands {
     private const val X_SLEEP_TOTAL = "x.sleep.total"
     private const val X_SLEEP_FADE = "x.sleep.fade"
     private const val X_SLEEP_FADING = "x.sleep.fading"
+    private const val X_SLEEP_FINISH = "x.sleep.finish"
     private const val X_EQ_SUPPORTED = "x.eq.supported"
     private const val X_EQ_CENTERS = "x.eq.centers"
     private const val X_EQ_MIN = "x.eq.min"
@@ -117,6 +118,7 @@ object SessionCommands {
                 putInt(X_SLEEP_KIND, 1)
                 putLong(X_SLEEP_REMAINING, s.remainingMs); putLong(X_SLEEP_TOTAL, s.totalMs)
                 putInt(X_SLEEP_FADE, s.fadeSeconds); putBoolean(X_SLEEP_FADING, s.isFading)
+                putBoolean(X_SLEEP_FINISH, s.finishSong)
             }
             is SleepTimerUiState.FinishSong -> {
                 putInt(X_SLEEP_KIND, 2)
@@ -132,7 +134,7 @@ object SessionCommands {
     fun fromBundle(b: Bundle): Extras {
         val sleep = when (b.getInt(X_SLEEP_KIND, 0)) {
             1 -> SleepTimerUiState.Countdown(
-                b.getLong(X_SLEEP_REMAINING), b.getLong(X_SLEEP_TOTAL), b.getInt(X_SLEEP_FADE), b.getBoolean(X_SLEEP_FADING),
+                b.getLong(X_SLEEP_REMAINING), b.getLong(X_SLEEP_TOTAL), b.getInt(X_SLEEP_FADE), b.getBoolean(X_SLEEP_FADING), b.getBoolean(X_SLEEP_FINISH),
             )
             2 -> SleepTimerUiState.FinishSong(b.getInt(X_SLEEP_FADE), b.getBoolean(X_SLEEP_FADING))
             else -> SleepTimerUiState.Inactive

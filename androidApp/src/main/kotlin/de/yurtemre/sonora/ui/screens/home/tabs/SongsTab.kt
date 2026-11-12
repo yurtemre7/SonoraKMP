@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.home.tabs
 
 import androidx.compose.foundation.layout.Arrangement
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -212,7 +213,7 @@ private fun SongItem(
 ) {
     val fav = stringResource(if (song.isFavorite) R.string.songs_unfavorite else R.string.songs_favorite)
     SongRow(
-        title = song.title,
+        title = song.displayTitle(),
         artist = subtitle,
         durationMs = song.durationMs,
         onClick = onClick,

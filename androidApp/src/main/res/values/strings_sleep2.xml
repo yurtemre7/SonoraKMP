@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep2_notification_then_finish">Counting down, then finishes the song</string>
+    <string name="sleep2_notification_finishing">Stops after this song</string>
+    <string name="sleep2_finish_song_desc">Let the last song play to its end</string>
+    <string name="sleep2_start">Start timer</string>
+    <string name="sleep2_start_finish_only">Stop after this song</string>
+    <string name="sleep2_then_finish">then finishes the song</string>
+    <string name="sleep2_finishing_status">Stops after this song</string>
+</resources>

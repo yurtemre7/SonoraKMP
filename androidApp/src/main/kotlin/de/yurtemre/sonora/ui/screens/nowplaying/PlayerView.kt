@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.compose.foundation.layout.Arrangement
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.QueueUiState
+import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.PulseButton
@@ -94,27 +96,35 @@ fun PlayerView(
     related: @Composable () -> Unit = {},
     queue: QueueUiState? = null,
     onSkipTo: (Long) -> Unit = {},
+    style: NowPlayingStyle = NowPlayingStyle.Modern,
+    visualizer: (@Composable () -> Unit)? = null,
+    elapsed: @Composable () -> Unit = {},
 ) {
+    val art: @Composable (Modifier) -> Unit = { m ->
+        if (style == NowPlayingStyle.Vinyl) VinylArtwork(song, state.isPlaying, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
+        else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
+    }
+    if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
+        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier)
+        return
+    }
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
     if (maxWidth > maxHeight && view == NowPlayingView.Player) {
         // Landscape: the sleeve takes the full safe height on the left, controls on the right, so nothing overflows
         // the safe area (the portrait column would push the square sleeve past the bottom edge).
         Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
+            Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 72.dp))
             Spacer(Modifier.width(8.dp))
-            ArtworkArea(
-                song, immersive, actions.onToggleImmersive,
-                Modifier.fillMaxHeight().padding(bottom = 16.dp).aspectRatio(1f, matchHeightConstraintsFirst = true),
-                queue, onSkipTo,
-            )
+            art(Modifier.fillMaxHeight().padding(bottom = 16.dp).aspectRatio(1f, matchHeightConstraintsFirst = true))
             Spacer(Modifier.width(24.dp))
             Column(
                 Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Center,
             ) {
                 if (!immersive) MetaChips(song, actions, horizontal = true)
-                seekBar()
+                visualizer?.invoke()
+        seekBar()
                 Transport(state, actions)
                 if (!immersive) {
                     SecondaryRow(state, isFavorite, actions)
@@ -137,13 +147,9 @@ fun PlayerView(
             }
         } else if (horizontalSpine) {
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Spine(song.title)
-                ArtworkArea(
-                    song, immersive, actions.onToggleImmersive,
-                    // Square, but never taller than the slot left after Spine + chips, so it can't overlap them.
-                    Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true),
-                    queue, onSkipTo,
-                )
+                Spine(song.displayTitle())
+                // Square, but never taller than the slot left after Spine + chips, so it can't overlap them.
+                art(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true))
                 if (!immersive) MetaChips(song, actions)
             }
         } else {
@@ -152,13 +158,13 @@ fun PlayerView(
             // sit near the controls on tall panes instead of floating mid-pane.
             androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val chips = if (immersive) 0.dp else 124.dp
-                val art = minOf(maxWidth - 80.dp, maxHeight - chips).coerceAtLeast(0.dp)
+                val artSide = minOf(maxWidth - 80.dp, maxHeight - chips).coerceAtLeast(0.dp)
                 Column(Modifier.fillMaxSize()) {
                     Spacer(Modifier.weight(1f))
-                    Row(Modifier.fillMaxWidth().height(art)) {
-                        Spine(song.title, Modifier.fillMaxHeight().widthIn(max = 72.dp))
+                    Row(Modifier.fillMaxWidth().height(artSide)) {
+                        Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 72.dp))
                         Spacer(Modifier.width(8.dp))
-                        ArtworkArea(song, immersive, actions.onToggleImmersive, Modifier.size(art), queue = queue, onSkipTo = onSkipTo)
+                        art(Modifier.size(artSide))
                     }
                     if (!immersive) {
                         Spacer(Modifier.height(12.dp))
@@ -172,6 +178,7 @@ fun PlayerView(
             }
         }
         Spacer(Modifier.height(16.dp))
+        visualizer?.invoke()
         seekBar()
         Transport(state, actions)
         if (!immersive) {
@@ -209,7 +216,7 @@ private fun MetaChips(song: Song, actions: PlayerActions, horizontal: Boolean = 
 }
 
 @Composable
-private fun Transport(state: PlayerUiState, actions: PlayerActions) {
+internal fun Transport(state: PlayerUiState, actions: PlayerActions) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -227,7 +234,7 @@ private fun Transport(state: PlayerUiState, actions: PlayerActions) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: PlayerActions) {
+internal fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: PlayerActions) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Connected button group (DESIGN §6.7): shuffle | repeat.
         Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
@@ -276,7 +283,7 @@ private fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: Pla
 /** View switcher (DESIGN §6.7): connected button group Up next | Lyrics | Related; re-tapping returns to the player. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
+internal fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
     val items = listOf(
         Triple(NowPlayingView.UpNext, Icons.AutoMirrored.Filled.QueueMusic, R.string.np_view_up_next),
         Triple(NowPlayingView.Lyrics, Icons.Filled.Lyrics, R.string.np_view_lyrics),

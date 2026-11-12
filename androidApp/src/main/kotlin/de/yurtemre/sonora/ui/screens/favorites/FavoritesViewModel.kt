@@ -6,15 +6,19 @@ import de.yurtemre.sonora.shared.library.AlbumGrouper
 import de.yurtemre.sonora.shared.library.ArtistGrouper
 import de.yurtemre.sonora.shared.model.AlbumGroup
 import de.yurtemre.sonora.shared.model.ArtistGroup
+import de.yurtemre.sonora.shared.model.FavoritesSort
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.shared.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -37,8 +41,12 @@ data class FavoritesUi(
 class FavoritesViewModel(
     library: LibraryRepository,
     private val favorites: FavoritesRepository,
+    private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
-    private val sortState = MutableStateFlow(FavSort.Date to false)
+    /** Persisted favourites sort (`favorites_sort_by` / `favorites_sort_ascending`, default date descending). */
+    private val sortState = settingsRepo.settings
+        .map { FavSort.valueOf(it.favoritesSortBy.name) to it.favoritesSortAscending }
+        .distinctUntilChanged()
     private val hidden = MutableStateFlow<Set<String>>(emptySet())
 
     val ui: StateFlow<FavoritesUi> = combine(
@@ -75,7 +83,9 @@ class FavoritesViewModel(
         )
     }
 
-    fun setSort(sort: FavSort, ascending: Boolean) { sortState.value = sort to ascending }
+    fun setSort(sort: FavSort, ascending: Boolean) {
+        viewModelScope.launch { settingsRepo.setFavoritesSort(FavoritesSort.valueOf(sort.name), ascending) }
+    }
 
     fun hide(key: String) { hidden.value += key }
     fun undo(key: String) { hidden.value -= key }

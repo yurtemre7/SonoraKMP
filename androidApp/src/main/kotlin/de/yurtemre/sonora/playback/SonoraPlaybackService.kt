@@ -26,6 +26,7 @@ import de.yurtemre.sonora.playback.SessionCommands as C
 import de.yurtemre.sonora.playback.sleep.SleepTimer
 import de.yurtemre.sonora.playback.sleep.SleepTimerHost
 import de.yurtemre.sonora.playback.sleep.SleepTimerNotifier
+import de.yurtemre.sonora.shared.library.TitleFormatter
 import de.yurtemre.sonora.shared.audio.EqGains
 import de.yurtemre.sonora.shared.audio.SpeedPresets
 import de.yurtemre.sonora.shared.model.AppSettings
@@ -129,6 +130,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         queue = QueueController(player, scope, songs = { ids ->
             val wanted = ids.toSet()
             library.songs.first().filter { it.id in wanted }.associateBy { it.id }
+        }, displayTitle = { // LIB-14: notification, lock screen and Auto show the filtered title
+            TitleFormatter.displayTitle(it.title, it.artist, settings.filterTitleFeatures, settings.filterTitleArtist)
         })
         recorder = ListenStatsRecorder(player, stats, scope, songIdOf = { item ->
             item.mediaId.removePrefix(QueueController.ID_PREFIX).toLongOrNull()

@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.compose.foundation.background
+import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -144,7 +145,7 @@ fun UpNextView(
                         ) {
                             val isCurrent = item.entryUid == currentUid
                             SongRow(
-                                title = item.song.title,
+                                title = item.song.displayTitle(),
                                 artist = item.song.artist,
                                 durationMs = item.song.durationMs,
                                 onClick = { connection.skipToQueueItem(item.entryUid) },

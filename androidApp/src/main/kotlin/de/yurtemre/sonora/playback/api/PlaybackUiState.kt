@@ -47,6 +47,8 @@ sealed interface SleepTimerUiState {
         val totalMs: Long,
         val fadeSeconds: Int,
         val isFading: Boolean,
+        /** When the countdown ends, the current song plays to its end before stopping. */
+        val finishSong: Boolean = false,
     ) : SleepTimerUiState
 
     data class FinishSong(val fadeSeconds: Int, val isFading: Boolean) : SleepTimerUiState
