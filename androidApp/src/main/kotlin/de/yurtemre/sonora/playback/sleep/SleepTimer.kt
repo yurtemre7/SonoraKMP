@@ -86,7 +86,7 @@ class SleepTimer(
             is SleepTimerEffect.ApplyVolume -> host.applyVolume(effect.volume)
             SleepTimerEffect.PauseImmediate -> host.pauseImmediate()
             SleepTimerEffect.FinalizeStop -> host.finalizeStop()
-            is SleepTimerEffect.UpdateNotification -> notifier.show(effect.remainingSec, effect.finishingSong)
+            is SleepTimerEffect.UpdateNotification -> notifier.show(effect.remainingSec, effect.finishingSong, effect.thenFinishSong)
             SleepTimerEffect.CancelNotification -> notifier.cancel()
             is SleepTimerEffect.UpdateControls -> host.updateControls(effect.active)
         }

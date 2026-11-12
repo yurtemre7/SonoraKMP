@@ -104,7 +104,7 @@ fun PlayerView(
         else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
     }
     if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
-        MinimalPlayer(song, state, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier)
+        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier)
         return
     }
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
@@ -233,7 +233,7 @@ internal fun Transport(state: PlayerUiState, actions: PlayerActions) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: PlayerActions) {
+internal fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: PlayerActions) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Connected button group (DESIGN §6.7): shuffle | repeat.
         Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
@@ -282,7 +282,7 @@ private fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: Pla
 /** View switcher (DESIGN §6.7): connected button group Up next | Lyrics | Related; re-tapping returns to the player. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
+internal fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
     val items = listOf(
         Triple(NowPlayingView.UpNext, Icons.AutoMirrored.Filled.QueueMusic, R.string.np_view_up_next),
         Triple(NowPlayingView.Lyrics, Icons.Filled.Lyrics, R.string.np_view_lyrics),

@@ -24,9 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
-import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.TintedBackdrop
+import de.yurtemre.sonora.ui.components.Visualizer
 import de.yurtemre.sonora.ui.components.WavySeekBar
 import de.yurtemre.sonora.ui.screens.nowplaying.sheets.EffectsSheet
 import de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet
@@ -58,6 +58,8 @@ fun NowPlayingOverlay(
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
+    val blurred by vm.blurredBackgrounds.collectAsStateWithLifecycle()
+    val showVisualizer by vm.showVisualizer.collectAsStateWithLifecycle()
     var view by rememberSaveable { mutableStateOf(NowPlayingView.Player) }
     var showEffects by rememberSaveable { mutableStateOf(false) }
     var showSleep by rememberSaveable { mutableStateOf(false) }
@@ -70,7 +72,11 @@ fun NowPlayingOverlay(
     BackHandler(enabled = view != NowPlayingView.Player) { view = NowPlayingView.Player }
 
     val song = state.currentSong
-    TintedBackdrop(song?.seedColor?.let { Color(it) }, modifier.fillMaxSize()) {
+    TintedBackdrop(
+        song?.seedColor?.let { Color(it) },
+        modifier.fillMaxSize(),
+        blurModel = if (blurred) song?.artworkPath else null,
+    ) {
         // TintedBackdrop is not a Surface, so icons would default to black in dark theme.
         androidx.compose.runtime.CompositionLocalProvider(
             androidx.compose.material3.LocalContentColor provides androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
@@ -93,8 +99,6 @@ fun NowPlayingOverlay(
                 onMfx = openMfx,
                 onSleepTimer = openSleep,
             ) }
-            // TODO(P5-07): Vinyl and Minimalist layouts; every style renders Modern for now.
-            @Suppress("UNUSED_VARIABLE") val layoutStyle: NowPlayingStyle = style
             PlayerView(
                 song = song,
                 state = state,
@@ -105,6 +109,11 @@ fun NowPlayingOverlay(
                 actions = actions,
                 queue = queue,
                 onSkipTo = vm::skipTo,
+                style = style,
+                visualizer = if (showVisualizer) {
+                    { Visualizer(state.isPlaying, Modifier.padding(bottom = 8.dp)) }
+                } else null,
+                elapsed = { LiveElapsed(vm, state.durationMs) },
                 seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
                 upNext = {
                     if (upNext != null) upNext()
@@ -140,4 +149,11 @@ private fun LiveSeekBar(vm: NowPlayingViewModel, durationMs: Long, isPlaying: Bo
         onSeek = vm::seekTo,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/** Large tabular elapsed / total time for the minimalist style. */
+@Composable
+private fun LiveElapsed(vm: NowPlayingViewModel, durationMs: Long) {
+    val position by vm.positionMs.collectAsStateWithLifecycle(0L)
+    MinimalTime(position, maxOf(durationMs, position))
 }

@@ -43,7 +43,7 @@ sealed interface SleepTimerEffect {
     data object PauseImmediate : SleepTimerEffect
     /** Finalize: faded pause, then restore the user volume. Queue is kept. */
     data object FinalizeStop : SleepTimerEffect
-    data class UpdateNotification(val remainingSec: Long, val finishingSong: Boolean) : SleepTimerEffect
+    data class UpdateNotification(val remainingSec: Long, val finishingSong: Boolean, val thenFinishSong: Boolean = false) : SleepTimerEffect
     data object CancelNotification : SleepTimerEffect
     /** Media-session custom-action state changed (active/inactive). */
     data class UpdateControls(val active: Boolean) : SleepTimerEffect
@@ -71,7 +71,7 @@ object SleepTimerReducer {
         return SleepTimerTransition(
             s,
             stopped.effects.filterIsInstance<SleepTimerEffect.ApplyVolume>() +
-                listOf(SleepTimerEffect.UpdateControls(true), SleepTimerEffect.UpdateNotification(durationSec, false)),
+                listOf(SleepTimerEffect.UpdateControls(true), SleepTimerEffect.UpdateNotification(durationSec, false, finishSong)),
         )
     }
 
@@ -99,7 +99,7 @@ object SleepTimerReducer {
             val fraction = remaining.toDouble() / state.fadeOutSec
             effects += SleepTimerEffect.ApplyVolume((s.originalVolume * fraction).coerceIn(0.0, 1.0))
         }
-        effects += SleepTimerEffect.UpdateNotification(remaining, false)
+        effects += SleepTimerEffect.UpdateNotification(remaining, false, state.finishSong)
         return SleepTimerTransition(s, effects)
     }
 

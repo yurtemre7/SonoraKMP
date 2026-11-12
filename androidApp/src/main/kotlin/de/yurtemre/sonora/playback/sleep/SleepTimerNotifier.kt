@@ -23,7 +23,7 @@ class SleepTimerNotifier(
 ) {
     private val manager = NotificationManagerCompat.from(context)
 
-    fun show(remainingSec: Long, finishingSong: Boolean) {
+    fun show(remainingSec: Long, finishingSong: Boolean, thenFinishSong: Boolean = false) {
         if (!canPost()) return
         ensureChannel()
         val b = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -37,12 +37,13 @@ class SleepTimerNotifier(
             .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_extend), servicePi(ACTION_EXTEND, 1))
             .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_end), servicePi(ACTION_END, 2))
         if (finishingSong) {
-            b.setContentText(context.withAppLocale().getString(R.string.sleep_timer_notification_finishing))
+            b.setContentText(context.withAppLocale().getString(R.string.sleep2_notification_finishing))
         } else {
             b.setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(System.currentTimeMillis() + remainingSec * 1000)
                 .setShowWhen(true)
+            if (thenFinishSong) b.setContentText(context.withAppLocale().getString(R.string.sleep2_notification_then_finish))
         }
         try {
             manager.notify(NOTIFICATION_ID, b.build())
