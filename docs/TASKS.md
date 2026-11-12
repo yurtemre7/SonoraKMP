@@ -128,6 +128,10 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [x] **P5-26** Snappiness pass — owns: fixes in owning files — done when: tap → visible response < 100 ms everywhere (optimistic UI for play/pause, skip, favourite), spring motion from MotionScheme.expressive() on all transitions, no jank in lists (baseline profile + stable keys), measured with a JankStats/macrobenchmark smoke run.
 - [x] **P5-27** Identity check vs Flutter — owns: none (review) — done when: side-by-side review of Home, Now Playing and mini player against the Flutter app; anything that still looks like the old layout is redesigned per DESIGN.md (Spine, sleeves, docked bar) and the changes are listed in DESIGN.md.
 
+- [ ] **P5-28** Now Playing styles — owns: `A/ui/screens/nowplaying/**` — done when: the "vinyl" and "minimal" player styles render their own Sleeve-style layouts (or the setting is removed), found in the final report.
+- [ ] **P5-29** Blurred backgrounds — owns: `A/ui/components/TintedBackdrop.kt` — done when: the setting draws the API 31+ blur per DESIGN §6.3 (or the switch is removed).
+- [ ] **P5-30** Visualizer — owns: `A/ui/screens/nowplaying/**` — done when: the visualizer setting shows a reduce-motion-aware animation (or the switch is removed).
+
 ### P5.2 Everything else (built while the app is in daily use)
 
 **P5.2a** (parallel)
