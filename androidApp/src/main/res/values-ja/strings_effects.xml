@@ -15,6 +15,7 @@
     <string name="sleep_fading">フェードアウト中…</string>
     <string name="sleep_extend">+1分</string>
     <string name="sleep_end">タイマーを終了</string>
+    <string name="sleep_badge_finish">曲の終わりまで</string>
     <string name="effects_sheet_title">エフェクト</string>
     <string name="effects_speed_presets">速度とピッチ</string>
     <string name="effects_custom_speed">カスタム速度：%1$s×</string>

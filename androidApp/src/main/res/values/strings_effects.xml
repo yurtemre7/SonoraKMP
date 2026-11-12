@@ -15,6 +15,7 @@
     <string name="sleep_fading">Fading out…</string>
     <string name="sleep_extend">+1 min</string>
     <string name="sleep_end">End timer</string>
+    <string name="sleep_badge_finish">End of song</string>
     <string name="effects_sheet_title">Effects</string>
     <string name="effects_speed_presets">Speed and pitch</string>
     <string name="effects_custom_speed">Custom speed: %1$s×</string>

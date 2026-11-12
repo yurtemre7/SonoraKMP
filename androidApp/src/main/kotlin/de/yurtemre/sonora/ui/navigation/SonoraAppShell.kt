@@ -105,6 +105,12 @@ fun SonoraAppShell(
     val openNowPlaying: () -> Unit = onOpenNowPlaying ?: controller::expand
     val playback: PlaybackConnection = koinInject()
     val player by playback.player.collectAsStateWithLifecycle()
+    val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
+    var showMiniSleep by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    if (showMiniSleep) de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet(
+        onDismiss = { showMiniSleep = false },
+        connection = playback,
+    )
     // Kept as a State (not delegated): only the mini player's progress line reads it, so position ticks
     // invalidate one draw call instead of recomposing the shell (P5-26).
     val position = playback.positionMs.collectAsStateWithLifecycle(0L)
@@ -121,6 +127,8 @@ fun SonoraAppShell(
             expandProgress = { nowPlaying.fraction },
             onExpandDrag = nowPlaying::dragBy,
             onExpandDragStopped = { v -> nowPlaying.settle(v, flingPx) },
+            sleepTimer = sleepTimer,
+            onSleepTimerClick = { showMiniSleep = true },
             onTogglePlay = { if (player.isCompleted) { playback.seekTo(0); playback.play() } else playback.togglePlayPause() },
             onNext = playback::skipToNext,
             onPrevious = playback::skipToPrevious,

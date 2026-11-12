@@ -51,6 +51,7 @@ internal fun MinimalPlayer(
     @Suppress("UNUSED_PARAMETER") queue: QueueUiState?,
     @Suppress("UNUSED_PARAMETER") onSkipTo: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    sleepTimerActive: Boolean = false,
 ) {
     val haptics = LocalHapticFeedback.current
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
@@ -89,7 +90,7 @@ internal fun MinimalPlayer(
             seekBar()
             Transport(state, actions)
             if (!immersive) {
-                SecondaryRow(state, isFavorite, actions)
+                SecondaryRow(state, isFavorite, actions, sleepTimerActive)
                 ViewSwitcher(NowPlayingView.Player, onViewChange)
             }
             Spacer(Modifier.height(16.dp))
@@ -124,7 +125,7 @@ internal fun MinimalPlayer(
         seekBar()
         Transport(state, actions)
         if (!immersive) {
-            SecondaryRow(state, isFavorite, actions)
+            SecondaryRow(state, isFavorite, actions, sleepTimerActive)
             ViewSwitcher(NowPlayingView.Player, onViewChange)
         }
         Spacer(Modifier.height(16.dp))

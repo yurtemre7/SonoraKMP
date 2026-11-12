@@ -2,6 +2,8 @@ package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -24,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
+import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.ui.components.SleepTimerBadge
 import de.yurtemre.sonora.ui.components.TintedBackdrop
 import de.yurtemre.sonora.ui.components.Visualizer
 import de.yurtemre.sonora.ui.components.WavySeekBar
@@ -55,6 +60,7 @@ fun NowPlayingOverlay(
     val vm = viewModel { NowPlayingViewModel(playback, favorites, settings) }
     val state by vm.player.collectAsStateWithLifecycle()
     val queue by playback.queue.collectAsStateWithLifecycle()
+    val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
@@ -82,8 +88,15 @@ fun NowPlayingOverlay(
             androidx.compose.material3.LocalContentColor provides androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
         ) {
         Column(Modifier.fillMaxSize().then(dragModifier).safeDrawingPadding()) {
-            IconButton(onClick = onCollapse, modifier = Modifier.padding(start = 4.dp)) {
-                Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.np_collapse))
+            Row(
+                Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onCollapse) {
+                    Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.np_collapse))
+                }
+                Spacer(Modifier.weight(1f))
+                SleepTimerBadge(sleepTimer, onClick = openSleep)
             }
             if (song == null) return@Column
             val actions = remember(vm, onOpenAlbum, onOpenArtist, openMfx, openSleep) { PlayerActions(
@@ -114,6 +127,7 @@ fun NowPlayingOverlay(
                     { Visualizer(state.isPlaying, Modifier.padding(bottom = 8.dp)) }
                 } else null,
                 elapsed = { LiveElapsed(vm, state.durationMs) },
+                sleepTimerActive = sleepTimer !is SleepTimerUiState.Inactive,
                 seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
                 upNext = {
                     if (upNext != null) upNext()

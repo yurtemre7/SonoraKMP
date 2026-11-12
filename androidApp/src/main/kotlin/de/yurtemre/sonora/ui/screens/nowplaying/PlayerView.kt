@@ -99,13 +99,14 @@ fun PlayerView(
     style: NowPlayingStyle = NowPlayingStyle.Modern,
     visualizer: (@Composable () -> Unit)? = null,
     elapsed: @Composable () -> Unit = {},
+    sleepTimerActive: Boolean = false,
 ) {
     val art: @Composable (Modifier) -> Unit = { m ->
         if (style == NowPlayingStyle.Vinyl) VinylArtwork(song, state.isPlaying, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
         else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
     }
     if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
-        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier)
+        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive)
         return
     }
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
@@ -127,7 +128,7 @@ fun PlayerView(
         seekBar()
                 Transport(state, actions)
                 if (!immersive) {
-                    SecondaryRow(state, isFavorite, actions)
+                    SecondaryRow(state, isFavorite, actions, sleepTimerActive)
                     ViewSwitcher(view, onViewChange)
                 }
                 Spacer(Modifier.height(16.dp))
@@ -182,7 +183,7 @@ fun PlayerView(
         seekBar()
         Transport(state, actions)
         if (!immersive) {
-            SecondaryRow(state, isFavorite, actions)
+            SecondaryRow(state, isFavorite, actions, sleepTimerActive)
             ViewSwitcher(view, onViewChange)
         }
         Spacer(Modifier.height(16.dp))
@@ -234,7 +235,12 @@ internal fun Transport(state: PlayerUiState, actions: PlayerActions) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: PlayerActions) {
+internal fun SecondaryRow(
+    state: PlayerUiState,
+    isFavorite: Boolean,
+    actions: PlayerActions,
+    sleepTimerActive: Boolean = false,
+) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Connected button group (DESIGN §6.7): shuffle | repeat.
         Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
@@ -276,7 +282,13 @@ internal fun SecondaryRow(state: PlayerUiState, isFavorite: Boolean, actions: Pl
             )
         }
         IconButton(onClick = actions.onMfx) { Icon(Icons.Filled.GraphicEq, stringResource(R.string.np_mfx)) }
-        IconButton(onClick = actions.onSleepTimer) { Icon(Icons.Filled.Bedtime, stringResource(R.string.np_sleep_timer)) }
+        IconButton(onClick = actions.onSleepTimer) {
+            Icon(
+                Icons.Filled.Bedtime,
+                stringResource(R.string.np_sleep_timer),
+                tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlayerUiState
+import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.ui.theme.LocalReduceMotion
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -77,6 +79,8 @@ fun MiniPlayer(
     expandProgress: () -> Float = { 0f },
     onExpandDrag: (Float) -> Unit = {},
     onExpandDragStopped: (Float) -> Unit = {},
+    sleepTimer: SleepTimerUiState = SleepTimerUiState.Inactive,
+    onSleepTimerClick: () -> Unit = onOpen,
 ) {
     val song = state.currentSong ?: return
     val density = LocalDensity.current
@@ -109,8 +113,17 @@ fun MiniPlayer(
     val nextLabel = stringResource(R.string.a11y_action_next)
     val cbToggle by rememberUpdatedState(onTogglePlay)
 
+    /** Song the horizontal offset belongs to: after a committed swipe only the outgoing song keeps flying out. */
+    var draggedId by remember { mutableStateOf(song.id) }
+    val currentId by rememberUpdatedState(song.id)
+    /** The last change came from a swipe: the outgoing content moves with [offsetX] instead of its own slide. */
+    var swiped by remember { mutableStateOf(false) }
+
     val horizontal = rememberDraggableState { dx ->
-        scope.launch { offsetX.snapTo(offsetX.value + dx) }
+        val next = offsetX.value + dx
+        // Rubber band towards a side with nothing to skip to.
+        val blocked = (next < 0f && !canNext) || (next > 0f && !canPrev)
+        scope.launch { offsetX.snapTo(offsetX.value + if (blocked) dx * 0.25f else dx) }
     }
     val vertical = rememberDraggableState { dy ->
         verticalTotal += dy
@@ -155,6 +168,9 @@ fun MiniPlayer(
             .draggable(
                 state = horizontal,
                 orientation = Orientation.Horizontal,
+                onDragStarted = {
+                    if (draggedId != currentId) { draggedId = currentId; offsetX.snapTo(0f) }
+                },
                 onDragStopped = { v ->
                     val dx = offsetX.value
                     val goNext = (dx < -threshold || v < -fling) && canNext
@@ -162,9 +178,16 @@ fun MiniPlayer(
                     if (goNext || goPrev) {
                         haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                         direction = if (goNext) 1 else -1
+                        swiped = true
                         if (goNext) cbNext() else cbPrev()
+                        // The dragged song leaves in the swipe direction; the new one slides in on its own.
+                        offsetX.animateTo(if (goNext) -width else width, spring, initialVelocity = v)
+                        swiped = false
+                        if (currentId == draggedId) offsetX.animateTo(0f, spring) // skip didn't happen
+                        else { draggedId = currentId; offsetX.snapTo(0f) }
+                    } else {
+                        offsetX.animateTo(0f, spring, initialVelocity = v)
                     }
-                    offsetX.animateTo(0f, spring, initialVelocity = v)
                 },
             )
             .clickable(onClickLabel = openLabel, onClick = onOpen)
@@ -184,19 +207,25 @@ fun MiniPlayer(
         AnimatedContent(
             targetState = song,
             contentKey = { it.id },
-            modifier = Modifier.weight(1f).graphicsLayer {
-                translationX = offsetX.value
-                alpha = 1f - (abs(offsetX.value) / width).coerceIn(0f, 0.6f)
-            },
+            modifier = Modifier.weight(1f).clipToBounds(),
             transitionSpec = {
                 if (reduce) return@AnimatedContent fadeIn(snap()) togetherWith fadeOut(snap())
                 val d = direction
-                (slideInHorizontally(slideSpec) { it / 3 * d } + fadeIn()) togetherWith
-                    (slideOutHorizontally(slideSpec) { -it / 3 * d } + fadeOut())
+                val enter = slideInHorizontally(slideSpec) { it / 3 * d } + fadeIn()
+                // After a swipe the outgoing song is already moving with the finger's offset.
+                val exit = if (swiped) fadeOut() else slideOutHorizontally(slideSpec) { -it / 3 * d } + fadeOut()
+                enter togetherWith exit
             },
             label = "mini-song",
         ) { s ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.graphicsLayer {
+                    if (s.id != draggedId) return@graphicsLayer
+                    translationX = offsetX.value
+                    alpha = 1f - (abs(offsetX.value) / width).coerceIn(0f, 0.6f)
+                },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 AlbumArt(s.artworkPath, s.title, Modifier.size(44.dp), decorative = true, artist = s.artist)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -211,6 +240,7 @@ fun MiniPlayer(
                 }
             }
         }
+        SleepTimerBadge(sleepTimer, onClick = onSleepTimerClick, modifier = Modifier.padding(start = 6.dp))
         PulseButton(state.isPlaying, onTogglePlay, Modifier.padding(horizontal = 4.dp), size = 48.dp, isCompleted = state.isCompleted)
         IconButton(onClick = { direction = 1; onNext() }, enabled = state.hasNext, modifier = Modifier.size(48.dp)) {
             Icon(Icons.Rounded.SkipNext, stringResource(R.string.miniplayer_next))
