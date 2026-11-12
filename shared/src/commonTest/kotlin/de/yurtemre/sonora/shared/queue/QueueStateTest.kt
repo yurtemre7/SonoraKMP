@@ -13,7 +13,9 @@ class QueueStateTest {
     private fun QueueState.ids() = entries.map { it.songId }
     private fun base(start: Long? = null) = QueueState().load((1L..10L).toList(), start)
 
-    @Test fun loadStartsAtSongOrZero() {
+    @Test fun loadAddAndFifoPlayNext() { loadStartsAtSongOrZero(); playNextIsFifo(); addAppendsBoth() }
+
+    private fun loadStartsAtSongOrZero() {
         assertEquals(3, base(4).currentIndex)
         assertEquals(0, base(99).currentIndex)
         assertEquals(-1, QueueState().load(emptyList()).currentIndex)
@@ -21,20 +23,22 @@ class QueueStateTest {
         assertEquals(q.entries.map { it.uid }.toSet().size, 10)
     }
 
-    @Test fun playNextIsFifo() {
+    private fun playNextIsFifo() {
         val q = base(1).playNext(listOf(100)).playNext(listOf(200))
         assertEquals(listOf(1L, 100, 200, 2), q.ids().take(4))
         assertEquals(listOf(1L, 100, 200, 2), q.original.map { it.songId }.take(4))
         assertEquals(listOf(100L, 300, 200), q.skipTo(1).playNext(listOf(300)).ids().subList(1, 4)) // anchor resets
     }
 
-    @Test fun addAppendsBoth() {
+    private fun addAppendsBoth() {
         val q = base().add(listOf(1))
         assertEquals(1L, q.entries.last().songId)
         assertEquals(q.entries.last(), q.original.last())
     }
 
-    @Test fun removeByUidKeepsDuplicates() {
+    @Test fun removeByUidAndMoveBookkeeping() { removeByUidKeepsDuplicates(); removeIndexBookkeeping(); moveBookkeeping() }
+
+    private fun removeByUidKeepsDuplicates() {
         val q = base(1).add(listOf(5))
         val dup = q.entries.last()
         val r = q.removeByUid(dup.uid)
@@ -43,7 +47,7 @@ class QueueStateTest {
         assertFalse(r.original.any { it.uid == dup.uid })
     }
 
-    @Test fun removeIndexBookkeeping() {
+    private fun removeIndexBookkeeping() {
         val q = base(5) // index 4
         assertEquals(3, q.removeByUid(q.entries[0].uid).currentIndex)
         val cur = q.removeByUid(q.entries[4].uid)
@@ -54,7 +58,7 @@ class QueueStateTest {
         assertEquals(-1, one.removeByUid(one.entries[0].uid).currentIndex)
     }
 
-    @Test fun moveBookkeeping() {
+    private fun moveBookkeeping() {
         val q = base(5) // cur 4
         assertEquals(7, q.move(4, 7).currentIndex)
         assertEquals(3, q.move(1, 6).currentIndex)
@@ -64,7 +68,9 @@ class QueueStateTest {
         assertEquals(q.original, q.move(1, 6).original)
     }
 
-    @Test fun shufflePreservesHistoryAndUnshuffleRestores() {
+    @Test fun shuffleRepeatAndNavigation() { shufflePreservesHistoryAndUnshuffleRestores(); shuffleDeterministic(); quickShuffle(); repeatCycle(); previousThreeSecondRule(); nextRepeatSemantics() }
+
+    private fun shufflePreservesHistoryAndUnshuffleRestores() {
         val q = base(4)
         val s = q.shuffleOn(Random(42))
         assertTrue(s.isShuffled)
@@ -78,25 +84,25 @@ class QueueStateTest {
         assertFalse(u.isShuffled)
     }
 
-    @Test fun shuffleDeterministic() {
+    private fun shuffleDeterministic() {
         assertEquals(base(1).shuffleOn(Random(7)).entries, base(1).shuffleOn(Random(7)).entries)
     }
 
-    @Test fun quickShuffle() {
+    private fun quickShuffle() {
         val q = QueueState().quickShuffle((1L..10L).toList(), Random(3))
         assertTrue(q.isShuffled); assertEquals(0, q.currentIndex)
         assertEquals((1L..10L).toList(), q.original.map { it.songId })
         assertEquals((1L..10L).toList(), q.shuffleOff().ids())
     }
 
-    @Test fun repeatCycle() {
+    private fun repeatCycle() {
         val q = QueueState()
         assertEquals(RepeatMode.All, q.cycleRepeat().repeat)
         assertEquals(RepeatMode.One, q.cycleRepeat().cycleRepeat().repeat)
         assertEquals(RepeatMode.Off, q.cycleRepeat().cycleRepeat().cycleRepeat().repeat)
     }
 
-    @Test fun previousThreeSecondRule() {
+    private fun previousThreeSecondRule() {
         val q = base(5)
         val r = q.previous(3_001)!!
         assertEquals(NavAction.Restart, r.action); assertTrue(r.recordRestart)
@@ -106,7 +112,7 @@ class QueueStateTest {
         assertTrue(isRestartSeek(5_000, 1_000)); assertFalse(isRestartSeek(3_000, 1_000))
     }
 
-    @Test fun nextRepeatSemantics() {
+    private fun nextRepeatSemantics() {
         val last = base(10)
         assertEquals(NavAction.Restart, last.next()!!.action)
         assertFalse(last.next()!!.recordSkip)

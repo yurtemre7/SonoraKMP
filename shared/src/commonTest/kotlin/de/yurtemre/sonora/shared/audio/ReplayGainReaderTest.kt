@@ -74,65 +74,69 @@ class ReplayGainReaderTest {
         atom("ftyp", ascii("M4A "), ByteArray(4)) +
             atom("moov", atom("udta", atom("meta", ByteArray(4), atom("hdlr", ByteArray(25)), atom("ilst", *items))))
 
-    @Test fun id3v23() {
+    @Test fun readsAllContainers() { id3v23(); id3v24WithAlbum(); id3v22(); flacVorbisComment(); flacBehindId3(); oggVorbis(); opusR128(); r128IgnoredOutsideOpus(); mp4Freeform() }
+
+    private fun id3v23() {
         val info = ReplayGainReader.readBytes(id3(3, txxx(3, "REPLAYGAIN_TRACK_GAIN", "-7.43 dB"), txxx(3, "replaygain_track_peak", "0.988525")))!!
         assertEquals(-7.43, info.trackGain)
         assertEquals(0.988525, info.trackPeak)
         assertNull(info.albumGain)
     }
 
-    @Test fun id3v24WithAlbum() {
+    private fun id3v24WithAlbum() {
         val info = ReplayGainReader.readBytes(id3(4, txxx(4, "REPLAYGAIN_ALBUM_GAIN", "+1,5 dB"), txxx(4, "REPLAYGAIN_TRACK_GAIN", "-2 dB")))!!
         assertEquals(1.5, info.albumGain)
         assertEquals(-2.0, info.trackGain)
     }
 
-    @Test fun id3v22() {
+    private fun id3v22() {
         val payload = byteArrayOf(0) + ascii("REPLAYGAIN_TRACK_GAIN") + byteArrayOf(0) + ascii("-3.00 dB")
         val frame = ascii("TXX") + byteArrayOf(0, 0, payload.size.toByte()) + payload
         assertEquals(-3.0, ReplayGainReader.readBytes(id3(2, frame))!!.trackGain)
     }
 
-    @Test fun flacVorbisComment() {
+    private fun flacVorbisComment() {
         val info = ReplayGainReader.readBytes(flac("REPLAYGAIN_TRACK_GAIN=-6.00 dB", "REPLAYGAIN_ALBUM_PEAK=1.2"))!!
         assertEquals(-6.0, info.trackGain)
         assertEquals(1.2, info.albumPeak)
     }
 
-    @Test fun flacBehindId3() {
+    private fun flacBehindId3() {
         val bytes = id3(3, txxx(3, "TITLE", "x")) + flac("REPLAYGAIN_ALBUM_GAIN=-4.5 dB")
         assertEquals(-4.5, ReplayGainReader.readBytes(bytes)!!.albumGain)
     }
 
-    @Test fun oggVorbis() {
+    private fun oggVorbis() {
         assertEquals(-8.25, ReplayGainReader.readBytes(vorbis("replaygain_track_gain=-8.25 dB"))!!.trackGain)
     }
 
-    @Test fun opusR128() {
+    private fun opusR128() {
         val info = ReplayGainReader.readBytes(opus("R128_TRACK_GAIN=-512", "REPLAYGAIN_TRACK_PEAK=0.9", "REPLAYGAIN_ALBUM_GAIN=-1 dB"))!!
         assertEquals(3.0, info.trackGain) // -512/256 + 5
         assertNull(info.trackPeak)
         assertEquals(-1.0, info.albumGain)
     }
 
-    @Test fun r128IgnoredOutsideOpus() {
+    private fun r128IgnoredOutsideOpus() {
         assertNull(ReplayGainReader.readBytes(vorbis("R128_TRACK_GAIN=-512")))
     }
 
-    @Test fun mp4Freeform() {
+    private fun mp4Freeform() {
         val info = ReplayGainReader.readBytes(mp4(freeform("replaygain_track_gain", "-5.10 dB"), freeform("replaygain_track_peak", "0.5")))!!
         assertEquals(-5.1, info.trackGain)
         assertEquals(0.5, info.trackPeak)
     }
 
-    @Test fun parseLimits() {
+    @Test fun limitsAndMalformedInput() { parseLimits(); malformedNeverThrows(); failedFlag() }
+
+    private fun parseLimits() {
         assertNull(ReplayGainReader.parseGain("61 dB"))
         assertNull(ReplayGainReader.parseGain("abc"))
         assertNull(ReplayGainReader.parsePeak("0"))
         assertNull(ReplayGainReader.parsePeak("11"))
     }
 
-    @Test fun malformedNeverThrows() {
+    private fun malformedNeverThrows() {
         assertNull(ReplayGainReader.readBytes(ByteArray(0)))
         assertNull(ReplayGainReader.readBytes(ascii("ID3")))
         val good = listOf(id3(3, txxx(3, "REPLAYGAIN_TRACK_GAIN", "-1 dB")), flac("REPLAYGAIN_TRACK_GAIN=-1"), opus("R128_TRACK_GAIN=1"), mp4(freeform("replaygain_track_gain", "-1")))
@@ -146,7 +150,7 @@ class ReplayGainReaderTest {
         assertNull(ReplayGainReader.readBytes(mp4()))
     }
 
-    @Test fun failedFlag() {
+    private fun failedFlag() {
         val broken = object : ByteSource {
             override val length = 100L
             override fun read(offset: Long, count: Int): ByteArray? = throw ByteSourceException("io")

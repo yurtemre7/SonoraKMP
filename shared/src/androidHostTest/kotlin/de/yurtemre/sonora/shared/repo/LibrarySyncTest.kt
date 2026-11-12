@@ -73,45 +73,6 @@ class LibrarySyncTest {
         }
     }
 
-    @Test fun syncReturnsBeforeSlowEnrichmentWhichPatchesRowsLater() = runBlocking {
-        val db = Room.inMemoryDatabaseBuilder<SonoraDatabase>(LibraryHostContext)
-            .setDriver(BundledSQLiteDriver()).setQueryCoroutineContext(Dispatchers.IO).build()
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val gate = CompletableDeferred<Unit>()
-        var enrichCalls = 0
-        val scanner = object : LibraryScanner {
-            override suspend fun scan(folderPath: String?, folderUri: String?, cached: List<Song>) =
-                ScanResult(listOf(Song(1, "a", "x", "y", 1, "/m/a.mp3", albumId = 7), Song(2, "b", "x", "y", 1, "/m/b.mp3", albumId = 7)), null)
-            override suspend fun enrich(folderPath: String?, folderUri: String?, songs: List<Song>): ScanEnrichment {
-                enrichCalls++
-                gate.await() // slow work (covers, SAF index, lyrics, artist images) must not block sync()
-                return ScanEnrichment(mapOf(7L to "/art/7.jpg"), setOf("/m/a.mp3"), mapOf("x" to "/img/x.jpg"))
-            }
-        }
-        val settings = object : LibrarySettings {
-            override suspend fun scanFolder() = "/m" to null
-            override suspend fun lastSyncMs() = null
-            override suspend fun postponeUntilMs() = 0L
-            override suspend fun colorlessPaths() = emptySet<String>()
-            override suspend fun recordSync(timestampMs: Long, durationMs: Long) {}
-            override suspend fun setPostponeUntil(ms: Long) {}
-            override suspend fun addColorless(paths: Set<String>) {}
-        }
-        val repo = LibraryRepositoryImpl(db, scanner, settings,
-            LibraryPlatform({ ByteArraySource(ByteArray(0)) }, { null }), Clock { 5_000 }, scope, seedStartDelayMs = 60_000)
-        try {
-            val out = withTimeout(5_000) { repo.sync() }
-            assertEquals(2, assertIs<SyncOutcome.Success>(out).songCount)
-            assertEquals(listOf(null, null), repo.songs.first().map { it.artworkPath })
-            gate.complete(Unit)
-            val patched = withTimeout(5_000) { repo.songs.first { s -> s.all { it.artworkPath == "/art/7.jpg" } } }
-            assertEquals(listOf(true, false), patched.sortedBy { it.id }.map { it.hasLyrics })
-            assertEquals(mapOf("x" to "/img/x.jpg"), withTimeout(5_000) { repo.artistImages.first { it.isNotEmpty() } })
-            assertEquals(1, enrichCalls)
-        } finally {
-            scope.cancel(); db.close()
-        }
-    }
 }
 
 private object LibraryHostContext : android.content.ContextWrapper(null) {

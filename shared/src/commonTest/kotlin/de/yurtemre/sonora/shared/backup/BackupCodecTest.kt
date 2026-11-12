@@ -18,7 +18,9 @@ class BackupCodecTest {
     private fun minimal(extra: String = "") =
         """{"format":"sonora-backup","version":1,"createdAt":"2026-03-07T12:34:56.789Z"$extra}"""
 
-    @Test fun flutterFixtureParses() {
+    @Test fun flutterFixtureParsesMapsAndReEncodes() { flutterFixtureParses(); flutterFixtureLegacyMapping(); legacyMappings(); flutterFixtureReEncodesStably() }
+
+    private fun flutterFixtureParses() {
         val doc = BackupCodec.parse(FLUTTER_1_28_1_BACKUP)
         assertEquals(1_794_166_927_123L, doc.createdAtMs)
         assertEquals("1.28.1+128", doc.appVersion)
@@ -33,7 +35,7 @@ class BackupCodecTest {
         assertEquals(mapOf(0L to 5L, 1L to 8L, 5L to 20L), doc.stats!!.weeklyPlayCounts)
     }
 
-    @Test fun flutterFixtureLegacyMapping() {
+    private fun flutterFixtureLegacyMapping() {
         val stored = SettingsWhitelist.fromBackup(BackupCodec.parse(FLUTTER_1_28_1_BACKUP).settings)
         assertEquals(SettingValue.Str("system"), stored["theme_color_source"])
         assertEquals(SettingValue.Str("slowed"), stored["mfx_preset_name"])
@@ -42,7 +44,7 @@ class BackupCodecTest {
         assertEquals(SettingValue.Bool(true), stored["use_material_you"])
     }
 
-    @Test fun legacyMappings() {
+    private fun legacyMappings() {
         fun src(vararg p: Pair<String, Boolean>) = SettingsWhitelist.legacyColorSource(p.associate { it.first to SettingValue.Bool(it.second) })
         assertNull(src())
         assertEquals("album_art", src("use_material_you" to false))
@@ -59,14 +61,16 @@ class BackupCodecTest {
         assertEquals(SettingValue.Str("nightcore"), named["mfx_preset_name"])
     }
 
-    @Test fun bomAndUtf8() {
+    @Test fun validationAndExport() { bomAndUtf8(); errorKinds(); lenientWhereFlutterIsLenient(); exportValidatesUnderFlutterRulesAndRoundTrips(); exportEmptyLibrary() }
+
+    private fun bomAndUtf8() {
         val bytes = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + minimal().encodeToByteArray()
         assertEquals(minimal(), BackupCodec.decodeFile(bytes))
         BackupCodec.parse("\uFEFF" + minimal())
         assertFailsWith<BackupError.InvalidJson> { BackupCodec.decodeFile(byteArrayOf(0x7B, 0xC3.toByte(), 0x28)) }
     }
 
-    @Test fun errorKinds() {
+    private fun errorKinds() {
         assertFailsWith<BackupError.InvalidJson> { BackupCodec.parse("{not json") }
         assertFailsWith<BackupError.NotABackup> { BackupCodec.parse("[]") }
         assertFailsWith<BackupError.NotABackup> { BackupCodec.parse("""{"format":"other","version":1}""") }
@@ -99,7 +103,7 @@ class BackupCodecTest {
         for (m in malformed) assertFailsWith<BackupError.Malformed>(m) { BackupCodec.parse(m) }
     }
 
-    @Test fun lenientWhereFlutterIsLenient() {
+    private fun lenientWhereFlutterIsLenient() {
         val doc = BackupCodec.parse(minimal(""","settings":{"unknown_key":1,"theme_mode":null,"volume":1},"songs":null,"stats":{"first_played_song_id":null}"""))
         assertEquals(mapOf<String, SettingValue>("volume" to SettingValue.Decimal(1.0)), doc.settings)
         assertTrue(doc.songs.isEmpty())
@@ -114,7 +118,7 @@ class BackupCodecTest {
         filePath = "/m/$id.mp3", isFavorite = fav, favoriteDateMs = if (fav) 77L else null,
     )
 
-    @Test fun exportValidatesUnderFlutterRulesAndRoundTrips() {
+    private fun exportValidatesUnderFlutterRulesAndRoundTrips() {
         val library = listOf(song(1), song(2, fav = true), song(3), song(4))
         val stored = mapOf(
             "theme_color_source" to SettingValue.Str("afterglow"),
@@ -157,12 +161,12 @@ class BackupCodecTest {
         assertEquals("[0.0,1.5,-2.0]", (SettingsWhitelist.fromBackup(reparsed.settings)["mfx_customEqGains"] as SettingValue.Str).value)
     }
 
-    @Test fun flutterFixtureReEncodesStably() {
+    private fun flutterFixtureReEncodesStably() {
         val doc = BackupCodec.parse(FLUTTER_1_28_1_BACKUP)
         assertEquals(doc, BackupCodec.parse(BackupCodec.encode(doc)))
     }
 
-    @Test fun exportEmptyLibrary() {
+    private fun exportEmptyLibrary() {
         assertFailsWith<BackupError.LibraryEmpty> {
             BackupCodec.buildExport(emptyList(), emptyList(), emptyMap(), emptyMap(), StatsSnapshot(), emptyMap(), "x", 0)
         }

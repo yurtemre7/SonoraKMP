@@ -9,15 +9,15 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class Mp3DurationTest {
-    @Test
-    fun vbrWithoutXingHeaderIsMeasuredFrameByFrame() {
+    @Test fun exactDurationFromFrames() { vbrWithoutXingHeaderIsMeasuredFrameByFrame(); cbrFramesBehindId3v2AndId3v1(); garbageIsNull() }
+
+    private fun vbrWithoutXingHeaderIsMeasuredFrameByFrame() {
         val bytes = javaClass.getResourceAsStream("/mp3/vbr_noxing.mp3")!!.use { it.readBytes() }
         val ms = Mp3Duration.measureMs(ByteArraySource(bytes))!!
         assertTrue(abs(ms - 180_000) <= 100, "measured $ms ms")
     }
 
-    @Test
-    fun cbrFramesBehindId3v2AndId3v1() {
+    private fun cbrFramesBehindId3v2AndId3v1() {
         // MPEG1 layer III, 128 kbps, 44.1 kHz, no padding: 417-byte frames of 1152 samples.
         val frame = ByteArray(417).also { it[0] = 0xFF.toByte(); it[1] = 0xFB.toByte(); it[2] = 0x90.toByte(); it[3] = 0x44 }
         val id3 = byteArrayOf('I'.code.toByte(), 'D'.code.toByte(), '3'.code.toByte(), 3, 0, 0, 0, 0, 0, 20) + ByteArray(20)
@@ -27,8 +27,7 @@ class Mp3DurationTest {
         assertEquals(frames * 1152L * 1000 / 44100, Mp3Duration.measureMs(ByteArraySource(data)))
     }
 
-    @Test
-    fun garbageIsNull() {
+    private fun garbageIsNull() {
         assertNull(Mp3Duration.measureMs(ByteArraySource(Random(7).nextBytes(50_000))))
         assertNull(Mp3Duration.measureMs(ByteArraySource(ByteArray(0))))
     }

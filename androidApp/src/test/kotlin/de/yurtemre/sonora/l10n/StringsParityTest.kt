@@ -33,17 +33,11 @@ class StringsParityTest {
     }
 
     @Test
-    fun englishAndJapaneseHaveTheSameKeys() {
-        val en = load("values").keys
-        val ja = load("values-ja").keys
-        assertEquals("missing in values-ja", emptySet<String>(), en - ja)
-        assertEquals("missing in values", emptySet<String>(), ja - en)
-    }
-
-    @Test
-    fun formatArgumentsMatch() {
+    fun englishAndJapaneseMatchInKeysAndFormatArguments() {
         val en = load("values")
         val ja = load("values-ja")
+        assertEquals("missing in values-ja", emptySet<String>(), en.keys - ja.keys)
+        assertEquals("missing in values", emptySet<String>(), ja.keys - en.keys)
         val mismatches = en.filter { (k, args) -> k in ja && ja[k] != args }
             .map { (k, args) -> "$k: en=$args ja=${ja[k]}" }
         assertEquals(emptyList<String>(), mismatches)

@@ -35,7 +35,9 @@ class FadeTest {
 
     private fun step() { scope.advanceTimeBy(FadeCurve.STEP_MS); scope.runCurrent() }
 
-    @Test fun fadeInRampFollowsCurveUnderVirtualTime() {
+    @Test fun fadeRampAndReverse() { fadeInRampFollowsCurveUnderVirtualTime(); playMidFadeOutReversesWithoutPausing() }
+
+    private fun fadeInRampFollowsCurveUnderVirtualTime() {
         player.play()
         assertEquals(0f, exo.volume, 0f)
         FadeCurve.ramp(0.0, 1.0).forEach { expected ->
@@ -46,7 +48,7 @@ class FadeTest {
         assertTrue(exo.playWhenReady)
     }
 
-    @Test fun playMidFadeOutReversesWithoutPausing() {
+    private fun playMidFadeOutReversesWithoutPausing() {
         player.play(); repeat(FadeCurve.STEPS) { step() }
         player.pause(); repeat(10) { step() }
         val mid = exo.volume
@@ -57,7 +59,9 @@ class FadeTest {
         assertTrue(exo.playWhenReady)
     }
 
-    @Test fun lowUserVolumeIsRestoredExactlyAfterFade() {
+    @Test fun volumeComposition() { lowUserVolumeIsRestoredExactlyAfterFade(); volumeComposesUserFadeAndReplayGainCappedAtOne() }
+
+    private fun lowUserVolumeIsRestoredExactlyAfterFade() {
         player.volume = 0.04f
         player.play(); repeat(FadeCurve.STEPS) { step() }
         assertEquals(0.04f, exo.volume, 1e-6f)
@@ -69,7 +73,7 @@ class FadeTest {
         assertEquals(0.04f, exo.volume, 1e-6f)
     }
 
-    @Test fun volumeComposesUserFadeAndReplayGainCappedAtOne() {
+    private fun volumeComposesUserFadeAndReplayGainCappedAtOne() {
         player.volume = 0.5f
         player.volumes.replayGain = 0.5
         assertEquals(0.25f, exo.volume, 1e-6f)

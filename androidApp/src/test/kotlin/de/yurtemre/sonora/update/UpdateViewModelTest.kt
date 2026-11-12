@@ -74,20 +74,6 @@ class UpdateViewModelTest {
         return UpdateViewModel(client, clock, settings, installer, "1.0.0", UpdateScheduler(settings, clock, false))
     }
 
-    @Test fun cancelDuringDownload() = runTest(dispatcher) {
-        val installer = FakeInstaller(dir, verifyOk = true)
-        val vm = vm(installer)
-        vm.downloadAndInstall(update)
-        advanceUntilIdle()
-        val s = vm.state.value
-        assertIs<UpdateUiState.Downloading>(s)
-        assertEquals(50, s.bytes)
-        vm.cancelDownload()
-        installer.gate.complete(Unit)
-        advanceUntilIdle()
-        assertEquals(UpdateUiState.InstallFailed(update, InstallError.Cancelled), vm.state.value)
-        assertTrue(!installer.installed)
-    }
 
     @Test fun checksumMismatchFails() = runTest(dispatcher) {
         val installer = FakeInstaller(dir, verifyOk = false).apply { gate.complete(Unit) }

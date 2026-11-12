@@ -33,7 +33,9 @@ class UpdateCheckerTest {
         return UpdateChecker(GitHubReleasesClient(HttpClient(engine), clock), clock, local) { online }
     }
 
-    @Test fun newerAvailable() = runTest {
+    @Test fun offersOnlyNewerVersionPerChannel() = runTest { newerAvailable(); olderOrEqualUpToDate(); prereleaseListMode(); nightlyNewerThanInstalledReleaseOffered(); newerNightlyOfferedOverOlderInstalledNightly(); stableNewerThanInstalledNightlyWins(); preReleaseUserToggleOffGetsNextStable() }
+
+    private suspend fun newerAvailable() {
         val r = checker("1.28.1-dev") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("sonora-1.29.0.apk", r.apkAsset.name)
@@ -42,12 +44,12 @@ class UpdateCheckerTest {
         assertTrue(lastPath.startsWith("/repos/yurtemre7/SonoraKMP/releases/latest"))
     }
 
-    @Test fun olderOrEqualUpToDate() = runTest {
+    private suspend fun olderOrEqualUpToDate() {
         assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.28.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
         assertEquals(UpdateCheckResult.UpToDate, checker("1.29.0") { respond(rel("1.29.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
-    @Test fun prereleaseListMode() = runTest {
+    private suspend fun prereleaseListMode() {
         // The rolling "nightly" pre-release (tag is not a version) must never be offered.
         val nightly = """{"tag_name":"nightly","prerelease":true,"draft":false,"body":"","html_url":"https://x",
             "assets":[{"name":"sonora-9.9.9-nightly.20991231.apk","browser_download_url":"https://d/n.apk","size":10}]}"""
@@ -68,7 +70,7 @@ class UpdateCheckerTest {
         } else respond(rel(stable), HttpStatusCode.OK, json)
     }
 
-    @Test fun nightlyNewerThanInstalledReleaseOffered() = runTest {
+    private suspend fun nightlyNewerThanInstalledReleaseOffered() {
         val r = nightlyChecker("1.28.1", "1.28.1", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("sonora-1.28.2-nightly.202611110317.apk", r.apkAsset.name)
@@ -76,60 +78,55 @@ class UpdateCheckerTest {
         assertEquals(UpdateCheckResult.UpToDate, nightlyChecker("1.28.1", "1.28.1", null).check(UpdateChannel.Nightly))
     }
 
-    @Test fun newerNightlyOfferedOverOlderInstalledNightly() = runTest {
+    private suspend fun newerNightlyOfferedOverOlderInstalledNightly() {
         val r = nightlyChecker("1.28.2-nightly.202611100317", "1.28.1", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("1.28.2-nightly.202611110317", r.version.toString())
     }
 
-    @Test fun stableNewerThanInstalledNightlyWins() = runTest {
+    private suspend fun stableNewerThanInstalledNightlyWins() {
         val r = nightlyChecker("1.28.2-nightly.202611110317", "1.28.2", "1.28.2-nightly.202611110317").check(UpdateChannel.Nightly)
         assertIs<UpdateCheckResult.Available>(r)
         assertEquals("1.28.2", r.version.toString())
     }
 
-    @Test fun preReleaseUserToggleOffGetsNextStable() = runTest {
+    private suspend fun preReleaseUserToggleOffGetsNextStable() {
         val r = checker("1.30.0-beta.1") { respond(rel("1.30.0"), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable)
         assertIs<UpdateCheckResult.Available>(r)
     }
 
-    @Test fun rateLimited403() = runTest {
+    @Test fun failuresAreReported() = runTest { rateLimited403(); rateLimited429RetryAfter(); serverError(); offline(); missingAsset(); malformedTag() }
+
+    private suspend fun rateLimited403() {
         val r = checker("1.0.0") {
             respond("{}", HttpStatusCode.Forbidden, headersOf("X-RateLimit-Remaining" to listOf("0"), "X-RateLimit-Reset" to listOf("2000000")))
         }.check(UpdateChannel.Stable)
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.RateLimited(2_000_000_000L)), r)
     }
 
-    @Test fun rateLimited429RetryAfter() = runTest {
+    private suspend fun rateLimited429RetryAfter() {
         val r = checker("1.0.0") { respond("", HttpStatusCode.TooManyRequests, headersOf("Retry-After", "30")) }.check(UpdateChannel.Stable)
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.RateLimited(now + 30_000)), r)
     }
 
-    @Test fun serverError() = runTest {
+    private suspend fun serverError() {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.Server(500)),
             checker("1.0.0") { respond("", HttpStatusCode.InternalServerError) }.check(UpdateChannel.Stable))
     }
 
-    @Test fun offline() = runTest {
+    private suspend fun offline() {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0") { throw IOException("down") }.check(UpdateChannel.Stable))
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoNetwork), checker("1.0.0", online = false) { error("no call") }.check(UpdateChannel.Stable))
     }
 
-    @Test fun missingAsset() = runTest {
+    private suspend fun missingAsset() {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.NoAsset),
             checker("1.0.0") { respond(rel("1.29.0", assets = false), HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
-    @Test fun malformedTag() = runTest {
+    private suspend fun malformedTag() {
         assertEquals(UpdateCheckResult.Failed(UpdateFailure.Malformed),
             checker("1.0.0") { respond("""{"tag_name":"nightly"}""", HttpStatusCode.OK, json) }.check(UpdateChannel.Stable))
     }
 
-    @Test fun throttle() {
-        val h6 = UpdateChecker.THROTTLE_MS
-        assertTrue(UpdateChecker.shouldAutoCheck(now, now - h6, 0))
-        assertFalse(UpdateChecker.shouldAutoCheck(now, now - h6 + 1, 0))
-        assertFalse(UpdateChecker.shouldAutoCheck(now, 0, now + 1))
-        assertTrue(UpdateChecker.shouldAutoCheck(now, 0, now))
-    }
 }

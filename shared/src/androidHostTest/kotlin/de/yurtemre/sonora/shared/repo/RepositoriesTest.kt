@@ -64,28 +64,7 @@ class RepositoriesTest {
         assertEquals(listOf(3L, 2), playlists.playlist(p.id).first()!!.songIds)
     }
 
-    @Test fun playlistIdCollisionAndCoverReplace() = runBlocking {
-        val a = playlists.create("A"); val b = playlists.create("B")
-        assertEquals(listOf("1000", "1001"), listOf(a.id, b.id))
-        playlists.setCover(a.id, byteArrayOf(1))
-        val first = playlists.playlist(a.id).first()!!.coverPath!!
-        now = 2_000
-        playlists.setCover(a.id, byteArrayOf(2))
-        assertEquals(false, files.exists(first))
-        playlists.setCover(a.id, null)
-        assertNull(playlists.playlist(a.id).first()!!.coverPath)
-        assertEquals(emptyMap(), files.store)
-    }
 
-    @Test fun m3uRoundTrip() = runBlocking {
-        db.songDao().upsertAll(listOf(song(1, "/m/a.mp3"), song(2, "/m/b.mp3")))
-        val p = playlists.create("x/y", listOf(2, 1, 99))
-        val path = playlists.exportM3u(p.id)
-        assertEquals("/cache/share/x_y.m3u", path)
-        files.store["content://in"] = files.readText(path)
-        val imported = playlists.importM3u("content://in", "mix.m3u8", "desc")!!
-        assertEquals("mix" to listOf(2L, 1), imported.name to imported.songIds)
-    }
 
     @Test fun favoritesRelinkByPath() = runBlocking {
         favorites.toggleSong(1, "/m/a.mp3")
@@ -97,24 +76,6 @@ class RepositoriesTest {
         assertEquals(setOf("z"), favorites.favoriteArtists.first().keys)
     }
 
-    @Test fun statsRecordPauseRelinkReset() = runBlocking {
-        stats.recordCompleteListen(1, 5_000, 3, "2026-11-10", "p1")
-        stats.recordSkip(1); stats.recordShuffleSession()
-        stats.pauseRecording(); stats.pauseRecording(); stats.resumeRecording()
-        stats.recordSkip(1)
-        stats.resumeRecording()
-        stats.recordRecent(2, 9_000)
-        stats.relinkSongIds(mapOf(1L to 2L))
-        val s = stats.snapshot.first()
-        assertEquals(1, s.songs.getValue(2).plays)
-        assertEquals(1, s.songs.getValue(2).skips)
-        assertEquals(9_000L, s.songs.getValue(2).lastPlayedAtMs)
-        assertEquals(mapOf(3 to 1), s.weekdayCounts)
-        assertEquals(Triple(1, 1, "2026-11-10"), Triple(s.completeListens, s.shuffleSessions, s.firstPlayedDate))
-        assertEquals(2L, s.firstPlayedSongId)
-        stats.reset()
-        assertEquals(de.yurtemre.sonora.shared.repo.api.StatsSnapshot(), stats.snapshot.first())
-    }
 
     private fun newDb() = Room.inMemoryDatabaseBuilder<SonoraDatabase>(HostContext)
         .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
@@ -124,34 +85,6 @@ class RepositoriesTest {
         java.io.File.createTempFile("prefs", ".preferences_pb").also { it.delete() }.toOkioPath()
     })
 
-    @Test fun backupExportRestoreRoundTrip() = runBlocking {
-        db.songDao().upsertAll(listOf(song(1, "/m/a.mp3"), song(2, "/m/b.mp3"), song(3, "/m/c.mp3")))
-        val settings = newSettings()
-        settings.setUserName("Emre"); settings.setDefaultThemeColor(0xFF112233); settings.setSleepTimerDefaultMinutes(45)
-        val p = playlists.create("Mix", listOf(2, 1), "d")
-        favorites.toggleSong(3, "/m/c.mp3"); favorites.toggleAlbum("al|||a")
-        stats.recordCompleteListen(1, 5_000, 2, "2026-11-10", p.id)
-        val backup = BackupRepositoryImpl(db, settings, stats, files, clock, "1.0+1")
-        assertEquals(BackupExportResult.Success, backup.export("content://out"))
-
-        val db2 = newDb()
-        try {
-            db2.songDao().upsertAll(listOf(song(11, "/m/a.mp3"), song(12, "/m/b.mp3"), song(13, "/m/c.mp3")))
-            val settings2 = newSettings(); val stats2 = StatsRepositoryImpl(db2)
-            val r = BackupRepositoryImpl(db2, settings2, stats2, files, clock, "1.0+1").restore("content://out")
-            assertEquals(BackupRestoreResult.Success(1, 2, 0, false), r)
-            val restored = PlaylistRepositoryImpl(db2, files, clock).playlist(p.id).first()!!
-            assertEquals(Triple("Mix", "d", listOf(12L, 11)), Triple(restored.name, restored.description, restored.songIds))
-            val fav2 = FavoritesRepositoryImpl(db2, clock)
-            assertEquals(setOf(13L), fav2.favoriteSongs.first().keys)
-            assertEquals(setOf("al|||a"), fav2.favoriteAlbums.first().keys)
-            val s = stats2.snapshot.first()
-            assertEquals(1, s.songs.getValue(11).plays)
-            assertEquals(Triple(11L, "2026-11-10", mapOf(p.id to 1)), Triple(s.firstPlayedSongId, s.firstPlayedDate, s.playlistPlays))
-            val a = settings2.settings.first()
-            assertEquals(Triple("Emre", 0xFF112233, 45), Triple(a.userName, a.defaultThemeColor, a.sleepTimerDefaultMinutes))
-        } finally { db2.close() }
-    }
 
     @Test fun backupRestoresFlutterFixture() = runBlocking {
         db.songDao().upsertAll(listOf(

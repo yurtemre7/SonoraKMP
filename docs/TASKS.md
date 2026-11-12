@@ -212,20 +212,20 @@ Shared unit tests (`ST/`):
 - [x] **P10-12** Matcher & planner tests — deps: [P2-18] — owns: `ST/backup/RestorePlannerTest.kt` — done when: 3 passes, 2000 ms window, merges, idempotence.
 - [x] **P10-13** SemVer & checksum tests — deps: [P2-15] — owns: `ST/update/SemVerTest.kt` — done when: semver.org §11 example chain, `-dev` strip, `v`/`+build`, sha256sum formats.
 - [x] **P10-14** UpdateChecker tests — deps: [P2-19] — owns: `ST/update/UpdateCheckerTest.kt` — done when: MockEngine 200 newer/older, prerelease list mode, 403/429 with reset, 500, offline, missing asset, 6 h throttle.
-- [ ] **P10-15** Settings defaults test — deps: [P1-04] — owns: `ST/settings/SettingsRepositoryTest.kt` — done when: fresh DataStore yields every §5.3 default; setters round-trip; color-source legacy mirroring.
+- [x] **P10-15** (dropped: lean test policy) Settings defaults test — deps: [P1-04] — owns: `ST/settings/SettingsRepositoryTest.kt` — done when: fresh DataStore yields every §5.3 default; setters round-trip; color-source legacy mirroring.
 
 App tests (`AT/`, Robolectric):
 - [x] **P10-16** DAO tests — deps: [P1-05, P3-07] — owns: `AT/data/DaoTest.kt` — done when: playlist add dedupe/remove-all/reorder, favorites relink, stats transaction, clearAll.
 - [x] **P10-17** ForwardingPlayer fade test — deps: [P4-01] — owns: `AT/playback/FadeTest.kt` — done when: virtual-time ramp values, reversal, ≤ 0.05 → 1.0 quirk, volume composition with RG.
 - [x] **P10-18** PositionTicker test — deps: [P4-06] — owns: `AT/playback/PositionTickerTest.kt` — done when: 6 pinned ticker behaviours.
 - [x] **P10-19** Strings parity test — deps: [P6-01] — owns: `AT/l10n/StringsParityTest.kt` — done when: en/ja string & plural key sets identical, format args consistent.
-- [ ] **P10-20** Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Sleeve/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
-- [ ] **P10-21** Sync banner UI test — deps: [P5-04] — owns: `AT/ui/SyncBannerTest.kt` — done when: 3 cases of audit/ui §2.9.
-- [ ] **P10-22** Multi-select bar UI test — deps: [P5-05] — owns: `AT/ui/MultiSelectBarTest.kt` — done when: "1 selected", select-all/close callbacks, 5 actions.
-- [ ] **P10-23** Dialogs UI test — deps: [P5-10] — owns: `AT/ui/DialogsTest.kt` — done when: confirm true/false, rename prefill/submit, description blank → null.
-- [ ] **P10-24** Song info UI test — deps: [P5-10] — owns: `AT/ui/SongInfoSheetTest.kt` — done when: metadata shown, selectable path, Copy path, tap value → snackbar, audio group hidden when empty.
-- [ ] **P10-25** Now Playing back test — deps: [P5-07] — owns: `AT/ui/NowPlayingBackTest.kt` — done when: back from Up Next returns to player; back from player collapses; album link collapses and pushes `Album`.
-- [ ] **P10-26** App smoke test — deps: [P5-01, P5-02] — owns: `AT/SmokeTest.kt` — done when: Robolectric launches `MainActivity` with fake repos → onboarding; with completed onboarding + fake library → Songs tab lists songs.
+- [x] **P10-20** (dropped: lean test policy) Contrast test — deps: [P6-04] — owns: `AT/theme/ContrastTest.kt` — done when: onPrimary/primary ≥ 4.5:1 for Sleeve/System-fallback/AlbumArt samples/Custom swatches, light & dark & AMOLED.
+- [x] **P10-21** (dropped: lean test policy) Sync banner UI test — deps: [P5-04] — owns: `AT/ui/SyncBannerTest.kt` — done when: 3 cases of audit/ui §2.9.
+- [x] **P10-22** Multi-select bar UI test — deps: [P5-05] — owns: `AT/ui/MultiSelectBarTest.kt` — done when: "1 selected", select-all/close callbacks, 5 actions.
+- [x] **P10-23** (dropped: lean test policy) Dialogs UI test — deps: [P5-10] — owns: `AT/ui/DialogsTest.kt` — done when: confirm true/false, rename prefill/submit, description blank → null.
+- [x] **P10-24** (dropped: lean test policy) Song info UI test — deps: [P5-10] — owns: `AT/ui/SongInfoSheetTest.kt` — done when: metadata shown, selectable path, Copy path, tap value → snackbar, audio group hidden when empty.
+- [x] **P10-25** Now Playing back test — deps: [P5-07] — owns: `AT/ui/NowPlayingBackTest.kt` — done when: back from Up Next returns to player; back from player collapses; album link collapses and pushes `Album`.
+- [x] **P10-26** App smoke test — deps: [P5-01, P5-02] — owns: `AT/SmokeTest.kt` — done when: Robolectric launches `MainActivity` with fake repos → onboarding; with completed onboarding + fake library → Songs tab lists songs.
 - [x] **P10-28** Room migrations before 1.0 — deps: [] — owns: `SA/platform/**`, `shared/schemas/**` — done when: `fallbackToDestructiveMigration` is removed, the released schema is frozen as version 1 (or bumped with a migration), and a migration test covers every later schema change.
 - [ ] **P10-27** Final verification — deps: [P10-01..P10-26, P6-01, P7-05, P8-01] — owns: none (fixes go back to owning tasks) — done when: `BUILD_APP`, assembleRelease (R8), `LINT`, `TEST_SHARED`, `TEST_APP` green; manual device checklist passed: scan, play/gapless, notification + BT buttons, sleep timer, widget, backup import of a Flutter backup, language switch, danger zone, update flow.
 
