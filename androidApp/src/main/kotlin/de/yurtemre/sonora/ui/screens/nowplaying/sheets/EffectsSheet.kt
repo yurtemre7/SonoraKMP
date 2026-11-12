@@ -1,22 +1,27 @@
 package de.yurtemre.sonora.ui.screens.nowplaying.sheets
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -26,7 +31,6 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -45,18 +49,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.MfxUiState
 import de.yurtemre.sonora.playback.api.PlaybackConnection
@@ -64,7 +74,10 @@ import de.yurtemre.sonora.shared.model.EqMode
 import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.ui.format.currentLocale
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.math.absoluteValue
 
 /** Effects sheet (UI-20, PLAY-12..16): presets, EQ controls, and custom speed/pitch at the bottom. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -246,9 +259,27 @@ private fun ValueBadge(text: String, highlighted: Boolean) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PresetsSection(mfx: MfxUiState, onSelectPreset: (MfxPreset) -> Unit) {
+    val presets = MfxPreset.entries
+    val selectedIndex = presets.indexOf(mfx.preset).coerceAtLeast(0)
+    val pagerState = rememberPagerState(initialPage = selectedIndex) { presets.size }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(selectedIndex) {
+        if (pagerState.currentPage != selectedIndex) {
+            pagerState.animateScrollToPage(selectedIndex)
+        }
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                val p = presets[page]
+                if (p != mfx.preset) onSelectPreset(p)
+            }
+    }
+
     SectionCard(
         icon = Icons.Rounded.AutoAwesome,
         title = stringResource(R.string.effects_speed_presets),
@@ -259,20 +290,59 @@ private fun PresetsSection(mfx: MfxUiState, onSelectPreset: (MfxPreset) -> Unit)
             )
         },
     ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            MfxPreset.entries.forEach { p ->
-                val selected = mfx.preset == p
-                FilterChip(
-                    selected = selected,
-                    onClick = { onSelectPreset(p) },
-                    label = { Text(stringResource(presetLabel(p))) },
-                    leadingIcon = if (selected) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                )
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val cardWidth = 124.dp
+            val edgePadding = ((maxWidth - cardWidth) / 2).coerceAtLeast(0.dp)
+            HorizontalPager(
+                state = pagerState,
+                pageSize = PageSize.Fixed(cardWidth),
+                pageSpacing = 10.dp,
+                contentPadding = PaddingValues(horizontal = edgePadding),
+                modifier = Modifier.fillMaxWidth().height(84.dp),
+            ) { page ->
+                val preset = presets[page]
+                val selected = mfx.preset == preset
+                val offset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                val fraction = (1f - offset.coerceIn(0f, 1f))
+                val scale = lerp(0.90f, 1f, fraction)
+                val alpha = lerp(0.65f, 1f, fraction)
+                val cs = MaterialTheme.colorScheme
+                Surface(
+                    onClick = { scope.launch { pagerState.animateScrollToPage(page) } },
+                    shape = MaterialTheme.shapes.large,
+                    color = if (selected) cs.primaryContainer else cs.surfaceContainerHigh,
+                    border = if (selected) BorderStroke(1.5.dp, cs.primary) else null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        },
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.effects_speed_pitch_value,
+                                "%.2f".format(currentLocale(), preset.speed),
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selected) cs.onPrimaryContainer else cs.onSurface,
+                        )
+                        Text(
+                            text = stringResource(presetLabel(preset)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selected) cs.onPrimaryContainer else cs.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }
