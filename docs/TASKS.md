@@ -165,7 +165,7 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [ ] **P6-07** English sentence case for generated strings — owns: `scripts/strings/**`, `AR/values/strings.xml` — done when: the generator supports English overrides and the ~430 Title Case strings carried over from Flutter read in sentence case (DESIGN §2).
 - [ ] **P6-08** Tall-pane Now Playing spacing — owns: `A/ui/screens/nowplaying/PlayerView.kt` — done when: on expanded panes the cover block sits closer to the controls (spacers weighted to the top) instead of floating mid-pane.
 
-- [ ] **P6-09** Exact MP3 durations — owns: `S/audio/Mp3Duration.kt`, library enrich pass — done when: VBR MP3s without a Xing header show their real length (fixture: 180 s file reported as 0:29 by MediaStore and ExoPlayer), measured by frame counting in the background enrich pass and stored per (path, size, mtime). Work in progress on branch `wip/mp3-duration` (2026-11-11). Already shipped on main: same time base at any speed, total = max(player, library, position), MP3 index seeking (D-67).
+- [x] **P6-09** Exact MP3 durations — owns: `S/audio/Mp3Duration.kt`, library enrich pass — done when: VBR MP3s without a Xing header show their real length (fixture: 180 s file reported as 0:29 by MediaStore and ExoPlayer), measured by frame counting in the background enrich pass and stored per (path, size, mtime). Work in progress on branch `wip/mp3-duration` (2026-11-11). Already shipped on main: same time base at any speed, total = max(player, library, position), MP3 index seeking (D-67).
 
 ## P7 Auto-update installer end-to-end
 
