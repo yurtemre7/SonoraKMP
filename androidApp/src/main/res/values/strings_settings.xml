@@ -86,13 +86,15 @@
     <string name="settings_formatting_preview">Preview</string>
     <string name="settings_formatting_original">Original</string>
     <string name="settings_formatting_displayed">Displayed as</string>
-    <string name="settings_formatting_sample_title" translatable="false">Awesome Artist - The Greatest Hit (feat. Someone)</string>
+    <string name="settings_formatting_sample_title" translatable="false">Awesome Artist - The Greatest Hit (feat. Someone) (Official Video)</string>
     <string name="settings_formatting_sample_artist" translatable="false">Awesome Artist</string>
     <string name="settings_section_title_filters">Title filters</string>
     <string name="settings_filter_features">Hide featured artists</string>
     <string name="settings_filter_features_subtitle">Removes (feat. …) and [ft. …] from titles</string>
     <string name="settings_filter_artist">Hide artist name in titles</string>
     <string name="settings_filter_artist_subtitle">Removes a leading or trailing “Artist -” from titles</string>
+    <string name="settings_filter_video_tags">Hide video &amp; audio tags</string>
+    <string name="settings_filter_video_tags_subtitle">Removes (Music Video), (Official Video), and similar tags from titles</string>
 
     <!-- Playback (SET-04) -->
     <string name="settings_section_while_playing">While playing</string>

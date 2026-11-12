@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GroupRemove
 import androidx.compose.material.icons.rounded.PersonOff
+import androidx.compose.material.icons.rounded.VideocamOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,7 +46,7 @@ fun SettingsFormattingRoute(onBack: () -> Unit) {
         settingsHeader("preview") { stringResource(R.string.settings_formatting_preview) }
         item(key = "preview_card") {
             val shown = TitleFormatter.displayTitle(
-                sampleTitle, sampleArtist, settings.filterTitleFeatures, settings.filterTitleArtist,
+                sampleTitle, sampleArtist, settings.filterTitleFeatures, settings.filterTitleArtist, settings.filterTitleVideoTags,
             )
             PreviewCard(sampleTitle, shown)
         }
@@ -62,6 +63,13 @@ fun SettingsFormattingRoute(onBack: () -> Unit) {
                 stringResource(R.string.settings_filter_artist), settings.filterTitleArtist,
                 { v -> scope.launch { repo.setFilterTitleArtist(v) } }, icon = Icons.Rounded.PersonOff,
                 subtitle = stringResource(R.string.settings_filter_artist_subtitle),
+            )
+        }
+        item(key = "video_tags") {
+            SwitchRow(
+                stringResource(R.string.settings_filter_video_tags), settings.filterTitleVideoTags,
+                { v -> scope.launch { repo.setFilterTitleVideoTags(v) } }, icon = Icons.Rounded.VideocamOff,
+                subtitle = stringResource(R.string.settings_filter_video_tags_subtitle),
             )
         }
     }

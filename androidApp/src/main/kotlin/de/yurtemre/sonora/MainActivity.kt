@@ -59,7 +59,12 @@ class MainActivity : AppCompatActivity() {
                 amoled = settings.amoledDark,
                 seedColor = seed,
             ) {
-                val prefs = DisplayPrefs(settings.filterTitleFeatures, settings.filterTitleArtist, settings.preferLocalArtistImages)
+                val prefs = DisplayPrefs(
+                    settings.filterTitleFeatures,
+                    settings.filterTitleArtist,
+                    settings.filterTitleVideoTags,
+                    settings.preferLocalArtistImages,
+                )
                 CompositionLocalProvider(LocalDisplayPrefs provides prefs, LocalAudioPlaying provides audioPlaying) {
                     GateHost {
                         SonoraAppShell(

@@ -83,6 +83,8 @@
     <string name="settings_filter_features_subtitle">タイトルから (feat. …) や [ft. …] を取り除きます</string>
     <string name="settings_filter_artist">タイトル内のアーティスト名を隠す</string>
     <string name="settings_filter_artist_subtitle">タイトルの先頭や末尾の「アーティスト -」を取り除きます</string>
+    <string name="settings_filter_video_tags">動画・音声タグを隠す</string>
+    <string name="settings_filter_video_tags_subtitle">タイトルから (Music Video) や (Official Video) などのタグを取り除きます</string>
 
     <string name="settings_section_while_playing">再生中</string>
     <string name="settings_section_headphones">ヘッドホンとBluetooth</string>

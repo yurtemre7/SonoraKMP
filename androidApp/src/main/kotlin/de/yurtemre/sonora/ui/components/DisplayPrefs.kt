@@ -11,6 +11,7 @@ import de.yurtemre.sonora.shared.model.Song
 data class DisplayPrefs(
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,
+    val filterTitleVideoTags: Boolean = false,
     val preferLocalArtistImages: Boolean = true,
 )
 
@@ -20,7 +21,7 @@ val LocalDisplayPrefs = compositionLocalOf { DisplayPrefs() }
 @Composable
 fun Song.displayTitle(): String {
     val p = LocalDisplayPrefs.current
-    return TitleFormatter.displayTitle(title, artist, p.filterTitleFeatures, p.filterTitleArtist)
+    return TitleFormatter.displayTitle(title, artist, p.filterTitleFeatures, p.filterTitleArtist, p.filterTitleVideoTags)
 }
 
 /** Artist art: the folder image (`artist.jpg` …) only when "Prefer local artist images" is on. */

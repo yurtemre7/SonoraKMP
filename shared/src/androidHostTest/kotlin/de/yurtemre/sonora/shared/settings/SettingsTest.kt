@@ -58,6 +58,7 @@ class SettingsTest {
             check("repeatMode", RepeatMode.entries.last(), ::setRepeatMode) { it.repeatMode }
             check("volume", 0.4, ::setVolume) { it.volume }
             check("speed", 1.25, ::setSpeed) { it.speed }
+            check("pitch", 0.85, ::setPitch) { it.pitch }
             check("mfxPreset", MfxPreset.entries.last(), ::setMfxPreset) { it.mfxPreset }
             check("mfxPreset=null", null, ::setMfxPreset) { it.mfxPreset }
             check("mfxReverb", true, ::setMfxReverbEnabled) { it.mfxReverbEnabled }
@@ -68,6 +69,7 @@ class SettingsTest {
             check("mfxGains=null", null, ::setMfxCustomEqGains) { it.mfxCustomEqGains }
             check("filterTitleFeatures", true, ::setFilterTitleFeatures) { it.filterTitleFeatures }
             check("filterTitleArtist", true, ::setFilterTitleArtist) { it.filterTitleArtist }
+            check("filterTitleVideoTags", true, ::setFilterTitleVideoTags) { it.filterTitleVideoTags }
             check("songSort", SongSort.entries.last() to false, { setSongSort(it.first, it.second) }) { it.songSortBy to it.songSortAscending }
             check("albumSort", AlbumSort.entries.last() to false, { setAlbumSort(it.first, it.second) }) { it.albumSortBy to it.albumSortAscending }
             check("artistSort", ArtistSort.entries.last() to false, { setArtistSort(it.first, it.second) }) { it.artistSortBy to it.artistSortAscending }

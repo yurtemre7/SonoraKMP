@@ -52,6 +52,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setRepeatMode(v: RepeatMode) = put { it[K.REPEAT_MODE] = v.storageName }
     suspend fun setVolume(v: Double) = put { it[K.VOLUME] = v }
     suspend fun setSpeed(v: Double) = put { it[K.SPEED] = v }
+    suspend fun setPitch(v: Double) = put { it[K.PITCH] = v }
     suspend fun setMfxPreset(v: MfxPreset?) = put {
         if (v == null) it.remove(K.MFX_PRESET_NAME) else it[K.MFX_PRESET_NAME] = v.storageName
     }
@@ -66,6 +67,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     // ---- Library / display ----
     suspend fun setFilterTitleFeatures(v: Boolean) = put { it[K.FILTER_TITLE_FEATURES] = v }
     suspend fun setFilterTitleArtist(v: Boolean) = put { it[K.FILTER_TITLE_ARTIST] = v }
+    suspend fun setFilterTitleVideoTags(v: Boolean) = put { it[K.FILTER_TITLE_VIDEO_TAGS] = v }
     suspend fun setSongSort(by: SongSort, ascending: Boolean) = put {
         it[K.SONG_SORT_BY] = by.storageName; it[K.SONG_SORT_ASCENDING] = ascending
     }
@@ -163,6 +165,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 repeatMode = RepeatMode.fromStorage(p[K.REPEAT_MODE]),
                 filterTitleFeatures = p[K.FILTER_TITLE_FEATURES] ?: d.filterTitleFeatures,
                 filterTitleArtist = p[K.FILTER_TITLE_ARTIST] ?: d.filterTitleArtist,
+                filterTitleVideoTags = p[K.FILTER_TITLE_VIDEO_TAGS] ?: d.filterTitleVideoTags,
                 autoCheckUpdates = p[K.AUTO_CHECK_UPDATES] ?: d.autoCheckUpdates,
                 updateChannel = UpdateChannel.fromStored(p[K.UPDATE_CHANNEL], p[K.INCLUDE_PRERELEASES]),
                 songSortBy = SongSort.fromStorage(p[K.SONG_SORT_BY]),
@@ -178,6 +181,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 songActivityView = SongActivityView.fromStorage(p[K.SONG_ACTIVITY_VIEW]),
                 volume = p[K.VOLUME] ?: d.volume,
                 speed = p[K.SPEED] ?: d.speed,
+                pitch = p[K.PITCH] ?: d.pitch,
                 mfxPreset = MfxPreset.fromStorage(p[K.MFX_PRESET_NAME]),
                 mfxReverbEnabled = p[K.MFX_REVERB_ENABLED] ?: d.mfxReverbEnabled,
                 mfxLofiEnabled = p[K.MFX_LOFI_ENABLED] ?: d.mfxLofiEnabled,

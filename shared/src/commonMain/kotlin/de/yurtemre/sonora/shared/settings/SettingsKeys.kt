@@ -40,6 +40,7 @@ object SettingsKeys {
     val REPEAT_MODE = stringPreferencesKey("repeat_mode")
     val FILTER_TITLE_FEATURES = booleanPreferencesKey("filter_title_features")
     val FILTER_TITLE_ARTIST = booleanPreferencesKey("filter_title_artist")
+    val FILTER_TITLE_VIDEO_TAGS = booleanPreferencesKey("filter_title_video_tags")
     val AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")
     val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
 
@@ -58,6 +59,7 @@ object SettingsKeys {
     val SONG_ACTIVITY_VIEW = stringPreferencesKey("song_activity_view")
     val VOLUME = doublePreferencesKey("volume")
     val SPEED = doublePreferencesKey("speed")
+    val PITCH = doublePreferencesKey("pitch")
     val MFX_PRESET_NAME = stringPreferencesKey("mfx_preset_name")
     val MFX_REVERB_ENABLED = booleanPreferencesKey("mfx_isReverbEnabled")
     val MFX_LOFI_ENABLED = booleanPreferencesKey("mfx_isLofiEnabled")
