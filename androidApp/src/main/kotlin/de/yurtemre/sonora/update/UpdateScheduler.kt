@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.first
 import java.util.Collections
 
 /**
- * Launch-check policy (UPD-05): release builds only, `auto_check_updates` on, at most once per 6 h (persisted last
- * check) and not before a stored rate-limit reset. The sheet is shown at most once per version per process.
+ * Launch-check policy (UPD-05): release builds only, `auto_check_updates` on, runs on every cold start
+ * unless before a stored rate-limit reset. The sheet is shown at most once per version per process.
  */
 class UpdateScheduler(
     private val settings: SettingsRepository,
@@ -19,7 +19,7 @@ class UpdateScheduler(
         if (!autoCheckAllowed) return false
         val s = settings.settings.first()
         return s.autoCheckUpdates &&
-            UpdateChecker.shouldAutoCheck(clock.nowMs(), s.lastUpdateCheckMs, s.updateRateLimitResetMs)
+            UpdateChecker.shouldAutoCheck(clock.nowMs(), s.updateRateLimitResetMs)
     }
 
     /** True the first time [version] is offered in this process. */

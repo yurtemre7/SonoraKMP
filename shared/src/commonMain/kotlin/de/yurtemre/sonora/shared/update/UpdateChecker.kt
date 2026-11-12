@@ -95,12 +95,10 @@ class UpdateChecker(
     }
 
     companion object {
-        const val THROTTLE_MS: Long = 6 * 60 * 60 * 1000L
-
         fun apkAssetName(version: SemVer): String = "sonora-$version.apk"
 
-        /** Whether an automatic check may run now (6 h throttle + rate-limit reset). Manual checks ignore this. */
-        fun shouldAutoCheck(nowMs: Long, lastCheckMs: Long, rateLimitResetMs: Long): Boolean =
-            nowMs - lastCheckMs >= THROTTLE_MS && nowMs >= rateLimitResetMs
+        /** Whether an automatic check may run now (respects rate-limit reset; no time throttle). */
+        fun shouldAutoCheck(nowMs: Long, rateLimitResetMs: Long): Boolean =
+            nowMs >= rateLimitResetMs
     }
 }
