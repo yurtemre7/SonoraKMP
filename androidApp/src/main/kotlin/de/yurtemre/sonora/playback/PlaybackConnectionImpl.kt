@@ -322,14 +322,9 @@ class PlaybackConnectionImpl(
         }
     }
 
-    override fun startSleepTimer(durationMs: Long, fadeSeconds: Int) = send(
+    override fun startSleepTimer(durationMs: Long, finishSong: Boolean, fadeSeconds: Int) = send(
         C.SLEEP_START,
-        Bundle().apply { putLong(C.ARG_SECONDS, durationMs / 1000); putBoolean(C.ARG_FINISH_SONG, false); putInt(C.ARG_FADE, fadeSeconds) },
-    )
-
-    override fun startSleepTimerFinishSong(fadeSeconds: Int) = send(
-        C.SLEEP_START,
-        Bundle().apply { putLong(C.ARG_SECONDS, 0); putBoolean(C.ARG_FINISH_SONG, true); putInt(C.ARG_FADE, fadeSeconds) },
+        Bundle().apply { putLong(C.ARG_SECONDS, durationMs / 1000); putBoolean(C.ARG_FINISH_SONG, finishSong); putInt(C.ARG_FADE, fadeSeconds) },
     )
 
     override fun extendSleepTimer(deltaMs: Long) = send(C.SLEEP_EXTEND, Bundle().apply { putLong(C.ARG_SECONDS, deltaMs / 1000) })

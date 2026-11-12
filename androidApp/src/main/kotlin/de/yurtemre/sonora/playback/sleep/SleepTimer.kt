@@ -51,6 +51,8 @@ class SleepTimer(
     fun start(durationSec: Long, finishSong: Boolean, fadeOutSec: Int) {
         totalMs = durationSec * 1000
         dispatch(SleepTimerEvent.Start(durationSec, finishSong, fadeOutSec, host.userVolume))
+        // "Finish the song" alone: enter finishing mode right away instead of after the first tick.
+        if (durationSec <= 0 && finishSong) dispatch(SleepTimerEvent.Tick(host.isPlaying, host.currentSongId, host.userVolume))
     }
 
     fun stop() = dispatch(SleepTimerEvent.Stop)
@@ -126,6 +128,7 @@ class SleepTimer(
                 totalMs = totalMs.coerceAtLeast(remaining * 1000),
                 fadeSeconds = state.fadeOutSec,
                 isFading = state.isFadingOut,
+                finishSong = state.finishSong,
             )
         }
     }

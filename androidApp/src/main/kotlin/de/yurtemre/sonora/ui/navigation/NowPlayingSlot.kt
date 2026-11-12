@@ -113,7 +113,11 @@ fun NowPlayingSlot(
 ) {
     val spec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     SideEffect { state.spec = spec }
-    PredictiveBackHandler(enabled = state.expanded) { progress ->
+    // Composed only while expanded so the callback is (re)registered when the overlay opens: the back dispatcher
+    // gives the most recently registered callback priority, so this wins over NavDisplay and every screen's
+    // BackHandler (selection mode, search) composed before. Handlers inside the overlay (Up next, sheets) are
+    // composed after this one and therefore still win over the collapse.
+    if (state.expanded) PredictiveBackHandler { progress ->
         try {
             progress.collect { state.backProgress = it.progress }
             state.expanded = false

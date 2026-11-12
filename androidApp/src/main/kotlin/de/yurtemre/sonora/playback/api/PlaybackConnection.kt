@@ -67,8 +67,8 @@ interface PlaybackConnection {
     fun undoClosePlayer()
 
     // PLAY-26 sleep timer
-    fun startSleepTimer(durationMs: Long, fadeSeconds: Int)
-    fun startSleepTimerFinishSong(fadeSeconds: Int)
+    /** [durationMs] 0 with [finishSong] = stop after the current song; both = count down, then finish that song. */
+    fun startSleepTimer(durationMs: Long, finishSong: Boolean, fadeSeconds: Int)
     fun extendSleepTimer(deltaMs: Long)
     fun cancelSleepTimer()
 }
