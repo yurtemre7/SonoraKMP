@@ -184,7 +184,7 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [x] **P8-03** Pages workflow — deps: [P9-01] — owns: `.github/workflows/pages.yml` — done when: deploys `/site` on changes under `site/**` (needs Pages enabled with source "GitHub Actions").
 - [x] **P8-04** Bundled changelog — deps: [P1-01] — owns: `CHANGELOG.md`, `androidApp/build.gradle.kts` (asset task only) — done when: `CHANGELOG.md` generated with `git cliff` config and copied into generated assets so UI-36 shows it offline.
 - [x] **P8-05** CONTRIBUTING — deps: [P8-01] — owns: `CONTRIBUTING.md` — done when: commit convention, commands, release process (tag `vX.Y.Z`), strings process documented.
-- [ ] **P8-06** README — deps: [P8-02] — owns: `README.md` — done when: features, install (side-by-side with Flutter app, backup migration), build, release, one-time secrets setup, Pages setup, privacy, links.
+- [x] **P8-06** README — deps: [P8-02] — owns: `README.md` — done when: features, install (side-by-side with Flutter app, backup migration), build, release, one-time secrets setup, Pages setup, privacy, links.
 - [x] **P8-07** Release dry run — deps: [P8-02] — owns: none — done when: `release.yml` dispatched with `dry_run` produces apk/sha256/aab artifacts and notes. (Run 42814606411: signed with release key, checksum matches.)
 
 ## P9 Website (`/site`)
@@ -192,8 +192,8 @@ Goal: open the app, grant access, pick a folder, see your songs, play them, cont
 - [x] **P9-01** Site scaffold & tokens — owns: `site/**` — done when: Sleeve tokens, self-hosted woff2, light/dark toggle, responsive.
 - [x] **P9-02** Hero & features — done when: Pulse-button hero, feature grid, screenshot slots (placeholders until P9-05).
 - [x] **P9-03** Download — done when: latest release APK via GitHub API with static fallback, EN/JA toggle.
-- [ ] **P9-04** Site QA — deps: [P8-07] — owns: `site/**` (fixes only) — done when: download button resolves a real release asset, no console errors, a11y checks pass.
-- [ ] **P9-05** Real screenshots — deps: [P10-27] — owns: `site/assets/screenshots/*.png`, `images/**` — done when: emulator screenshots of home, now playing, library, settings replace placeholders.
+- [x] **P9-04** Site QA — deps: [P8-07] — owns: `site/**` (fixes only) — done when: download button resolves a real release asset, no console errors, a11y checks pass.
+- [x] **P9-05** Real screenshots — deps: [P10-27] — owns: `site/assets/screenshots/*.png`, `images/**` — done when: emulator screenshots of home, now playing, library, settings replace placeholders.
 
 ## P10 Tests & final verification (all tasks in one batch, then P10-27)
 

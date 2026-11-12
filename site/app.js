@@ -3,10 +3,11 @@
   'use strict';
 
   var REPO = 'yurtemre7/SonoraKMP';
-  var API = 'https://api.github.com/repos/' + REPO + '/releases/latest';
-  var FALLBACK = 'https://github.com/' + REPO + '/releases/latest';
+  var API = 'https://api.github.com/repos/' + REPO + '/releases?per_page=20';
+  var FALLBACK = 'https://github.com/' + REPO + '/releases';
+  var NIGHTLY_PAGE = 'https://github.com/' + REPO + '/releases/tag/nightly';
   var APK_RE = /^sonora-.*\.apk$/i;
-  var CACHE_KEY = 'sonora-release-v1';
+  var CACHE_KEY = 'sonora-release-v2';
   var CACHE_TTL = 10 * 60 * 1000;
 
   var I18N = {
@@ -87,7 +88,10 @@
       relEnd: ".",
       relDetail: "{file}, {size}.",
       relSha: "SHA-256 checksum",
-      relError: "Couldn’t reach GitHub just now. The button still opens the latest release page."
+      relError: "Couldn’t reach GitHub just now. The button opens the releases page.",
+      nightly: "Nightly builds",
+      relNightly: "No stable release yet. Nightly builds of the latest code are available.",
+      relNone: "No release yet. Follow the releases page for the first build."
     },
     ja: {
       title: "SonoraKMP：手元の音楽を、そのまま聴く",
@@ -166,7 +170,10 @@
       relEnd: "",
       relDetail: "{file}（{size}）",
       relSha: "SHA-256 チェックサム",
-      relError: "GitHub に接続できませんでした。ボタンからは最新リリースのページを開けます。"
+      relError: "GitHub に接続できませんでした。ボタンからはリリース一覧を開けます。",
+      nightly: "ナイトリービルド",
+      relNightly: "安定版はまだありません。最新コードのナイトリービルドを利用できます。",
+      relNone: "まだリリースはありません。最初のビルドはリリース一覧で公開されます。"
     }
   };
 
@@ -307,6 +314,19 @@
       if (meta) meta.textContent = releaseFailed ? t('relError') : t('releaseFallback');
       return;
     }
+    if (release.none || release.nightly) {
+      // No stable release: point at the nightly pre-release page (or all releases), never at a 404.
+      buttons.forEach(function (b) {
+        if (!b) return;
+        b.href = release.nightly ? NIGHTLY_PAGE : FALLBACK;
+        b.removeAttribute('download');
+        var label = b.querySelector('[data-i18n]');
+        if (label && release.nightly) label.textContent = t('nightly');
+      });
+      if (meta) meta.textContent = release.nightly ? t('relNightly') : t('relNone');
+      if (detail) detail.textContent = '';
+      return;
+    }
     var href = release.apk ? release.apk.url : release.page;
     buttons.forEach(function (b) {
       if (!b) return;
@@ -348,30 +368,24 @@
     if (!window.fetch) return;
     fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
       .then(function (r) {
-        if (r.status === 404) return null; // no release published yet
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
-      .then(function (json) {
-        if (!json) return;
-        release = parseRelease(json);
+      .then(function (list) {
+        if (!Array.isArray(list)) return;
+        var stable = list.filter(function (x) { return !x.draft && !x.prerelease; })[0];
+        var nightly = list.filter(function (x) { return x.tag_name === 'nightly'; })[0];
+        // No stable release yet: fall back to the rolling nightly pre-release, else all releases.
+        var json = stable || (nightly ? { nightly: true } : { none: true });
+        release = (json.none || json.nightly) ? json : parseRelease(json);
         store('session', CACHE_KEY, JSON.stringify({ at: Date.now(), release: release }));
         renderRelease();
       })
       .catch(function () {
-        // Rate limited, offline or no release yet: keep the /releases/latest fallback link.
+        // Rate limited or offline: keep the /releases fallback link.
         releaseFailed = true;
         renderRelease();
       });
-  }
-
-  /* ---------- Screenshot fallback (for images that failed before this script ran) ---------- */
-  function fixScreenshots() {
-    document.querySelectorAll('img[data-fallback]').forEach(function (img) {
-      if (img.complete && img.naturalWidth === 0 && img.getAttribute('src') !== img.dataset.fallback) {
-        img.src = img.dataset.fallback;
-      }
-    });
   }
 
   /* ---------- Init ---------- */
@@ -392,7 +406,6 @@
     }
     syncThemeButton();
     applyLang(detectLang());
-    fixScreenshots();
     loadRelease();
   }
 

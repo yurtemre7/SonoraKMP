@@ -11,9 +11,16 @@ This is the native Kotlin rewrite of the [Flutter version of Sonora](https://git
 built with Jetpack Compose and Material 3 Expressive, Android only.
 Website: <https://yurtemre7.github.io/SonoraKMP/>
 
-> **Status:** in active development. The foundation, core logic, release
-> pipeline and website are done; library scanning, playback and the screens are
-> being built. Progress is tracked in [docs/TASKS.md](docs/TASKS.md).
+<p>
+  <img src="images/home.png" width="200" alt="Home screen with recently added albums and the mini player">
+  <img src="images/now-playing.png" width="200" alt="Now playing screen with the album sleeve and seek bar">
+  <img src="images/library.png" width="200" alt="Library screen with an album grid">
+  <img src="images/settings.png" width="200" alt="Settings screen with colour, theme and playback options">
+</p>
+
+It has its own look, "Sleeve": flat colours, Bricolage Grotesque, sentence
+case, record-sleeve artwork and gesture-rich Material 3 Expressive
+components. See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Features
 
@@ -35,8 +42,8 @@ Website: <https://yurtemre7.github.io/SonoraKMP/>
 - Backup and restore to a JSON file (compatible with Flutter Sonora backups)
 - Light, dark and pitch-black themes; Material You, album-art or custom colours
 - English and Japanese, with a per-app language setting
-- Updates itself from GitHub releases, with checksum verification and an
-  optional pre-release channel
+- Updates itself from GitHub releases, with checksum verification and a
+  choice of channel: Stable, Pre-release or Nightly
 
 ## Install
 
@@ -55,7 +62,7 @@ Requirements: JDK 17+, Android SDK with platform 37.
 
 ```bash
 ./gradlew assembleDebug                  # debug APK (app ID suffix .dev, installs next to release)
-./gradlew :shared:testAndroidHostTest    # shared logic tests
+./gradlew :shared:testAndroidHostTest    # shared logic tests (incl. Room migrations)
 ./gradlew testDebugUnitTest              # app unit and Robolectric tests
 ./gradlew lintDebug                      # Android lint
 ./gradlew testDebugUnitTest assembleRelease
@@ -87,6 +94,7 @@ keyPassword=...
 | `docs/` | [SPEC](docs/SPEC.md), [TASKS](docs/TASKS.md), [DESIGN](docs/DESIGN.md), and the audit of the Flutter app |
 | `site/` | Static landing page, deployed to GitHub Pages |
 | `scripts/strings/` | Generator for the string resources |
+| `images/` | README screenshots |
 
 Stack: Kotlin 2.4, Jetpack Compose, Material 3 (1.5 expressive APIs),
 Navigation 3, Media3, Room, DataStore, Koin, Ktor, Coil.
@@ -111,8 +119,8 @@ pre-releases. The version code is derived from the version name.
 **Nightly builds.** Every night, if `main` changed, the
 [nightly workflow](.github/workflows/nightly.yml) replaces the
 [nightly pre-release](https://github.com/yurtemre7/SonoraKMP/releases/tag/nightly)
-with a fresh signed APK. Nightlies install over a release but are never
-offered by the in-app updater.
+with a fresh signed APK. Nightlies install over a release; the in-app updater
+offers them only on the Nightly channel.
 
 To check a release without publishing it, run the workflow manually
 (*Actions → Release → Run workflow*) with **dry run** checked. Artifacts and
@@ -140,7 +148,10 @@ and back it up: losing it means existing installs can't be updated.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
 (`feat:`, `fix:`, `docs:` …); the release notes are built from them. All
-user-visible text lives in string resources, in English and Japanese. See
+user-visible text lives in string resources, in English and Japanese, in
+sentence case, and the product name is always "SonoraKMP"
+(`scripts/check_product_name.sh`). The test suite (29 tests) and Room schema
+migrations must pass before a release. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the details.
 
 ## Privacy
