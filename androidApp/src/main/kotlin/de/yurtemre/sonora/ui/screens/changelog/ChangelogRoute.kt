@@ -37,6 +37,8 @@ fun ChangelogRoute(onBack: () -> Unit) {
     val markdown by produceState<String?>(null) {
         value = withContext(Dispatchers.IO) {
             runCatching { context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() } }.getOrDefault("")
+                // Drop the document title; the app bar already says "Changelog".
+                .lineSequence().dropWhile { it.isBlank() || it.startsWith("# ") }.joinToString("\n")
         }
     }
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -61,8 +63,7 @@ fun ChangelogRoute(onBack: () -> Unit) {
                 EmptyState(icon = Icons.Rounded.History, title = stringResource(R.string.info2_changelog_missing))
             }
             else -> SleeveMarkdown(
-                // Drop the document title; the app bar already says "Changelog".
-                content = md.lineSequence().dropWhile { it.isBlank() || it.startsWith("# ") }.joinToString("\n"),
+                content = md,
                 modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
