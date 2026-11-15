@@ -107,7 +107,12 @@ class DeviceSyncSessionTest {
     @AfterTest
     fun stopServers() = servers.forEach { it.stop() }
 
-    private fun test(block: suspend CoroutineScope.() -> Unit) = runBlocking { withTimeout(10_000) { block() } }
+    // Generous: on a loaded CI runner the first J-PAKE rounds (cold JIT) alone can take seconds. Tests wait on state
+    // (flows), never on a fixed sleep, so a high ceiling costs nothing when things are fast.
+    private fun test(block: suspend CoroutineScope.() -> Unit) = runBlocking { withTimeout(60_000) { block() } }
+
+    /** The code rotates on the server thread, a moment after the client saw the failing reply: wait, don't assert. */
+    private suspend fun DeviceSyncServer.awaitNewCode(old: String): String = code.first { it != old }
 
     private fun wrong(code: String) = ((code.toInt() + 1) % 1_000_000).toString().padStart(6, '0')
 
@@ -181,7 +186,7 @@ class DeviceSyncSessionTest {
 
         client.close()
         server.state.first { it == ServerState.Done }
-        assertNotEquals(firstCode, server.code.value, "a completed session leaves a fresh code for the next phone")
+        server.awaitNewCode(firstCode) // a completed session leaves a fresh code for the next phone
     }
 
     /** A big library: 20 000 files and stats for every song, far over one 4 MiB control frame as plain JSON. */
@@ -236,7 +241,7 @@ class DeviceSyncSessionTest {
         client.connect(loopback, port, firstCode, hello)
         client.close()
         server.state.first { it == ServerState.Done }
-        assertNotEquals(firstCode, server.code.value)
+        server.awaitNewCode(firstCode)
     }
 
     @Test
@@ -288,8 +293,8 @@ class DeviceSyncSessionTest {
 
         clock.now += 1_000
         attemptWrongCode(server, port)
-        assertNotEquals(original, server.code.value)
-        assertEquals(clock.now + 5 * 60_000, server.codeExpiresAtMs.value)
+        server.awaitNewCode(original)
+        assertEquals(clock.now + 5 * 60_000, server.codeExpiresAtMs.value) // set before the code flips
 
         // The new code works once the cool-down is over.
         clock.now += 30_000
@@ -353,7 +358,7 @@ class DeviceSyncSessionTest {
         repeat(2) { attemptWrongCode(server, port) }
         assertEquals(original, server.code.value, "disconnects and malformed data must not burn attempts")
         attemptWrongCode(server, port)
-        assertNotEquals(original, server.code.value)
+        server.awaitNewCode(original)
     }
 
     @Test
@@ -510,19 +515,19 @@ class DeviceSyncSessionTest {
 
     @Test
     fun silentConnectionIsDroppedAfterThePairingTimeout() = test {
-        val (server, port) = server(pairingTimeoutMs = 300)
+        // 300 ms was shorter than the server's own first J-PAKE round on a cold, loaded runner (EOF before we read it).
+        val (server, port) = server(pairingTimeoutMs = 2_000)
         Socket(loopback, port).use { socket ->
-            socket.soTimeout = 5_000
+            socket.soTimeout = 20_000
             val input = DataInputStream(socket.getInputStream())
             JpakeHandshake.readRound(input, 6) // the server is pairing; we stay silent
             val start = System.nanoTime()
             val end = try { input.read() } catch (e: IOException) { -1 }
             assertEquals(-1, end, "the server closed the connection")
-            assertTrue(System.nanoTime() - start < 3_000_000_000L)
+            assertTrue(System.nanoTime() - start < 15_000_000_000L)
         }
-        val client = DeviceSyncClient()
-        client.connect(loopback, port, server.code.value, hello) // the slot is free again
-        client.close()
+        // The slot is free again; the server may still be finishing the dropped connection, so retry like the others.
+        connectWith(port, server.code.value).close()
     }
 
     @Test
