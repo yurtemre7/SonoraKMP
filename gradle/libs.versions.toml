@@ -27,6 +27,7 @@ aboutlibraries = "15.3.0"
 palette = "1.1.0"
 documentfile = "1.1.0"
 jaudiotagger = "3.0.1"
+bouncycastle = "1.86"
 junit = "4.13.2"
 desugar = "2.1.5"
 turbine = "1.2.1"
@@ -109,6 +110,9 @@ room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 
 # Images
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+
+# Crypto (device sync pairing)
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }
 

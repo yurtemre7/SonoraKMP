@@ -40,6 +40,8 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 
 **Yours**
 - Backup and restore to a JSON file (compatible with Flutter Sonora backups)
+- Device sync: send songs, lyrics, covers, playlists, favorites, settings and
+  stats to another phone on the same Wi-Fi with a 6-digit code (one way, encrypted)
 - Light, dark and pitch-black themes; Material You, album-art or custom colours
 - English and Japanese, with a per-app language setting
 - Updates itself from GitHub releases, with checksum verification and a

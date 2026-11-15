@@ -136,7 +136,7 @@
 
     <!-- Privacy (SET-05) -->
     <string name="settings_privacy_data_title">Your data stays on your phone</string>
-    <string name="settings_privacy_data_body">SonoraKMP has no account, no analytics and no ads. Your library, playlists, favorites and listening stats never leave your device. The only network request checks GitHub for new versions.</string>
+    <string name="settings_privacy_data_body">SonoraKMP has no account, no analytics and no ads. Your library, playlists, favorites and listening stats never leave your device, unless you copy them to another phone with Device sync. The only internet request checks GitHub for new versions.</string>
     <string name="settings_section_permissions">Permissions, explained</string>
     <string name="settings_perm_audio_title">Music and audio</string>
     <string name="settings_perm_audio_body">Reads the audio files in the folder you chose, plus cover images such as cover.jpg stored next to them. SonoraKMP does not ask for access to your photos or videos.</string>
@@ -145,7 +145,7 @@
     <string name="settings_perm_wake_title">Keep awake</string>
     <string name="settings_perm_wake_body">Stops the device from sleeping in the middle of a song.</string>
     <string name="settings_perm_internet_title">Internet</string>
-    <string name="settings_perm_internet_body">Only used to fetch release information and the changelog from GitHub. Your music and data are never uploaded.</string>
+    <string name="settings_perm_internet_body">Used to fetch release information and the changelog from GitHub, and by Device sync to connect directly to your other phone on the same Wi-Fi. Your music and data are never uploaded to the internet.</string>
     <string name="settings_perm_install_title">Install updates</string>
     <string name="settings_perm_install_body">Lets SonoraKMP hand a downloaded update to the Android installer. Nothing is installed without your confirmation.</string>
     <string name="settings_privacy_delete_title">Delete everything</string>

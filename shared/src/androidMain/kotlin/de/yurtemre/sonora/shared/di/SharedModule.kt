@@ -74,4 +74,7 @@ val sharedModule = module {
     single<BackupRepository> {
         BackupRepositoryImpl(get(), get(), get(), get(), get(), appVersion = get<AppInfo>().versionName)
     }
+    single<DeviceSyncDataRepository> {
+        DeviceSyncDataRepositoryImpl(get(), get(), get(), get(), get(), appVersion = get<AppInfo>().versionName)
+    }
 }

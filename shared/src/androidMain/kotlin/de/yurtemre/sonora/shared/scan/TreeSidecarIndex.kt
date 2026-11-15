@@ -12,7 +12,7 @@ data class TreeFile(val path: String, val uri: Uri, val lastModifiedMs: Long, va
  * Fast SAF tree walk via `DocumentsContract` child queries (one query per directory, far cheaper than
  * `DocumentFile.listFiles()` + per-file lookups). Paths are derived from document ids (LIB-01).
  */
-internal object TreeWalker {
+object TreeWalker {
     private val PROJ = arrayOf(
         DocumentsContract.Document.COLUMN_DOCUMENT_ID,
         DocumentsContract.Document.COLUMN_MIME_TYPE,

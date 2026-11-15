@@ -69,6 +69,7 @@ import de.yurtemre.sonora.ui.screens.album.AlbumRoute
 import de.yurtemre.sonora.ui.screens.artist.ArtistRoute
 import de.yurtemre.sonora.ui.screens.changelog.ChangelogRoute
 import de.yurtemre.sonora.ui.screens.debug.DebugCachesRoute
+import de.yurtemre.sonora.ui.screens.devicesync.DeviceSyncRoute
 import de.yurtemre.sonora.ui.screens.favorites.FavoritesRoute
 import de.yurtemre.sonora.ui.screens.home.HomeRoute
 import de.yurtemre.sonora.ui.screens.licenses.LicensesRoute
@@ -184,6 +185,7 @@ fun SonoraAppShell(
                 entry<SettingsPlayback> { TextWidth { SettingsPlaybackRoute(goBack) } }
                 entry<SettingsPrivacy> { TextWidth { SettingsPrivacyRoute(goBack) } }
                 entry<SettingsBackup> { TextWidth { SettingsBackupRoute(goBack) } }
+                entry<SettingsDeviceSync> { TextWidth { DeviceSyncRoute(goBack) } }
                 entry<SettingsInfo> { TextWidth { SettingsInfoRoute(goBack, navigate) } }
                 entry<Changelog> { TextWidth { ChangelogRoute(goBack) } }
                 entry<Licenses> { TextWidth { LicensesRoute(goBack) } }

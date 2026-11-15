@@ -6,6 +6,7 @@ All notable changes to SonoraKMP. Generated from Conventional Commits.
 
 ### Features
 
+- **device-sync:** Add device sync (Settings › Device sync): send songs, lyrics, covers, playlists, favorites, settings and listening stats from one phone to another on the same Wi-Fi with a 6-digit code. One way, encrypted, never overwrites files, and replaces another format of a song only after you confirm
 - **ui:** Add gestures, optimistic controls and M3 seek bar
 - **ui:** Add song sheets, playlist dialogs and playlist page
 - **ui:** Add album, artist and playlist tabs and details

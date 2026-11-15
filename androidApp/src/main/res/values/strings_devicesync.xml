@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="devicesync_channel_name">Device sync</string>
+    <string name="devicesync_channel_description">Shows the progress of copying music between phones</string>
+    <string name="devicesync_notif_sending_title">Sending to another phone</string>
+    <string name="devicesync_notif_waiting">Waiting for the other phone…</string>
+    <string name="devicesync_notif_connected">Connected to %1$s</string>
+    <string name="devicesync_notif_sent_bytes">%1$s of %2$s sent</string>
+    <string name="devicesync_notif_sender_done">Transfer complete</string>
+    <string name="devicesync_notif_receiving_title">Receiving from another phone</string>
+    <plurals name="devicesync_notif_progress">
+        <item quantity="one">%1$d of %2$d file · %3$s of %4$s</item>
+        <item quantity="other">%1$d of %2$d files · %3$s of %4$s</item>
+    </plurals>
+    <string name="devicesync_notif_speed_eta">%1$s/s · %2$s left</string>
+    <string name="devicesync_notif_applying">Updating the library…</string>
+    <string name="devicesync_notif_cancel">Cancel</string>
+    <!-- Screens (DSYNC-01..13) -->
+    <string name="settings_perm_devicesync_title">Device sync on your Wi-Fi</string>
+    <string name="settings_perm_devicesync_body">Device sync finds your other phone on the same Wi-Fi (Wi-Fi multicast) and copies files directly between the two phones, encrypted with the code you enter. A data sync foreground service keeps the transfer running in the background and shows its progress.</string>
+    <string name="settings_devicesync_title">Device sync</string>
+    <string name="settings_devicesync_subtitle">Copy music and data to another phone on the same Wi-Fi</string>
+    <string name="devicesync_intro">Copy music, playlists, favorites, settings and stats from one phone to another. Both phones need SonoraKMP and the same Wi-Fi. It works one way: the receiving phone gets what the sending phone has.</string>
+    <string name="devicesync_send_title">Send from this phone</string>
+    <string name="devicesync_send_body">Show a code that the other phone enters</string>
+    <string name="devicesync_receive_title">Receive on this phone</string>
+    <string name="devicesync_receive_body">Enter the code shown on the other phone</string>
+
+    <!-- Sender -->
+    <string name="devicesync_code_title">Code for the other phone</string>
+    <string name="devicesync_code_a11y">Code %1$s</string>
+    <string name="devicesync_code_expires">New code in %1$s</string>
+    <string name="devicesync_sender_instructions">On the other phone, open Settings › Device sync › Receive on this phone and enter this code.</string>
+    <string name="devicesync_sender_waiting">Waiting for the other phone…</string>
+    <string name="devicesync_sender_paired">Connected to %1$s. It is choosing what to copy…</string>
+    <string name="devicesync_sender_sending">Sending · %1$s of %2$s</string>
+    <string name="devicesync_sender_code_mismatch">The code didn\'t match on the other phone. It can try again; after 3 wrong tries a new code appears.</string>
+    <string name="devicesync_sender_address">Address for manual entry: %1$s</string>
+    <string name="devicesync_stop">Stop</string>
+    <string name="devicesync_sent_title">Sent</string>
+    <string name="devicesync_sent_body">The other phone received everything it asked for.</string>
+
+    <!-- Receiver: connect -->
+    <string name="devicesync_senders_title">Phones nearby</string>
+    <string name="devicesync_searching">Looking for phones that are sending…</string>
+    <string name="devicesync_none_found">No phone found. Check that both phones are on the same Wi-Fi, or enter the address shown on the other phone.</string>
+    <string name="devicesync_discovery_failed">This network doesn\'t allow finding phones automatically. Enter the address shown on the other phone.</string>
+    <string name="devicesync_code_field">6-digit code</string>
+    <string name="devicesync_choose_sender">Choose the phone to receive from first.</string>
+    <string name="devicesync_manual_title">Enter address manually</string>
+    <string name="devicesync_manual_field">Address (IP:port)</string>
+    <string name="devicesync_manual_invalid">Enter the address like 192.168.1.20:41234.</string>
+    <string name="devicesync_connect">Connect</string>
+    <string name="devicesync_connecting">Connecting to %1$s…</string>
+
+    <!-- Receiver: destination and selection -->
+    <string name="devicesync_destination_title">Save to</string>
+    <string name="devicesync_destination_needed">Choose a folder this phone can save the music to.</string>
+    <string name="devicesync_choose_folder">Choose folder</string>
+    <string name="devicesync_change_folder">Change folder</string>
+    <string name="devicesync_folder_not_writable">This folder can\'t be written. Choose another one.</string>
+    <string name="devicesync_planning">Checking what is already on this phone…</string>
+    <string name="devicesync_from">From %1$s</string>
+    <plurals name="devicesync_count_new">
+        <item quantity="one">New %1$d</item>
+        <item quantity="other">New %1$d</item>
+    </plurals>
+    <plurals name="devicesync_count_replace">
+        <item quantity="one">Replace %1$d</item>
+        <item quantity="other">Replace %1$d</item>
+    </plurals>
+    <plurals name="devicesync_count_present">
+        <item quantity="one">Present %1$d</item>
+        <item quantity="other">Present %1$d</item>
+    </plurals>
+    <string name="devicesync_all_present">Everything is already on this phone. Playlists, favorites, settings and stats can still be synced.</string>
+    <string name="devicesync_section_audio">Audio</string>
+    <string name="devicesync_section_lyrics">Lyrics</string>
+    <string name="devicesync_section_covers">Covers</string>
+    <string name="devicesync_top_folder">Top folder</string>
+    <string name="devicesync_format_chip">%1$s · %2$d</string>
+    <string name="devicesync_select_all">Select all</string>
+    <string name="devicesync_select_none">Select none</string>
+    <string name="devicesync_status_new">New</string>
+    <string name="devicesync_status_present">Already on this phone</string>
+    <string name="devicesync_space_needed">Needs %1$s · %2$s free</string>
+    <string name="devicesync_space_unknown">Needs %1$s · free space unknown</string>
+    <string name="devicesync_space_freed">Frees %1$s after replacing</string>
+    <string name="devicesync_not_enough_space">Not enough space: free up %1$s more</string>
+    <string name="devicesync_start">Start</string>
+    <string name="devicesync_data_only">Sync data only</string>
+
+    <!-- Receiver: progress and result -->
+    <string name="devicesync_receiving">Receiving from the other phone</string>
+    <plurals name="devicesync_progress_files">
+        <item quantity="one">%1$d of %2$d file</item>
+        <item quantity="other">%1$d of %2$d files</item>
+    </plurals>
+    <string name="devicesync_progress_bytes">%1$s of %2$s</string>
+    <string name="devicesync_progress_speed">%1$s/s · %2$s left</string>
+    <string name="devicesync_step_library">Adding the new files to the library…</string>
+    <string name="devicesync_step_replacing">Replacing old files…</string>
+    <string name="devicesync_step_data">Applying playlists, favorites, settings and stats…</string>
+    <string name="devicesync_cancel_title">Cancel the transfer?</string>
+    <string name="devicesync_cancel_body">Files already copied stay on this phone. Next time only the rest is copied.</string>
+    <string name="devicesync_cancel_confirm">Cancel transfer</string>
+    <string name="devicesync_keep_going">Keep going</string>
+    <string name="devicesync_done_title">Device sync finished</string>
+    <plurals name="devicesync_result_copied">
+        <item quantity="one">%1$d file copied</item>
+        <item quantity="other">%1$d files copied</item>
+    </plurals>
+    <plurals name="devicesync_result_replaced">
+        <item quantity="one">%1$d file replaced</item>
+        <item quantity="other">%1$d files replaced</item>
+    </plurals>
+    <plurals name="devicesync_result_kept_both">
+        <item quantity="one">%1$d file kept next to its new version</item>
+        <item quantity="other">%1$d files kept next to their new versions</item>
+    </plurals>
+    <plurals name="devicesync_result_failed">
+        <item quantity="one">%1$d file couldn\'t be copied</item>
+        <item quantity="other">%1$d files couldn\'t be copied</item>
+    </plurals>
+    <string name="devicesync_result_bytes">%1$s received</string>
+    <plurals name="devicesync_result_playlists">
+        <item quantity="one">%1$d playlist</item>
+        <item quantity="other">%1$d playlists</item>
+    </plurals>
+    <plurals name="devicesync_result_favorites">
+        <item quantity="one">%1$d favorite</item>
+        <item quantity="other">%1$d favorites</item>
+    </plurals>
+    <plurals name="devicesync_result_settings">
+        <item quantity="one">%1$d setting</item>
+        <item quantity="other">%1$d settings</item>
+    </plurals>
+    <plurals name="devicesync_result_stats_songs">
+        <item quantity="one">Stats for %1$d song</item>
+        <item quantity="other">Stats for %1$d songs</item>
+    </plurals>
+    <plurals name="devicesync_result_listens">
+        <item quantity="one">%1$d full listen added</item>
+        <item quantity="other">%1$d full listens added</item>
+    </plurals>
+    <string name="devicesync_join">%1$s · %2$s</string>
+    <string name="devicesync_address">%1$s:%2$d</string>
+    <string name="devicesync_expanded">Expanded</string>
+    <string name="devicesync_collapsed">Collapsed</string>
+    <string name="devicesync_applying_wait">Almost done. Please wait while the received data is applied.</string>
+    <string name="devicesync_start_refused">Couldn\'t start yet. Wait until the check is finished, then try again.</string>
+    <string name="devicesync_result_rescan_skipped">The library wasn\'t updated automatically. Run a library sync in Settings to see the new songs.</string>
+    <string name="devicesync_show_failed">Show files</string>
+    <string name="devicesync_hide_failed">Hide files</string>
+    <string name="devicesync_file_failed_damaged">Arrived damaged</string>
+    <string name="devicesync_file_failed_write">Couldn\'t be saved</string>
+    <string name="devicesync_file_failed_read">Couldn\'t be read on the other phone</string>
+    <string name="devicesync_file_failed_other">Couldn\'t be copied</string>
+    <string name="devicesync_done">Done</string>
+
+    <!-- Failures -->
+    <string name="devicesync_failed_title">Device sync stopped</string>
+    <string name="devicesync_failure_code">Code didn\'t match. Check the code and try again.</string>
+    <string name="devicesync_failure_version">The phones run different versions of SonoraKMP. Update both phones and try again.</string>
+    <string name="devicesync_failure_network">The connection was lost. Check that both phones are on the same Wi-Fi and try again.</string>
+    <string name="devicesync_failure_protocol">The other phone sent something unexpected. Try again.</string>
+    <string name="devicesync_failure_storage">The destination folder couldn\'t be read or written.</string>
+    <string name="devicesync_failure_data">The files arrived, but playlists, favorites, settings or stats couldn\'t be applied.</string>
+    <string name="devicesync_failure_sender">Couldn\'t start sending. Check that a music folder is set and try again.</string>
+    <string name="devicesync_failure_unknown">Something went wrong. Try again.</string>
+    <plurals name="devicesync_failure_kept">
+        <item quantity="one">%1$d file already copied stays on this phone.</item>
+        <item quantity="other">%1$d files already copied stay on this phone.</item>
+    </plurals>
+    <string name="devicesync_retry">Try again</string>
+    <string name="devicesync_failure_too_many">The other phone paused pairing after too many wrong codes. Wait a moment, then enter the new code shown there.</string>
+    <string name="devicesync_failure_too_large">The other phone\'s library is too large to send with device sync.</string>
+    <string name="devicesync_sender_locked">Too many wrong codes. New tries are paused for %1$s.</string>
+    <string name="devicesync_preparing">Preparing the library to send…</string>
+    <string name="devicesync_search_again">Search again</string>
+    <string name="devicesync_search_stopped">Stopped searching. Search again, or enter the address shown on the other phone.</string>
+</resources>
