@@ -5,7 +5,7 @@
     <string name="update_sheet_current">You have %1$s</string>
     <string name="update_sheet_no_notes">No release notes for this version.</string>
     <string name="update_action_later">Later</string>
-    <string name="update_action_download">Download and install</string>
+    <string name="update_action_install">Install</string>
     <string name="update_action_browser">Open in browser</string>
     <string name="update_action_retry">Try again</string>
     <string name="update_action_check">Check now</string>

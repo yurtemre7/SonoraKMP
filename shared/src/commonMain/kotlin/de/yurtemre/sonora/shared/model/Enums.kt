@@ -27,6 +27,27 @@ enum class NowPlayingStyle(override val storageName: String) : StorageEnum {
     }
 }
 
+/**
+ * How the song title is shown on Now Playing, in every [NowPlayingStyle] (KMP-only key `title_style`, not in backups).
+ * The first four keep the Spine (title along the sleeve) and differ in how a title that is too long is handled.
+ */
+enum class TitleStyle(override val storageName: String) : StorageEnum {
+    /** Spine; scrolls once to the end when the title is cut, then rests at the start. */
+    Marquee("marquee"),
+    /** Spine; the type shrinks until the whole title fits (down to a floor, then it is clipped). */
+    Fit("fit"),
+    /** Spine; a long title wraps into a second column along the sleeve. */
+    TwoColumns("two_columns"),
+    /** Spine as before; when the title is cut the full title also shows in small type under the cover. */
+    Hybrid("hybrid"),
+    /** A plain title under the artwork. */
+    Classic("classic");
+
+    companion object {
+        fun fromStorage(value: String?): TitleStyle = enumFromStorage(value, Hybrid)
+    }
+}
+
 /** Theme color source (SPEC §5.3 new key `theme_color_source`; legacy mirrors in audit/settings §9). */
 enum class ThemeColorSource(override val storageName: String) : StorageEnum {
     Afterglow("afterglow"), System("system"), AlbumArt("album_art"), Custom("custom");

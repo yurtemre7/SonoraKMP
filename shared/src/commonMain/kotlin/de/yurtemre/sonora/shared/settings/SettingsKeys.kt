@@ -19,6 +19,7 @@ object SettingsKeys {
     val AMOLED_DARK = booleanPreferencesKey("amoled_dark")
     val BLURRED_BACKGROUNDS = booleanPreferencesKey("blurred_backgrounds")
     val NOW_PLAYING_STYLE = stringPreferencesKey("now_playing_style")
+    val TITLE_STYLE = stringPreferencesKey("title_style")
     val PREFER_LOCAL_ARTIST_IMAGES = booleanPreferencesKey("prefer_local_artist_images")
     val SHOW_VISUALIZER = booleanPreferencesKey("show_visualizer")
     val IMMERSIVE_MODE = booleanPreferencesKey("immersive_mode")

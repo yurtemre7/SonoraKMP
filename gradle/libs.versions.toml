@@ -22,7 +22,6 @@ coroutines = "1.11.0"
 coil = "3.6.3"
 materialkolor = "5.0.1"
 reorderable = "3.1.0"
-markdown-renderer = "0.46.0"
 aboutlibraries = "15.3.0"
 palette = "1.1.0"
 documentfile = "1.1.0"
@@ -103,7 +102,6 @@ materialkolor = { module = "com.materialkolor:material-kolor", version.ref = "ma
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 
 # Content
-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "markdown-renderer" }
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibraries" }
 sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "sqlite" }
 room-testing = { module = "androidx.room:room-testing", version.ref = "room" }

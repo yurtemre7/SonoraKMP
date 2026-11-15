@@ -149,6 +149,9 @@ fun SettingsAppearanceRoute(onBack: () -> Unit) {
                 icon = Icons.Rounded.ArtTrack,
             )
         }
+        item(key = "title_style") {
+            TitleStylePicker(settings.titleStyle, onSelect = { save { setTitleStyle(it) } })
+        }
         item(key = "local_images") {
             SwitchRow(
                 stringResource(R.string.settings_local_artist_images), settings.preferLocalArtistImages,

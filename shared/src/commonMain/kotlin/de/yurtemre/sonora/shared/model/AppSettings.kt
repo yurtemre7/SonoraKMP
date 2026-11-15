@@ -13,6 +13,7 @@ data class AppSettings(
     val amoledDark: Boolean = false,
     val blurredBackgrounds: Boolean = false,
     val nowPlayingStyle: NowPlayingStyle = NowPlayingStyle.Modern,
+    val titleStyle: TitleStyle = TitleStyle.Hybrid,
     val preferLocalArtistImages: Boolean = true,
     val showVisualizer: Boolean = false,
     val immersiveMode: Boolean = false,

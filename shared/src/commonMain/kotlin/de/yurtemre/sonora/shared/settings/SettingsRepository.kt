@@ -30,6 +30,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setAmoledDark(v: Boolean) = put { it[K.AMOLED_DARK] = v }
     suspend fun setBlurredBackgrounds(v: Boolean) = put { it[K.BLURRED_BACKGROUNDS] = v }
     suspend fun setNowPlayingStyle(v: NowPlayingStyle) = put { it[K.NOW_PLAYING_STYLE] = v.storageName }
+    suspend fun setTitleStyle(v: TitleStyle) = put { it[K.TITLE_STYLE] = v.storageName }
     suspend fun setPreferLocalArtistImages(v: Boolean) = put { it[K.PREFER_LOCAL_ARTIST_IMAGES] = v }
     suspend fun setShowVisualizer(v: Boolean) = put { it[K.SHOW_VISUALIZER] = v }
     suspend fun setImmersiveMode(v: Boolean) = put { it[K.IMMERSIVE_MODE] = v }
@@ -145,6 +146,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 amoledDark = p[K.AMOLED_DARK] ?: d.amoledDark,
                 blurredBackgrounds = p[K.BLURRED_BACKGROUNDS] ?: d.blurredBackgrounds,
                 nowPlayingStyle = NowPlayingStyle.fromStorage(p[K.NOW_PLAYING_STYLE]),
+                titleStyle = TitleStyle.fromStorage(p[K.TITLE_STYLE]),
                 preferLocalArtistImages = p[K.PREFER_LOCAL_ARTIST_IMAGES] ?: d.preferLocalArtistImages,
                 showVisualizer = p[K.SHOW_VISUALIZER] ?: d.showVisualizer,
                 immersiveMode = p[K.IMMERSIVE_MODE] ?: d.immersiveMode,

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.shared.model.NowPlayingStyle
+import de.yurtemre.sonora.shared.model.TitleStyle
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +41,9 @@ class NowPlayingViewModel(
 
     val style: StateFlow<NowPlayingStyle> = settings.settings.map { it.nowPlayingStyle }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), NowPlayingStyle.Modern)
+
+    val titleStyle: StateFlow<TitleStyle> = settings.settings.map { it.titleStyle }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), TitleStyle.Hybrid)
 
     val blurredBackgrounds: StateFlow<Boolean> = settings.settings.map { it.blurredBackgrounds }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), false)
