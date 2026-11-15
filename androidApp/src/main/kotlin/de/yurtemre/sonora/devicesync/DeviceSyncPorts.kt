@@ -37,7 +37,12 @@ interface SyncClient {
     suspend fun connect(host: String, port: Int, code: String, hello: Hello): Manifest
     suspend fun fingerprints(ids: List<Int>): Map<Int, String>
     suspend fun fetch(ids: List<Int>, sink: SyncFileSink, onProgress: (TransferProgress) -> Unit): FetchResult
+
+    /** Ends the session with DONE: only after a successful transfer and apply (the sender then shows "sent"). */
     suspend fun close()
+
+    /** Ends the session without DONE (cancel, failure): the sender keeps waiting with its code. */
+    suspend fun abort()
 }
 
 fun interface SyncClientFactory {

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Lan
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -60,10 +61,12 @@ internal fun DeviceSyncConnectScreen(
     discovering: DeviceSyncState.Discovering?,
     connecting: SyncTarget?,
     onConnect: (SyncTarget, String) -> Unit,
+    onSearchAgain: () -> Unit,
     onBack: () -> Unit,
 ) {
     val senders = discovering?.senders.orEmpty()
     val discoveryFailed = discovering?.discoveryFailed == true
+    val searchStopped = discovering?.searchStopped == true
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     var code by rememberSaveable { mutableStateOf("") }
     var manualText by rememberSaveable { mutableStateOf("") }
@@ -74,7 +77,7 @@ internal fun DeviceSyncConnectScreen(
         delay(SEARCH_TIMEOUT_MS)
         timedOut = true
     }
-    val manualOpen = isManualOpen(manualToggled, manualText, discoveryFailed, senders.size, timedOut)
+    val manualOpen = isManualOpen(manualToggled, manualText, discoveryFailed, senders.size, timedOut || searchStopped)
     val sender = effectiveSender(senders, selectedName)
     val busy = connecting != null
 
@@ -94,6 +97,7 @@ internal fun DeviceSyncConnectScreen(
                 item(key = "searching") {
                     when {
                         discoveryFailed -> SettingsNote(stringResource(R.string.devicesync_discovery_failed))
+                        searchStopped -> SettingsNote(stringResource(R.string.devicesync_search_stopped))
                         timedOut -> SettingsNote(stringResource(R.string.devicesync_none_found))
                         else -> StatusProgress(stringResource(R.string.devicesync_searching), null)
                     }
@@ -110,6 +114,15 @@ internal fun DeviceSyncConnectScreen(
                                 manualToggled = false
                                 error = null
                             }
+                        }
+                    }
+                }
+            }
+            if (searchStopped) {
+                item(key = "search_again") {
+                    ActionsRow {
+                        OutlinedButton(onClick = onSearchAgain, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text(stringResource(R.string.devicesync_search_again))
                         }
                     }
                 }

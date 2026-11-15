@@ -28,6 +28,10 @@ enum class DeviceSyncFailure {
     DataApply,
     /** The sender could not build its file list or open its port. */
     SenderStart,
+    /** The sender refuses pairing for a while after 3 wrong codes (cool-down). */
+    TooManyAttempts,
+    /** The sender's file list and data exceed what device sync can transfer. */
+    LibraryTooLarge,
     /** Anything else (a bug or an unexpected platform error). */
     Unknown,
 }
@@ -74,6 +78,9 @@ enum class ApplyStep {
 sealed interface DeviceSyncState {
     data object Idle : DeviceSyncState
 
+    /** Sender role: building the file list and data bundle before the server starts ([DeviceSyncController.cancel] stops it). */
+    data object Preparing : DeviceSyncState
+
     /** Sender role. [address] is `IP:port` for manual entry (null when no IPv4 address is known). */
     data class Sending(
         val code: String,
@@ -82,10 +89,15 @@ sealed interface DeviceSyncState {
         val server: ServerState,
     ) : DeviceSyncState
 
-    /** Receiver role: senders found so far. [discoveryFailed]: mDNS could not start, offer manual `IP:port`. */
+    /**
+     * Receiver role: senders found so far. [discoveryFailed]: mDNS could not start, offer manual `IP:port`.
+     * [searchStopped]: the search ended after [DeviceSyncController.DISCOVERY_TIMEOUT_MS] (the listed senders stay
+     * usable); [DeviceSyncController.searchAgain] restarts it.
+     */
     data class Discovering(
         val senders: List<DiscoveredSender> = emptyList(),
         val discoveryFailed: Boolean = false,
+        val searchStopped: Boolean = false,
     ) : DeviceSyncState
 
     /** Pairing with [target] and loading its manifest (also covers the first plan). */

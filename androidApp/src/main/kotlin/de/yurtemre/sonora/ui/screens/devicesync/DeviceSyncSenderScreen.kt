@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.devicesync.DeviceSyncState
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import de.yurtemre.sonora.shared.devicesync.ServerState
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.ui.components.EmptyState
@@ -41,7 +42,7 @@ internal fun DeviceSyncSenderScreen(state: DeviceSyncState.Sending, onStop: () -
         if (server is ServerState.Waiting || server is ServerState.Failed) {
             item(key = "code") { CodeCard(state.code, state.codeExpiresAtMs) }
             if (server is ServerState.Failed) {
-                item(key = "mismatch") { ErrorNote(stringResource(R.string.devicesync_sender_code_mismatch)) }
+                item(key = "mismatch") { MismatchNote(server) }
             }
             item(key = "instructions") { SettingsNote(stringResource(R.string.devicesync_sender_instructions)) }
         }
@@ -72,15 +73,48 @@ internal fun DeviceSyncSenderScreen(state: DeviceSyncState.Sending, onStop: () -
     }
 }
 
+/** The clock time, updated every second. */
 @Composable
-private fun CodeCard(code: String, expiresAtMs: Long) {
+private fun tickingNow(key: Any?): Long {
     val clock: Clock = koinInject()
-    val now by produceState(clock.nowMs(), expiresAtMs) {
+    val now by produceState(clock.nowMs(), key) {
         while (true) {
             value = clock.nowMs()
             delay(1_000)
         }
     }
+    return now
+}
+
+/** A wrong code; during the cool-down after the 3rd one (I7) how long new tries are refused. */
+@Composable
+private fun MismatchNote(failed: ServerState.Failed) {
+    val now = tickingNow(failed.lockedUntilMs)
+    val locked = failed.reason == DeviceSyncServer.ERROR_TOO_MANY_ATTEMPTS && now < failed.lockedUntilMs
+    ErrorNote(
+        if (locked) stringResource(R.string.devicesync_sender_locked, countdownText(failed.lockedUntilMs, now))
+        else stringResource(R.string.devicesync_sender_code_mismatch),
+    )
+}
+
+/** Building the file list before the server starts (I5): progress and Cancel. */
+@Composable
+internal fun DeviceSyncPreparingScreen(onCancel: () -> Unit, onBack: () -> Unit) {
+    SettingsScaffold(stringResource(R.string.settings_devicesync_title), onBack) {
+        item(key = "preparing") { StatusProgress(stringResource(R.string.devicesync_preparing), null) }
+        item(key = "cancel") {
+            ActionsRow {
+                OutlinedButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CodeCard(code: String, expiresAtMs: Long) {
+    val now = tickingNow(expiresAtMs)
     val cs = MaterialTheme.colorScheme
     val spoken = stringResource(R.string.devicesync_code_a11y, spokenDigits(code))
     DeviceSyncCard(color = cs.primaryContainer) {

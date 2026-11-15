@@ -89,7 +89,9 @@ class DeviceSyncService : Service() {
             stop()
             return
         }
-        holdLocks(wifi = state is DeviceSyncState.Sending || state is DeviceSyncState.Transferring)
+        // The high-performance Wi-Fi lock only while bytes move, not while the sender just waits for a receiver.
+        val serving = (state as? DeviceSyncState.Sending)?.server.let { it is ServerState.Paired || it is ServerState.Sending }
+        holdLocks(wifi = serving || state is DeviceSyncState.Transferring)
         // Progress arrives ~10x a second; the system drops notification updates beyond a few per second.
         val now = SystemClock.elapsedRealtime()
         if (state.javaClass != lastKind || now - lastNotifyMs >= NOTIFY_INTERVAL_MS) {

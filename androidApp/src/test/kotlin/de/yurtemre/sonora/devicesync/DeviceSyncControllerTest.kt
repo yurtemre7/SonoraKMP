@@ -93,7 +93,11 @@ class DeviceSyncControllerTest {
         var hello: Hello? = null
         val fingerprintRequests = mutableListOf<List<Int>>()
         var fetched: List<Int>? = null
+        /** Ended with DONE ([close]); [aborted]: ended without DONE. */
         var closed = false
+        var aborted = false
+        /** Whether the data bundle had been applied when DONE was sent. */
+        var closedAfterApply = false
 
         override suspend fun connect(host: String, port: Int, code: String, hello: Hello): Manifest {
             connectedCode = code
@@ -131,7 +135,9 @@ class DeviceSyncControllerTest {
             return FetchResult(committed, failed)
         }
 
-        override suspend fun close() { closed = true }
+        override suspend fun close() { closed = true; closedAfterApply = "apply" in log }
+
+        override suspend fun abort() { aborted = true }
     }
 
     private inner class FakeStorage(
@@ -313,6 +319,8 @@ class DeviceSyncControllerTest {
         advanceUntilIdle()
         assertEquals(listOf(0, 2), first.fetched)
         assertTrue(first.closed)
+        assertTrue(first.closedAfterApply, "DONE only after the data bundle was applied")
+        assertFalse(first.aborted)
         val summary = finished(c)
         assertEquals(1, summary.filesCopied)
         assertEquals(0, summary.filesReplaced)
@@ -384,7 +392,9 @@ class DeviceSyncControllerTest {
         assertNull(data.applied)
         assertTrue(data.relinks.isEmpty())
         assertFalse("sync" in log)
-        assertTrue((createdClients.single() as FakeClient).closed)
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.aborted, "cancel leaves without DONE")
+        assertFalse(client.closed)
     }
 
     private val oldInfo = LibrarySongInfo("/dest/A/song.mp3", "Song", "Artist", "Album")
@@ -746,7 +756,9 @@ class DeviceSyncControllerTest {
         c.cancel()
         advanceUntilIdle()
         assertEquals(DeviceSyncState.Idle, c.state.value)
-        assertTrue((createdClients.single() as FakeClient).closed)
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.aborted, "cancel leaves without DONE: the sender keeps waiting")
+        assertFalse(client.closed)
         assertNull(data.applied)
     }
 
@@ -841,4 +853,234 @@ class DeviceSyncControllerTest {
         assertTrue(storage.sinks.isEmpty())
         assertTrue(deleter.requested.isEmpty())
     }
+
+    // ---- final review fixes ------------------------------------------------------------------------------------
+
+    @Test fun failuresLeaveWithoutDone() = runTest {
+        // A local storage failure while planning: the sender must not report "sent".
+        val storage = FakeStorage().apply { scanError = IOException("saf") }
+        val c = controller({ FakeClient(manifest(audio(0, "A/x.mp3", 10))) }, storage)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Failed>(c.state.value)
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.aborted)
+        assertFalse(client.closed)
+
+        // Retry reconnects with the same code: the sender is still waiting with it.
+        storage.scanError = null
+        c.retry()
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Planning>(c.state.value)
+        assertEquals("123123", (createdClients[1] as FakeClient).connectedCode)
+    }
+
+    @Test fun dataApplyFailureLeavesWithoutDone() = runTest {
+        val data = FakeData(applyError = DeviceSyncDataException.WriteFailed(IOException("disk"), rolledBack = true))
+        val c = controller({ FakeClient(manifest(audio(0, "A/x.mp3", 10))) }, data = data)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertTrue(c.startTransfer(setOf(0)))
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Failed>(c.state.value)
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.aborted)
+        assertFalse(client.closed)
+    }
+
+    @Test fun presentFilesMissingFromTheLibraryAreRescannedBeforeApplying() = runTest {
+        // An earlier run committed the file but failed before applying: now it is Present, but the library has
+        // not picked it up yet. The data bundle must see it.
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val storage = FakeStorage(index = ReceiverIndex(mapOf("A/x.mp3" to 10L), emptyList()))
+        val library = FakeLibrary()
+        val c = controller({ FakeClient(m) }, storage, library)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertEquals(Status.Present, plan.items.single().status)
+        assertTrue(c.startTransfer(emptySet()))
+        advanceUntilIdle()
+        assertEquals(listOf("sync", "apply"), log)
+        assertEquals(listOf("/dest/A/x.mp3"), library.indexed)
+        finished(c)
+    }
+
+    @Test fun libraryRowsOfVanishedFilesAreRescannedBeforeApplying() = runTest {
+        // A cancel during deletion left a library row whose file is gone.
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val stale = ReceiverSong(4, "A/old.mp3", "Old", "Artist", "Album", 100_000, 10, "mp3")
+        val present = ReceiverSong(5, "A/x.mp3", "T0", "Artist", "Album", 100_000, 10, "mp3")
+        val storage = FakeStorage(index = ReceiverIndex(mapOf("A/x.mp3" to 10L), listOf(stale, present)))
+        val c = controller({ FakeClient(m) }, storage)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertTrue(c.startTransfer(emptySet()))
+        advanceUntilIdle()
+        assertEquals(listOf("sync", "apply"), log)
+    }
+
+    @Test fun cancelDuringDeletionStillRescans() = runTest {
+        val (m, storage, library) = replaceSetup()
+        val gate = CompletableDeferred<Unit>()
+        val deleter = ReplacedFileDeleter { paths, _, _ -> log += "delete"; gate.await(); paths.toSet() }
+        val c = controller({ FakeClient(m) }, storage, library, FakeData(), deleter)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertTrue(c.startTransfer(plan.defaultSelection()))
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Applying(ApplyStep.Replacing), c.state.value)
+
+        c.cancel()
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+        assertEquals(listOf("fetch", "commit:0", "sync", "relink", "delete", "sync"), log)
+    }
+
+    @Test fun hidingTheScreenStopsDiscoveryConnectingAndPlanning() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val c = controller({ FakeClient(m) }, discovery = flow { awaitCancellationForever() })
+        c.startReceiving()
+        advanceUntilIdle()
+        c.onScreenHidden()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Planning>(c.state.value)
+        c.onScreenHidden()
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.aborted)
+        assertFalse(client.closed)
+    }
+
+    @Test fun hidingTheScreenKeepsServiceBackedStates() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val c = controller({ FakeClient(manifest(audio(0, "A/x.mp3", 10)), fetchGate = gate) })
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertTrue(c.startTransfer(setOf(0)))
+        advanceUntilIdle()
+        c.onScreenHidden()
+        assertIs<DeviceSyncState.Transferring>(c.state.value)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        finished(c)
+
+        val session = FakeSession()
+        val c2 = controller({ error("unused") }, session = session)
+        c2.startSending()
+        advanceUntilIdle()
+        c2.onScreenHidden()
+        assertIs<DeviceSyncState.Sending>(c2.state.value)
+        assertFalse(session.stopped)
+    }
+
+    @Test fun discoveryStopsAfterTwoMinutesAndCanSearchAgain() = runTest {
+        var discoveries = 0
+        var active = 0
+        val senders = listOf(DiscoveredSender("svc", "Sender phone", "192.168.1.5", 4000))
+        val c = controller({ error("unused") }, discovery = flow {
+            discoveries++
+            active++
+            try {
+                emit(senders)
+                awaitCancellationForever()
+            } finally {
+                active--
+            }
+        })
+        c.startReceiving()
+        advanceTimeBy(DeviceSyncController.DISCOVERY_TIMEOUT_MS - 1)
+        assertEquals(DeviceSyncState.Discovering(senders), c.state.value)
+        assertEquals(1, active)
+
+        advanceTimeBy(2)
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Discovering(senders, searchStopped = true), c.state.value)
+        assertEquals(0, active, "discovery and its multicast lock stop")
+
+        c.searchAgain()
+        advanceTimeBy(1)
+        assertEquals(DeviceSyncState.Discovering(senders), c.state.value)
+        assertEquals(2, discoveries)
+    }
+
+    @Test fun startSendingShowsPreparingAtOnceAndBackCancels() = runTest {
+        val session = FakeSession()
+        val ready = CompletableDeferred<Unit>()
+        val c = controller({ error("unused") }, senders = { _ -> stopOnFailure(session::stop) { ready.await(); session } })
+        c.startSending()
+        assertEquals(DeviceSyncState.Preparing, c.state.value)
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Preparing, c.state.value)
+        assertEquals(0, serviceStarts)
+
+        c.cancel()
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+        assertTrue(session.stopped)
+        assertEquals(0, serviceStarts)
+    }
+
+    @Test fun preparingIsCancelledWhenTheScreenIsHidden() = runTest {
+        val ready = CompletableDeferred<Unit>()
+        val session = FakeSession()
+        val c = controller({ error("unused") }, senders = { _ -> stopOnFailure(session::stop) { ready.await(); session } })
+        c.startSending()
+        advanceUntilIdle()
+        c.onScreenHidden()
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+        assertTrue(session.stopped)
+    }
+
+    @Test fun tooManyAttemptsAndLibraryTooLargeAreTheirOwnReasons() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val c = controller({ FakeClient(m, connectError = DeviceSyncProtocolException("too_many_attempts")) })
+        c.startReceiving()
+        c.connect(target, "000000")
+        advanceUntilIdle()
+        val failed = assertIs<DeviceSyncState.Failed>(c.state.value)
+        assertEquals(DeviceSyncFailure.TooManyAttempts, failed.reason)
+        assertTrue(failed.canRetry)
+        c.retry()
+        advanceUntilIdle()
+        // The sender shows a new code after the cool-down: back to entering it.
+        assertIs<DeviceSyncState.Discovering>(c.state.value)
+
+        val c2 = controller({ FakeClient(m, connectError = DeviceSyncProtocolException("library_too_large")) })
+        c2.startReceiving()
+        c2.connect(target, "000000")
+        advanceUntilIdle()
+        val f2 = assertIs<DeviceSyncState.Failed>(c2.state.value)
+        assertEquals(DeviceSyncFailure.LibraryTooLarge, f2.reason)
+        assertFalse(f2.canRetry)
+    }
+
+    @Test fun recordAuthFailureAfterPairingIsProtocolAndApplyErrorsAreDataApply() = runTest {
+        assertEquals(DeviceSyncFailure.CodeMismatch, DeviceSyncController.failureOf(DeviceSyncAuthException("code_mismatch")))
+        assertEquals(DeviceSyncFailure.Protocol, DeviceSyncController.failureOf(DeviceSyncAuthException("record_auth_failed")))
+
+        val data = FakeData(applyError = IOException("datastore"))
+        val c = controller({ FakeClient(manifest(audio(0, "A/x.mp3", 10))) }, data = data)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertTrue(c.startTransfer(emptySet()))
+        advanceUntilIdle()
+        assertEquals(DeviceSyncFailure.DataApply, assertIs<DeviceSyncState.Failed>(c.state.value).reason)
+    }
+
+    private suspend fun awaitCancellationForever(): Nothing = kotlinx.coroutines.awaitCancellation()
 }

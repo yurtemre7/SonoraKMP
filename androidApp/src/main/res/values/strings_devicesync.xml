@@ -173,4 +173,10 @@
         <item quantity="other">%1$d files already copied stay on this phone.</item>
     </plurals>
     <string name="devicesync_retry">Try again</string>
+    <string name="devicesync_failure_too_many">The other phone paused pairing after too many wrong codes. Wait a moment, then enter the new code shown there.</string>
+    <string name="devicesync_failure_too_large">The other phone\'s library is too large to send with device sync.</string>
+    <string name="devicesync_sender_locked">Too many wrong codes. New tries are paused for %1$s.</string>
+    <string name="devicesync_preparing">Preparing the library to send…</string>
+    <string name="devicesync_search_again">Search again</string>
+    <string name="devicesync_search_stopped">Stopped searching. Search again, or enter the address shown on the other phone.</string>
 </resources>

@@ -92,6 +92,8 @@ class DeviceSyncClientAdapter(private val client: DeviceSyncClient = DeviceSyncC
         client.fetch(ids, sink, onProgress)
 
     override suspend fun close() = client.close()
+
+    override suspend fun abort() = client.abort()
 }
 
 class AndroidSenderDiscovery(private val discovery: DeviceSyncDiscovery) : SenderDiscoverySource {
@@ -237,10 +239,13 @@ class AndroidDeviceName(private val context: Context) : DeviceNameSource {
     }
 }
 
-/** Asks MediaStore to (re)index [paths] and waits for it (at most [MEDIA_SCAN_TIMEOUT_MS]). */
+/**
+ * Asks MediaStore to (re)index [paths] and waits for it (at most [MEDIA_SCAN_TIMEOUT_MS] plus
+ * [MEDIA_SCAN_PER_FILE_MS] per file, so large batches are not cut off).
+ */
 suspend fun scanMediaFiles(context: Context, paths: List<String>) {
     if (paths.isEmpty()) return
-    withTimeoutOrNull(MEDIA_SCAN_TIMEOUT_MS) {
+    withTimeoutOrNull(MEDIA_SCAN_TIMEOUT_MS + MEDIA_SCAN_PER_FILE_MS * paths.size) {
         suspendCancellableCoroutine { cont ->
             val left = AtomicInteger(paths.size)
             MediaScannerConnection.scanFile(context.applicationContext, paths.toTypedArray(), null) { _, _ ->
@@ -251,3 +256,4 @@ suspend fun scanMediaFiles(context: Context, paths: List<String>) {
 }
 
 private const val MEDIA_SCAN_TIMEOUT_MS = 60_000L
+private const val MEDIA_SCAN_PER_FILE_MS = 50L

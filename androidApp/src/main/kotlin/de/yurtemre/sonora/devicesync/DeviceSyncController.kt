@@ -6,9 +6,11 @@ import de.yurtemre.sonora.shared.devicesync.DeviceSyncAuthException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncProtocolException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import de.yurtemre.sonora.shared.devicesync.FetchResult
+import de.yurtemre.sonora.shared.devicesync.FileKind
 import de.yurtemre.sonora.shared.devicesync.Hello
 import de.yurtemre.sonora.shared.devicesync.Manifest
 import de.yurtemre.sonora.shared.devicesync.PlanItem
+import de.yurtemre.sonora.shared.devicesync.ReceiverIndex
 import de.yurtemre.sonora.shared.devicesync.ReceiverSong
 import de.yurtemre.sonora.shared.devicesync.ServerState
 import de.yurtemre.sonora.shared.devicesync.Status
@@ -25,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,18 +35,23 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Process-wide device sync state machine (DSYNC-01..13). The UI observes [state] and calls the commands; the
  * [DeviceSyncService] keeps the process alive while sending or transferring.
  *
- * Sender: [startSending] builds the manifest, starts the server and advertises it until [cancel].
- * Receiver: [startReceiving] → pick a sender (or [connectManual]) and [connect] with the code (R3) → [state] is
- * [DeviceSyncState.Planning]; [setDestination] re-plans → [startTransfer] → files, library rescan, Replace
- * (relink, then delete the old file: R2), data bundle → [DeviceSyncState.Finished]. Any failure →
- * [DeviceSyncState.Failed]; [retry] reconnects with the same code while it is likely still valid and re-plans
- * (verified files are then Present).
+ * Sender: [startSending] ([DeviceSyncState.Preparing]) builds the manifest, starts the server and advertises it
+ * until [cancel].
+ * Receiver: [startReceiving] (discovery stops after [DISCOVERY_TIMEOUT_MS]; [searchAgain]) → pick a sender or type
+ * its address and [connect] with the code (R3) → [state] is [DeviceSyncState.Planning]; [setDestination] re-plans →
+ * [startTransfer] → files, library rescan, Replace (relink, then delete the old file: R2), data bundle → DONE to
+ * the sender → [DeviceSyncState.Finished]. Cancel and failures leave without DONE (the sender keeps waiting with
+ * its code). Any failure → [DeviceSyncState.Failed]; [retry] reconnects with the same code while it is likely
+ * still valid and re-plans (verified files are then Present).
+ * [onScreenHidden] stops the states the foreground service does not cover (preparing, discovery, connecting,
+ * planning).
  *
  * Work runs in [scope]; the ports do their blocking IO on Dispatchers.IO. Codes and keys are never logged.
  */
@@ -88,6 +96,8 @@ class DeviceSyncController(
     private var deleteAnswer: CompletableDeferred<Boolean>? = null
     /** A [plan] loop is running; it re-reads [destination] before it publishes (cleared atomically with that). */
     private var planInFlight = false
+    /** The receiver index the published plan was made from (for the rescan decision after the transfer). */
+    private var plannedIndex: ReceiverIndex? = null
 
     // ---- commands ----------------------------------------------------------------------------------------------
 
@@ -95,6 +105,8 @@ class DeviceSyncController(
         val gen = synchronized(lock) {
             resetLocked()
             role = Role.Sender
+            // Visible at once: the walk and the bundle export can take a while; back or Cancel stops them.
+            _state.value = DeviceSyncState.Preparing
             generation
         }
         launchWork(gen) {
@@ -134,13 +146,6 @@ class DeviceSyncController(
         connectLocked(target, code)
     }
 
-    /** [text] is a manually entered `IP:port`; false (and nothing happens) when it does not parse. */
-    fun connectManual(text: String, code: String): Boolean {
-        val (host, port) = DeviceSyncDiscovery.parseManual(text) ?: return false
-        connect(SyncTarget(host, port), code)
-        return true
-    }
-
     /** Sets the receiver's destination (after OpenDocumentTree + persisted write access); re-plans when connected. */
     fun setDestination(uri: Uri) = synchronized(lock) {
         destination = uri
@@ -168,6 +173,7 @@ class DeviceSyncController(
             val dest = planning.destination ?: return false
             if (planning.computing || planInFlight) return false
             val items = plan.items.filter { it.file.id in selectedIds && it.status != Status.Present }
+            val index = plannedIndex ?: return false
             // An empty selection is valid: nothing to fetch (e.g. everything already Present), but the data
             // bundle (playlists, favorites, settings, stats) is still applied.
             if (!planning.fits(selectedIds)) return false
@@ -176,10 +182,31 @@ class DeviceSyncController(
                 TransferProgress(-1, 0, 0, 0, plan.bytesNeeded(selectedIds), 0, ids.size, 0),
             )
             val gen = generation
-            launchWorkLocked(gen) { receive(gen, plan, items, dest) }
+            launchWorkLocked(gen) { receive(gen, plan, index, items, dest) }
         }
         service.ensureRunning()
         return true
+    }
+
+    /**
+     * The device sync screen left the foreground (I4): preparing, discovery (multicast lock), connecting and
+     * planning (an open session that blocks the sender) stop, without DONE. Sending, transferring and applying
+     * keep running under the foreground service.
+     */
+    fun onScreenHidden() = synchronized(lock) {
+        when (_state.value) {
+            DeviceSyncState.Preparing, is DeviceSyncState.Discovering, is DeviceSyncState.Connecting,
+            is DeviceSyncState.Planning -> resetLocked()
+            else -> Unit
+        }
+    }
+
+    /** Restarts discovery after it stopped ([DeviceSyncState.Discovering.searchStopped]). */
+    fun searchAgain() = synchronized(lock) {
+        if (_state.value is DeviceSyncState.Discovering) {
+            discoveryJob?.cancel()
+            beginDiscoveryLocked()
+        }
     }
 
     /** Stops whatever runs (sender, discovery, transfer, apply) and returns to [DeviceSyncState.Idle]. */
@@ -226,6 +253,7 @@ class DeviceSyncController(
         role = Role.Receiver
         this.target = target
         manifest = null
+        plannedIndex = null
         _state.value = DeviceSyncState.Connecting(target)
         val gen = generation
         val c = clients.create()
@@ -294,6 +322,7 @@ class DeviceSyncController(
                 if (gen != generation) return
                 if (destination == dest) {
                     planInFlight = false
+                    plannedIndex = scan.index
                     _state.value = DeviceSyncState.Planning(m.deviceName, dest, plan, free)
                     return
                 }
@@ -301,7 +330,7 @@ class DeviceSyncController(
         }
     }
 
-    private suspend fun receive(gen: Int, plan: TransferPlan, items: List<PlanItem>, dest: Uri) {
+    private suspend fun receive(gen: Int, plan: TransferPlan, index: ReceiverIndex, items: List<PlanItem>, dest: Uri) {
         val (m, c) = synchronized(lock) {
             if (gen != generation) return
             Pair(checkNotNull(manifest) { "no manifest" }, checkNotNull(client) { "no client" })
@@ -313,14 +342,15 @@ class DeviceSyncController(
             } else {
                 c.fetch(items.map { it.file.id }, sink) { set(gen, DeviceSyncState.Transferring(it)) }
             }
-            // DONE ends the session; the sender then shows a new code.
+            val committed = sink?.committed.orEmpty()
+            val summary = afterTransfer(gen, m, plan, index, items, dest, committed)
+            // DONE only now, after a successful transfer and apply: the sender then reports "sent" and shows a
+            // new code. Any failure before this leaves without DONE (onFailure → abort).
             c.close()
             synchronized(lock) {
                 if (client === c) client = null
                 codeUsable = false
             }
-            val committed = sink?.committed.orEmpty()
-            val summary = afterTransfer(gen, m, plan, items, dest, committed)
             val failed = result.failed.mapNotNull { (id, reason) ->
                 items.firstOrNull { it.file.id == id }?.let { FailedFile(it.file.relPath, reason) }
             }
@@ -337,6 +367,7 @@ class DeviceSyncController(
         gen: Int,
         m: Manifest,
         plan: TransferPlan,
+        index: ReceiverIndex,
         items: List<PlanItem>,
         dest: Uri,
         committed: Map<Int, String>,
@@ -344,10 +375,14 @@ class DeviceSyncController(
         val root = storage.rootPath(dest)?.trimEnd('/')
         fun absolute(rel: String) = "$root/$rel"
         var idRemap = emptyMap<Long, Long>()
-        if (root != null && committed.isNotEmpty()) {
+        // I3: also rescan when files already here are missing from the library (an earlier run copied them and
+        // stopped before applying) or the library lists files that are gone (a cancel during deletion).
+        val unindexed = if (root == null) emptyList() else presentButUnindexed(plan, index)
+        if (root != null && (committed.isNotEmpty() || unindexed.isNotEmpty() || hasVanishedSongs(index))) {
             set(gen, DeviceSyncState.Applying(ApplyStep.LibrarySync))
             idRemap = storageStep {
-                library.indexNewFiles(committed.values.map(::absolute))
+                val paths = (committed.values + unindexed).map(::absolute)
+                if (paths.isNotEmpty()) library.indexNewFiles(paths)
                 (library.sync() as? SyncOutcome.Success)?.idRemap.orEmpty()
             }
         }
@@ -374,13 +409,19 @@ class DeviceSyncController(
         if (oldToNew.isNotEmpty()) {
             set(gen, DeviceSyncState.Applying(ApplyStep.Replacing))
             dataStep { data.relinkReplaced(oldToNew) }
-            deleted = storageStep { deleter.delete(oldPathById.values.toList(), dest, ::confirmDelete) }
+            deleted = try {
+                storageStep { deleter.delete(oldPathById.values.toList(), dest, ::confirmDelete) }
+            } catch (e: CancellationException) {
+                // Files may already be gone: let the library drop them even though the run was cancelled.
+                withContext(NonCancellable) { runCatching { library.sync() } }
+                throw e
+            }
             if (deleted.isNotEmpty()) storageStep { library.sync() } // drop the deleted songs from the library
         }
         val replaced = oldPathById.values.count { it in deleted }
 
         set(gen, DeviceSyncState.Applying(ApplyStep.Data))
-        val applied = data.applyBundle(m.bundle, m.deviceId)
+        val applied = dataStep { data.applyBundle(m.bundle, m.deviceId) }
         val bytes = plan.items.filter { it.file.id in committed }.sumOf { it.file.size }
         return DeviceSyncSummary(
             filesCopied = committed.size - replaceItems.size,
@@ -425,15 +466,19 @@ class DeviceSyncController(
         _state.value = DeviceSyncState.Discovering()
         val gen = generation
         discoveryJob = scope.launch {
-            discovery.discover()
-                .catch { e ->
-                    // discover() fails with an IOException when mDNS cannot run: the UI offers manual IP:port.
-                    if (e is CancellationException) throw e
-                    update(gen) { s -> (s as? DeviceSyncState.Discovering)?.copy(discoveryFailed = true) }
-                }
-                .collect { list ->
-                    update(gen) { s -> (s as? DeviceSyncState.Discovering)?.copy(senders = list, discoveryFailed = false) }
-                }
+            val ended = withTimeoutOrNull(DISCOVERY_TIMEOUT_MS) {
+                discovery.discover()
+                    .catch { e ->
+                        // discover() fails with an IOException when mDNS cannot run: the UI offers manual IP:port.
+                        if (e is CancellationException) throw e
+                        update(gen) { s -> (s as? DeviceSyncState.Discovering)?.copy(discoveryFailed = true) }
+                    }
+                    .collect { list ->
+                        update(gen) { s -> (s as? DeviceSyncState.Discovering)?.copy(senders = list, discoveryFailed = false) }
+                    }
+            }
+            // Timed out: discovery (and its multicast lock) stops; the senders found so far stay listed.
+            if (ended == null) update(gen) { s -> (s as? DeviceSyncState.Discovering)?.copy(searchStopped = true) }
         }
     }
 
@@ -448,6 +493,7 @@ class DeviceSyncController(
         target = null
         code = null
         codeUsable = false
+        plannedIndex = null
         _state.value = DeviceSyncState.Idle
     }
 
@@ -462,10 +508,11 @@ class DeviceSyncController(
         _pendingDeleteRequest.value = null
     }
 
+    /** Leaves the session without DONE (cancel, replace, failure): the sender keeps waiting with its code. */
     private fun closeClientLocked() {
         val c = client ?: return
         client = null
-        scope.launch { c.close() }
+        scope.launch { c.abort() }
     }
 
     private fun launchWork(gen: Int, block: suspend () -> Unit) = synchronized(lock) { launchWorkLocked(gen, block) }
@@ -487,10 +534,12 @@ class DeviceSyncController(
         if (gen != generation) return@synchronized
         val reason = (e as? RunFailure)?.reason ?: failureOf(e)
         val kept = (e as? RunFailure)?.filesKept ?: 0
-        // A failed client call has already ended the session; closing is a no-op then.
+        // A failed client call has already ended the session; aborting is a no-op then.
         closeClientLocked()
-        if (reason == DeviceSyncFailure.CodeMismatch) codeUsable = false
-        _state.value = DeviceSyncState.Failed(reason, kept, canRetry = reason != DeviceSyncFailure.VersionMismatch)
+        // After a wrong code or the cool-down the sender shows another code: the user enters the new one.
+        if (reason == DeviceSyncFailure.CodeMismatch || reason == DeviceSyncFailure.TooManyAttempts) codeUsable = false
+        val canRetry = reason != DeviceSyncFailure.VersionMismatch && reason != DeviceSyncFailure.LibraryTooLarge
+        _state.value = DeviceSyncState.Failed(reason, kept, canRetry)
     }
 
     private fun set(gen: Int, s: DeviceSyncState) = synchronized(lock) {
@@ -527,6 +576,28 @@ class DeviceSyncController(
 
     companion object {
         const val DELETE_CONFIRM_TIMEOUT_MS = 2 * 60_000L
+        /** Discovery stops after this (I4); the UI offers "Search again" and manual entry. */
+        const val DISCOVERY_TIMEOUT_MS = 2 * 60_000L
+
+        /**
+         * Relative paths (as they exist in the destination) of Present audio files found there by path that the
+         * library does not list (case-insensitive).
+         */
+        internal fun presentButUnindexed(plan: TransferPlan, index: ReceiverIndex): List<String> {
+            val existing = index.existing.keys.associateBy { it.lowercase() }
+            val inLibrary = index.library.mapNotNullTo(HashSet()) { it.relPath?.lowercase() }
+            return plan.items.mapNotNull { item ->
+                if (item.status != Status.Present || item.file.kind != FileKind.Audio) return@mapNotNull null
+                val key = SyncPaths.sanitize(item.file.relPath)?.lowercase() ?: return@mapNotNull null
+                existing[key]?.takeIf { key !in inLibrary }
+            }.distinct()
+        }
+
+        /** The library lists songs in the destination whose files are gone. */
+        internal fun hasVanishedSongs(index: ReceiverIndex): Boolean {
+            val existing = index.existing.keys.mapTo(HashSet()) { it.lowercase() }
+            return index.library.any { s -> s.relPath?.let { it.lowercase() !in existing } == true }
+        }
 
         /** The planned old song is still the same file: same tags and format, and the same path when known. */
         internal fun stillPlannedSong(current: LibrarySongInfo, planned: ReceiverSong, root: String): Boolean {
@@ -545,10 +616,16 @@ class DeviceSyncController(
         fun failureOf(e: Throwable): DeviceSyncFailure = when (e) {
             is StorageFailure, is SecurityException -> DeviceSyncFailure.Storage
             is DataFailure -> DeviceSyncFailure.DataApply
-            is DeviceSyncAuthException -> DeviceSyncFailure.CodeMismatch
-            is DeviceSyncProtocolException ->
-                if (e.message == DeviceSyncServer.ERROR_VERSION_MISMATCH) DeviceSyncFailure.VersionMismatch
+            // Only the handshake's mismatch is a wrong code; a record that fails its tag after pairing is data.
+            is DeviceSyncAuthException ->
+                if (e.message == DeviceSyncServer.ERROR_CODE_MISMATCH) DeviceSyncFailure.CodeMismatch
                 else DeviceSyncFailure.Protocol
+            is DeviceSyncProtocolException -> when (e.message) {
+                DeviceSyncServer.ERROR_VERSION_MISMATCH -> DeviceSyncFailure.VersionMismatch
+                DeviceSyncServer.ERROR_TOO_MANY_ATTEMPTS -> DeviceSyncFailure.TooManyAttempts
+                DeviceSyncServer.ERROR_LIBRARY_TOO_LARGE -> DeviceSyncFailure.LibraryTooLarge
+                else -> DeviceSyncFailure.Protocol
+            }
             is DeviceSyncDataException -> DeviceSyncFailure.DataApply
             is IOException -> DeviceSyncFailure.Network // SocketException, SocketTimeoutException, ConnectException, ...
             else -> DeviceSyncFailure.Unknown

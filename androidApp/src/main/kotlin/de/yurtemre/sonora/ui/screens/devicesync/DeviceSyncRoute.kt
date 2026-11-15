@@ -4,21 +4,26 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.IntentSender
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.devicesync.DeviceSyncController
@@ -86,7 +91,10 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         }
     }
 
+    // The folder picker stops this activity: that must not count as leaving the screen (see onScreenHidden below).
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val treeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        pickerOpen = false
         if (uri == null) return@rememberLauncherForActivityResult
         if (FolderPicker.persistWritable(context, uri) == null) {
             folderError = true
@@ -100,8 +108,10 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         scope.launch {
             val initial = controller.pickerInitialUri()
             try {
+                pickerOpen = true
                 treeLauncher.launch(initial)
             } catch (_: ActivityNotFoundException) {
+                pickerOpen = false
                 folderError = true
             }
         }
@@ -167,12 +177,24 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
             // Applying (library update, replace, data) is short and must not be cut off: back waits for it.
             is DeviceSyncState.Applying -> showMessage(res.getString(R.string.devicesync_applying_wait))
             is DeviceSyncState.Finished -> finish()
-            // Sending (stops the sender), discovery, connecting, planning, failed: back to the start screen.
+            // Preparing and sending (stop the sender), discovery, connecting, planning, failed: back to the start screen.
             else -> controller.cancel()
         }
     }
 
     BackHandler(enabled = state !is DeviceSyncState.Idle) { handleBack() }
+
+    // I4: leaving the screen (app in the background, screen off, navigated away) stops what the foreground service
+    // does not cover: preparing, discovery (multicast lock), connecting and planning (an open session). A
+    // configuration change or the folder picker is not leaving.
+    val activity = LocalActivity.current
+    val currentPickerOpen by rememberUpdatedState(pickerOpen)
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        if (activity?.isChangingConfigurations != true && !currentPickerOpen) controller.onScreenHidden()
+    }
+    DisposableEffect(controller) {
+        onDispose { if (activity?.isChangingConfigurations != true) controller.onScreenHidden() }
+    }
 
     when (val s = state) {
         DeviceSyncState.Idle -> DeviceSyncStartScreen(
@@ -180,12 +202,14 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
             onReceive = { startWithNotifications(SyncRole.Receive) },
             onBack = ::handleBack,
         )
+        DeviceSyncState.Preparing -> DeviceSyncPreparingScreen(onCancel = controller::cancel, onBack = ::handleBack)
         is DeviceSyncState.Sending -> DeviceSyncSenderScreen(s, onStop = controller::cancel, onBack = ::handleBack)
         // One call site for both states, so the typed code stays visible while connecting.
         is DeviceSyncState.Discovering, is DeviceSyncState.Connecting -> DeviceSyncConnectScreen(
             discovering = s as? DeviceSyncState.Discovering,
             connecting = (s as? DeviceSyncState.Connecting)?.target,
             onConnect = controller::connect,
+            onSearchAgain = controller::searchAgain,
             onBack = ::handleBack,
         )
         is DeviceSyncState.Planning -> DeviceSyncSelectionScreen(

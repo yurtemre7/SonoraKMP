@@ -77,6 +77,8 @@ fun failureMessage(reason: DeviceSyncFailure): Int = when (reason) {
     DeviceSyncFailure.Storage -> R.string.devicesync_failure_storage
     DeviceSyncFailure.DataApply -> R.string.devicesync_failure_data
     DeviceSyncFailure.SenderStart -> R.string.devicesync_failure_sender
+    DeviceSyncFailure.TooManyAttempts -> R.string.devicesync_failure_too_many
+    DeviceSyncFailure.LibraryTooLarge -> R.string.devicesync_failure_too_large
     DeviceSyncFailure.Unknown -> R.string.devicesync_failure_unknown
 }
 
