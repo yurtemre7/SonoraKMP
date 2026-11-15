@@ -4,6 +4,7 @@ import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -45,7 +46,6 @@ import androidx.compose.ui.semantics.semantics
 import de.yurtemre.sonora.update.InstallError
 import de.yurtemre.sonora.update.InstallResult
 import de.yurtemre.sonora.update.UpdateUiState
-import androidx.compose.animation.animateContentSize
 import kotlinx.coroutines.launch
 
 /**
@@ -98,7 +98,7 @@ fun UpdateSheet(
                 }
             }
             run {
-                Column(Modifier.fillMaxWidth().animateContentSize(MaterialTheme.motionScheme.fastSpatialSpec())) {
+                Column(Modifier.fillMaxWidth()) {
                     when {
                         !installSupported -> {
                             Text(
@@ -115,17 +115,24 @@ fun UpdateSheet(
                                 }
                             }
                         }
-                        install == null || install is UpdateUiState.Installed -> Actions {
-                            TextButton(onClick = { hide(onDismiss) }) { Text(stringResource(R.string.update_action_later)) }
-                            OutlinedButton(onClick = { hide { onDismiss(); uri.openUri(releasePage) } }) {
-                                Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
-                                Text(stringResource(R.string.update_action_browser))
-                            }
-                            Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); onDownload() }) {
-                                Icon(Icons.Rounded.Download, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
-                                Text(stringResource(R.string.update_action_download))
-                            }
-                        }
+                        install == null || install is UpdateUiState.Installed -> PrimaryActions(
+                            primary = {
+                                Button(
+                                    onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); onDownload() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Icon(Icons.Rounded.Download, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
+                                    Text(stringResource(R.string.update_action_download))
+                                }
+                            },
+                            secondary = {
+                                TextButton(onClick = { hide(onDismiss) }) { Text(stringResource(R.string.update_action_later)) }
+                                OutlinedButton(onClick = { hide { onDismiss(); uri.openUri(releasePage) } }) {
+                                    Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
+                                    Text(stringResource(R.string.update_action_browser))
+                                }
+                            },
+                        )
                         else -> InstallProgress(state, onDismiss = { hide(onDismiss) }, onCancel = {
                             haptics.performHapticFeedback(HapticFeedbackType.Reject); onCancel()
                         }, onRetry = onRetry, onOpenPermissionSettings = onOpenPermissionSettings, onBrowser = {
@@ -135,6 +142,19 @@ fun UpdateSheet(
                 }
             }
         }
+    }
+}
+
+/**
+ * Three actions with a fixed shape: the primary button full width, the secondary ones in a row under it. A wrapping
+ * FlowRow here changed height between measure passes, and with the sheet anchored at the bottom the buttons
+ * visibly slid in and out.
+ */
+@Composable
+private fun PrimaryActions(primary: @Composable () -> Unit, secondary: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        primary()
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) { secondary() }
     }
 }
 
@@ -211,14 +231,18 @@ private fun InstallProgress(
                 else MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
-            Actions {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.update_action_later)) }
-                OutlinedButton(onClick = onBrowser) { Text(stringResource(R.string.update_action_browser)) }
-                Button(onClick = onRetry) {
-                    Icon(Icons.Rounded.Refresh, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
-                    Text(stringResource(R.string.update_action_retry))
-                }
-            }
+            PrimaryActions(
+                primary = {
+                    Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Refresh, null, Modifier.padding(end = ButtonDefaults.IconSpacing))
+                        Text(stringResource(R.string.update_action_retry))
+                    }
+                },
+                secondary = {
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.update_action_later)) }
+                    OutlinedButton(onClick = onBrowser) { Text(stringResource(R.string.update_action_browser)) }
+                },
+            )
         }
         else -> Unit
     }
