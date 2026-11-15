@@ -10,8 +10,8 @@ class TransferPlannerTest {
     private fun audio(id: Int, path: String, size: Long = 1000, title: String = "T", dur: Long = 180_000) =
         ManifestFile(id, path, size, 0, FileKind.Audio, AudioMeta(title, "A", "B", dur))
 
-    private fun song(id: Long, path: String?, title: String = "T", dur: Long = 180_000, size: Long? = 500) =
-        ReceiverSong(id, path, title, "A", "B", dur, size)
+    private fun song(id: Long, path: String?, title: String = "T", dur: Long = 180_000, size: Long? = 500, ext: String = path?.substringAfterLast('.') ?: "mp3") =
+        ReceiverSong(id, path, title, "A", "B", dur, size, ext)
 
     private fun plan(files: List<ManifestFile>, existing: Map<String, Long> = emptyMap(), lib: List<ReceiverSong> = emptyList()) =
         TransferPlanner.plan(files, ReceiverIndex(existing, lib))
@@ -65,8 +65,10 @@ class TransferPlannerTest {
     }
 
     @Test fun songClaimedOnceLowestIdWins() {
-        val p = plan(listOf(audio(2, "b.mp3"), audio(1, "a.mp3")), lib = listOf(song(9, "z.mp3"), song(8, "y.mp3")))
-        assertEquals(Status.Present, p.items.first { it.file.id == 1 }.status)
+        val p = plan(listOf(audio(2, "b.flac"), audio(1, "a.flac")), lib = listOf(song(9, "z.mp3"), song(8, "y.mp3")))
+        assertEquals(8L, p.items.first { it.file.id == 1 }.replaces?.songId)
+        assertEquals(Status.Replace, p.items.first { it.file.id == 2 }.status)
+        assertEquals(9L, p.items.first { it.file.id == 2 }.replaces?.songId)
         // ids 1,2 each claim one of two identical songs; none left for a third
         val p2 = plan(listOf(audio(1, "a.mp3"), audio(2, "b.mp3")), lib = listOf(song(9, "z.mp3")))
         assertEquals(Status.Present, p2.items.first { it.file.id == 1 }.status)
@@ -87,9 +89,16 @@ class TransferPlannerTest {
         assertEquals(Status.New, p.items[1].status)
     }
 
-    @Test fun outsideDestinationSongNotMatched() {
-        val p = plan(listOf(audio(1, "a.mp3")), lib = listOf(song(7, null)))
-        assertEquals(Status.New, p.items.single().status)
+    @Test fun outsideDestinationSameFormatIsPresent() {
+        val p = plan(listOf(audio(1, "a.mp3")), lib = listOf(song(7, null, ext = "mp3")))
+        assertEquals(Status.Present, p.items.single().status)
+    }
+
+    @Test fun outsideDestinationOtherFormatIsReplace() {
+        val s = song(7, null, ext = "mp3")
+        val item = plan(listOf(audio(1, "a.flac")), lib = listOf(s)).items.single()
+        assertEquals(Status.Replace, item.status)
+        assertEquals(s, item.replaces)
     }
 
     @Test fun toleranceExceededIsNew() {

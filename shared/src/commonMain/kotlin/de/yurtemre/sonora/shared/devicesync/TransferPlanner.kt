@@ -3,7 +3,10 @@ package de.yurtemre.sonora.shared.devicesync
 import de.yurtemre.sonora.shared.backup.SongMatcher
 import kotlin.math.abs
 
-/** A song already on the receiver; [relPath] is null when it lives outside the destination. */
+/**
+ * A song already on the receiver; [relPath] is null when it lives outside the destination.
+ * [extension] is the lowercase extension of the song's actual file.
+ */
 data class ReceiverSong(
     val songId: Long,
     val relPath: String?,
@@ -12,6 +15,7 @@ data class ReceiverSong(
     val album: String,
     val durationMs: Long,
     val size: Long?,
+    val extension: String,
 )
 
 /** [existing] maps sanitized relPath -> size of files already in the destination. */
@@ -84,7 +88,7 @@ object TransferPlanner {
         }
 
         // Pass 2: tag matching for the remaining audio, lowest sender id first.
-        val byTags = index.library.filter { it.relPath != null }.sortedBy { it.songId }
+        val byTags = index.library.sortedBy { it.songId }
             .groupBy { SongMatcher.tagKey(it.title, it.artist, it.album) }
         val sizes = index.existing.values.toSet()
         for ((f, path) in accepted.sortedBy { it.first.id }) {
@@ -93,7 +97,7 @@ object TransferPlanner {
             val match = meta?.let { closest(byTags[SongMatcher.tagKey(it.title, it.artist, it.album)], it.durationMs, claimed) }
             results[f.id] = when {
                 match == null -> PlanItem(f, Status.New, needsFingerprint = f.kind == FileKind.Audio && f.size in sizes)
-                SyncPaths.extension(match.relPath!!) == SyncPaths.extension(path) -> PlanItem(f, Status.Present)
+                match.extension == SyncPaths.extension(path) -> PlanItem(f, Status.Present)
                 else -> PlanItem(f, Status.Replace, replaces = match)
             }
             if (match != null) claimed += match.songId
