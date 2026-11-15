@@ -5,12 +5,15 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 
 /** A sender found via mDNS (DSYNC-02). [serviceName] is the unique NSD service name. */
@@ -24,8 +27,12 @@ class DeviceSyncDiscovery(context: Context) {
     private val appContext = context.applicationContext
     private val nsd get() = appContext.getSystemService(Context.NSD_SERVICE) as NsdManager
 
-    /** Registers the sender on the LAN. Closing unregisters; closing twice is a no-op. */
-    fun advertise(port: Int, deviceId: String, deviceName: String): AutoCloseable {
+    /**
+     * Registers the sender on the LAN. Closing unregisters; closing twice is a no-op.
+     * Throws [IOException] if registration cannot be started; later failures are reported via [onFailure]
+     * with the NSD error code.
+     */
+    fun advertise(port: Int, deviceId: String, deviceName: String, onFailure: (Int) -> Unit = {}): AutoCloseable {
         val manager = nsd
         val info = NsdServiceInfo().apply {
             serviceName = serviceNameFor(deviceId)
@@ -36,11 +43,15 @@ class DeviceSyncDiscovery(context: Context) {
         }
         val listener = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(serviceInfo: NsdServiceInfo) = Unit
-            override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
+            override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = onFailure(errorCode)
             override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) = Unit
             override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
         }
-        manager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
+        try {
+            manager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
+        } catch (e: RuntimeException) {
+            throw IOException("advertise_failed", e)
+        }
         val closed = AtomicBoolean(false)
         return AutoCloseable {
             if (closed.compareAndSet(false, true)) {
@@ -49,41 +60,72 @@ class DeviceSyncDiscovery(context: Context) {
         }
     }
 
-    /** Emits the current list of senders on every change; a lost service is removed. */
-    fun discover(): Flow<List<DiscoveredSender>> = callbackFlow {
-        val manager = nsd
-        val wifi = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        val lock = wifi?.createMulticastLock("sonora-device-sync")?.apply { setReferenceCounted(false) }
-        runCatching { lock?.acquire() }
-
+    /**
+     * Emits the current list of senders on every change (latest wins); a lost service is removed.
+     * [excludeServiceName] hides our own advertisement. The flow fails with `IOException("discovery_failed:<code>")`
+     * if discovery cannot start, so the UI can offer manual IP:port.
+     */
+    fun discover(excludeServiceName: String? = null): Flow<List<DiscoveredSender>> = callbackFlow {
         val lockObj = Any()
         val senders = LinkedHashMap<String, DiscoveredSender>()
+        val alive = HashSet<String>() // services currently announced; a late resolve must not re-add a lost one
         val infoCallbacks = HashMap<String, Any>() // API 34+: NsdManager.ServiceInfoCallback per service
-        var stopped = false
+        val resolveQueue = ArrayDeque<NsdServiceInfo>()
+        var resolving = false
+        var closed = false
+        var lock: WifiManager.MulticastLock? = null
+        var manager: NsdManager? = null
+        var discoveryListener: NsdManager.DiscoveryListener? = null
 
-        fun publish() {
-            val snapshot = synchronized(lockObj) { senders.values.toList() }
-            trySend(snapshot)
+        // Called with lockObj held so emissions are ordered; the channel is conflated.
+        fun publishLocked() {
+            trySend(senders.values.toList())
+        }
+
+        fun unregisterInfoCallback(cb: Any) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                runCatching { manager?.unregisterServiceInfoCallback(cb as NsdManager.ServiceInfoCallback) }
+            }
+        }
+
+        fun cleanup() {
+            val callbacks = synchronized(lockObj) {
+                if (closed) return
+                closed = true
+                resolveQueue.clear()
+                infoCallbacks.values.toList().also { infoCallbacks.clear() }
+            }
+            discoveryListener?.let { l -> runCatching { manager?.stopServiceDiscovery(l) } }
+            callbacks.forEach { unregisterInfoCallback(it) }
+            runCatching { if (lock?.isHeld == true) lock?.release() }
         }
 
         fun onResolved(serviceName: String, resolved: NsdServiceInfo) {
-            val sender = toSender(serviceName, resolved) ?: run {
-                synchronized(lockObj) { senders.remove(serviceName) }
-                publish()
-                return
+            val sender = toSender(serviceName, resolved)
+            synchronized(lockObj) {
+                if (closed || serviceName !in alive) return
+                if (sender != null) senders[serviceName] = sender else senders.remove(serviceName)
+                publishLocked()
             }
-            synchronized(lockObj) { if (!stopped) senders[serviceName] = sender }
-            publish()
+        }
+
+        fun removeService(name: String) {
+            val cb = synchronized(lockObj) {
+                if (closed) return
+                alive.remove(name)
+                resolveQueue.removeAll { it.serviceName == name }
+                senders.remove(name)
+                publishLocked()
+                infoCallbacks.remove(name)
+            }
+            if (cb != null) unregisterInfoCallback(cb)
         }
 
         // Pre-34: resolveService supports only one active resolve at a time, so queue them.
-        val resolveQueue = ArrayDeque<NsdServiceInfo>()
-        var resolving = false
-
         @Suppress("DEPRECATION")
         fun resolveNext() {
             val next = synchronized(lockObj) {
-                if (resolving || stopped) return
+                if (resolving || closed) return
                 val item = resolveQueue.removeFirstOrNull() ?: return
                 resolving = true
                 item
@@ -104,78 +146,86 @@ class DeviceSyncDiscovery(context: Context) {
                     }
                 }
                 try {
-                    manager.resolveService(next, listener)
-                } catch (_: IllegalArgumentException) {
+                    manager?.resolveService(next, listener)
+                } catch (_: RuntimeException) {
                     finish()
                 }
             }
             start(true)
         }
 
-        val discoveryListener = object : NsdManager.DiscoveryListener {
-            override fun onDiscoveryStarted(serviceType: String) = Unit
-            override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
-            override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
-            override fun onDiscoveryStopped(serviceType: String) = Unit
+        try {
+            val m = appContext.getSystemService(Context.NSD_SERVICE) as NsdManager
+            manager = m
+            val wifi = appContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            lock = wifi?.createMulticastLock("sonora-device-sync")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
 
-            override fun onServiceFound(serviceInfo: NsdServiceInfo) {
-                val name = serviceInfo.serviceName
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    val callback = object : NsdManager.ServiceInfoCallback {
-                        override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) = Unit
-                        override fun onServiceUpdated(serviceInfo: NsdServiceInfo) = onResolved(name, serviceInfo)
-                        override fun onServiceLost() = removeService(name)
-                        override fun onServiceInfoCallbackUnregistered() = Unit
+            val listener = object : NsdManager.DiscoveryListener {
+                override fun onDiscoveryStarted(serviceType: String) = Unit
+                override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
+                override fun onDiscoveryStopped(serviceType: String) = Unit
+
+                override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
+                    close(IOException("discovery_failed:$errorCode"))
+                }
+
+                override fun onServiceFound(serviceInfo: NsdServiceInfo) {
+                    val name = serviceInfo.serviceName
+                    if (name == excludeServiceName) return
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        val callback = object : NsdManager.ServiceInfoCallback {
+                            override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) = Unit
+                            override fun onServiceUpdated(serviceInfo: NsdServiceInfo) = onResolved(name, serviceInfo)
+                            override fun onServiceLost() = removeService(name)
+                            override fun onServiceInfoCallbackUnregistered() = Unit
+                        }
+                        val old = synchronized(lockObj) {
+                            if (closed) return
+                            alive.add(name)
+                            infoCallbacks.put(name, callback)
+                        }
+                        if (old != null) unregisterInfoCallback(old)
+                        try {
+                            m.registerServiceInfoCallback(serviceInfo, Executor { it.run() }, callback)
+                        } catch (_: RuntimeException) {
+                            // Skip this service; never throw on the NSD thread.
+                            synchronized(lockObj) { infoCallbacks.remove(name, callback) }
+                        }
+                    } else {
+                        synchronized(lockObj) {
+                            if (closed) return
+                            alive.add(name)
+                            resolveQueue.addLast(serviceInfo)
+                        }
+                        resolveNext()
                     }
-                    val executor = Executor { it.run() }
-                    synchronized(lockObj) {
-                        if (stopped) return
-                        infoCallbacks.put(name, callback)
-                    }?.let { old -> runCatching { manager.unregisterServiceInfoCallback(old as NsdManager.ServiceInfoCallback) } }
-                    manager.registerServiceInfoCallback(serviceInfo, executor, callback)
-                } else {
-                    synchronized(lockObj) { resolveQueue.addLast(serviceInfo) }
-                    resolveNext()
                 }
-            }
 
-            override fun onServiceLost(serviceInfo: NsdServiceInfo) = removeService(serviceInfo.serviceName)
-
-            private fun removeService(name: String) {
-                val cb = synchronized(lockObj) {
-                    resolveQueue.removeAll { it.serviceName == name }
-                    senders.remove(name)
-                    infoCallbacks.remove(name)
-                }
-                if (cb != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    runCatching { manager.unregisterServiceInfoCallback(cb as NsdManager.ServiceInfoCallback) }
-                }
-                publish()
+                override fun onServiceLost(serviceInfo: NsdServiceInfo) = removeService(serviceInfo.serviceName)
             }
+            discoveryListener = listener
+
+            trySend(emptyList())
+            m.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener)
+        } catch (e: Exception) {
+            cleanup()
+            close(if (e is IOException) e else IOException("discovery_failed:${e.message}", e))
+            awaitClose { }
+            return@callbackFlow
         }
 
-        trySend(emptyList())
-        manager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
-
-        awaitClose {
-            val callbacks = synchronized(lockObj) {
-                stopped = true
-                resolveQueue.clear()
-                infoCallbacks.values.toList().also { infoCallbacks.clear() }
-            }
-            runCatching { manager.stopServiceDiscovery(discoveryListener) }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                callbacks.forEach { runCatching { manager.unregisterServiceInfoCallback(it as NsdManager.ServiceInfoCallback) } }
-            }
-            runCatching { if (lock?.isHeld == true) lock.release() }
-        }
-    }
+        awaitClose { cleanup() }
+    }.buffer(Channel.CONFLATED)
 
     /** The device's site-local IPv4 on Wi-Fi (wlan* preferred), for showing "IP:port" on the sender. */
     fun localIpv4(): String? {
         val candidates = runCatching { NetworkInterface.getNetworkInterfaces()?.toList() }.getOrNull().orEmpty()
             .filter { runCatching { it.isUp && !it.isLoopback }.getOrDefault(false) }
-        val sorted = candidates.sortedByDescending { it.name.startsWith("wlan") }
+        // Prefer Wi-Fi (wlan*) or hotspot (ap*) interfaces, falling back to any other.
+        val sorted = candidates.sortedByDescending { it.name.startsWith("wlan") || it.name.startsWith("ap") }
         for (iface in sorted) {
             val addr = iface.inetAddresses.toList()
                 .firstOrNull { it is Inet4Address && it.isSiteLocalAddress && !it.isLoopbackAddress }
@@ -202,6 +252,7 @@ class DeviceSyncDiscovery(context: Context) {
             listOfNotNull(info.host)
         }
         val chosen = addresses.firstOrNull { it is Inet4Address } ?: addresses.firstOrNull()
+        // IPv6 zone ids (fe80::1%wlan0) are stripped, which can make link-local hosts unroutable; only used as a fallback.
         return chosen?.hostAddress?.substringBefore('%')
     }
 
@@ -245,6 +296,7 @@ class DeviceSyncDiscovery(context: Context) {
             if (portText.isEmpty() || portText.length > 5 || !portText.all { it in '0'..'9' }) return null
             val port = portText.toInt()
             if (port !in 1..65535) return null
+            if (parts[0] == "0.0.0.0" || parts[0] == "255.255.255.255") return null
             return parts[0] to port
         }
     }

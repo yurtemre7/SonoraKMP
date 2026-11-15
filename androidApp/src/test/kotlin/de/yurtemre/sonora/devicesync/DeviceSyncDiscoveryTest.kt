@@ -8,8 +8,8 @@ import kotlin.test.assertTrue
 class DeviceSyncDiscoveryTest {
     @Test fun parseManualAcceptsIpv4AndPort() {
         assertEquals("192.168.1.20" to 8080, DeviceSyncDiscovery.parseManual("192.168.1.20:8080"))
-        assertEquals("0.0.0.0" to 1, DeviceSyncDiscovery.parseManual("0.0.0.0:1"))
-        assertEquals("255.255.255.255" to 65535, DeviceSyncDiscovery.parseManual("255.255.255.255:65535"))
+        assertEquals("0.0.0.1" to 1, DeviceSyncDiscovery.parseManual("0.0.0.1:1"))
+        assertEquals("255.255.255.254" to 65535, DeviceSyncDiscovery.parseManual("255.255.255.254:65535"))
     }
 
     @Test fun parseManualTrimsWhitespace() {
@@ -22,7 +22,7 @@ class DeviceSyncDiscoveryTest {
             "256.1.1.1:80", "1.1.1.-1:80", "a.b.c.d:80", "1..1.1:80", "localhost:80", "example.com:80",
             "[::1]:80", "::1:80", "fe80::1:80", "192.168.1.20:0", "192.168.1.20:65536", "192.168.1.20:-5",
             "192.168.1.20:abc", "192.168.1.20:80:90", "192.168.1.20 :80", "192.168. 1.20:80",
-            "+1.1.1.1:80", "1.1.1.1:+80", "http://1.1.1.1:80", "١.١.١.١:80",
+            "0.0.0.0:80", "255.255.255.255:80", "+1.1.1.1:80", "1.1.1.1:+80", "http://1.1.1.1:80", "١.١.١.١:80",
         ).forEach { assertNull(DeviceSyncDiscovery.parseManual(it), "should reject '$it'") }
     }
 
