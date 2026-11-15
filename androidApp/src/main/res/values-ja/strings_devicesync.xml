@@ -95,6 +95,7 @@
     <string name="devicesync_progress_speed">%1$s/秒 · 残り %2$s</string>
     <string name="devicesync_step_library">新しいファイルをライブラリに追加しています…</string>
     <string name="devicesync_step_replacing">古いファイルを置き換えています…</string>
+    <string name="devicesync_step_removing">相手の端末にない曲を削除しています…</string>
     <string name="devicesync_step_data">プレイリスト、お気に入り、設定、再生統計を反映しています…</string>
     <string name="devicesync_cancel_title">転送をキャンセルしますか？</string>
     <string name="devicesync_cancel_body">コピー済みのファイルはこのスマートフォンに残ります。次回は残りだけがコピーされます。</string>
@@ -103,6 +104,16 @@
     <string name="devicesync_done_title">デバイス同期が完了しました</string>
     <plurals name="devicesync_result_copied">
         <item quantity="other">%1$d 件のファイルをコピーしました</item>
+    </plurals>
+    <plurals name="devicesync_result_removed">
+        <item quantity="other">%1$d 曲を削除しました（相手の端末にない曲）</item>
+    </plurals>
+    <plurals name="devicesync_extras_title">
+        <item quantity="other">相手の端末にない %1$d 曲を削除</item>
+    </plurals>
+    <string name="devicesync_extras_body">転送の後にこの端末から削除します。Android が確認を求める場合があります。元に戻せません。</string>
+    <plurals name="devicesync_extras_more">
+        <item quantity="other">…ほか %1$d 曲</item>
     </plurals>
     <plurals name="devicesync_result_replaced">
         <item quantity="other">%1$d 件のファイルを置き換えました</item>

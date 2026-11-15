@@ -430,6 +430,32 @@ class DeviceSyncControllerTest {
         assertEquals(0, summary.filesCopied)
     }
 
+    private fun mirrorSetup(): Triple<Manifest, FakeStorage, FakeLibrary> {
+        val m = manifest(audio(0, "A/keep.mp3", 120, title = "Keep"))
+        val keep = ReceiverSong(4, "A/keep.mp3", "Keep", "Artist", "Album", 100_000, 120, "mp3")
+        val extra = ReceiverSong(5, "A/gone.mp3", "Gone", "Artist", "Album", 100_000, 120, "mp3")
+        val storage = FakeStorage(index = ReceiverIndex(mapOf("A/keep.mp3" to 120L, "A/gone.mp3" to 120L), listOf(keep, extra)))
+        val library = FakeLibrary(songsById = mapOf(5L to LibrarySongInfo("/dest/A/gone.mp3", "Gone", "Artist", "Album")))
+        return Triple(m, storage, library)
+    }
+
+    @Test fun mirrorDeletesSongsTheSenderLacksOnlyWhenAsked() = runTest {
+        for (remove in listOf(false, true)) {
+            val (m, storage, library) = mirrorSetup()
+            val deleter = FakeDeleter(needsConfirm = false)
+            val c = controller({ FakeClient(m) }, storage, library, FakeData(), deleter)
+            c.startReceiving()
+            c.connect(target, "123123")
+            advanceUntilIdle()
+            val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+            assertEquals(listOf(5L), plan.extras.map { it.songId })
+            assertTrue(c.startTransfer(plan.defaultSelection(), removeExtras = remove))
+            advanceUntilIdle()
+            assertEquals(if (remove) listOf("/dest/A/gone.mp3") else emptyList(), deleter.requested)
+            assertEquals(if (remove) 1 else 0, finished(c).filesRemoved)
+        }
+    }
+
     @Test fun declinedDeleteKeepsBothFiles() = runTest {
         val (m, storage, library) = replaceSetup()
         val data = FakeData()

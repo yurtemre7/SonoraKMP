@@ -49,6 +49,9 @@ internal fun DeviceSyncResultScreen(summary: DeviceSyncSummary, onDone: () -> Un
                 if (summary.filesKeptBoth > 0) {
                     add(pluralStringResource(R.plurals.devicesync_result_kept_both, summary.filesKeptBoth, summary.filesKeptBoth))
                 }
+                if (summary.filesRemoved > 0) {
+                    add(pluralStringResource(R.plurals.devicesync_result_removed, summary.filesRemoved, summary.filesRemoved))
+                }
                 if (summary.bytes > 0) add(stringResource(R.string.devicesync_result_bytes, formatBytes(context, summary.bytes)))
             }
             SettingsNote(lines.joinToString("\n"))

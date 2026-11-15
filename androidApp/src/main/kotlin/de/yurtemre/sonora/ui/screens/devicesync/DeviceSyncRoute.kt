@@ -252,8 +252,8 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
             folderError = folderError,
             snackbar = snackbar,
             onPickFolder = ::pickFolder,
-            onStart = { ids ->
-                if (!controller.startTransfer(ids)) showMessage(res.getString(R.string.devicesync_start_refused))
+            onStart = { ids, removeExtras ->
+                if (!controller.startTransfer(ids, removeExtras)) showMessage(res.getString(R.string.devicesync_start_refused))
             },
             onBack = ::handleBack,
         )
