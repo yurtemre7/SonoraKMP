@@ -36,6 +36,7 @@ kotlin {
             implementation(libs.jaudiotagger)
             implementation(libs.documentfile)
             implementation(libs.palette)
+            implementation(libs.bouncycastle.bcprov)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
