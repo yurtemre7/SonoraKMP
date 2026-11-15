@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -87,10 +88,14 @@ class HomeViewModel(
 
     private data class Lib(val songs: List<Song>, val albums: List<AlbumGroup>, val artists: List<ArtistGroup>, val index: LibrarySearchIndex)
 
-    private val lib = combine(library.songs, library.artistImages) { songs, images ->
+    // Built once and kept for the life of the view model, not per tab and per subscription: every tab flow used to
+    // re-run the grouping and build its own search index each time the tab was shown (and the first frame after a
+    // switch had no data yet). Now the tabs just read the shared, already built library.
+    private val libState = combine(library.songs, library.artistImages) { songs, images ->
         val albums = AlbumGrouper.build(songs)
         Lib(songs, albums, ArtistGrouper.build(songs, albums, images), LibrarySearchIndex(songs))
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val lib = libState.filterNotNull()
 
     private val sorts = settingsRepo.settings.map { it.sorts() }
 
@@ -105,26 +110,26 @@ class HomeViewModel(
         } else l.index.searchSongs(q, sort, ts.ascending)
         val counts = if (sort == SongSort.Plays) snap.songs.mapValues { it.value.plays } else emptyMap()
         HomeTabState(LibraryTab.Songs, q, ts, songs = res, totalCount = l.songs.size, loaded = true, playCounts = counts)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Songs))
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, HomeTabState(LibraryTab.Songs))
 
     val albums: StateFlow<HomeTabState> = combine(lib, _query, sorts) { l, q, s ->
         val ts = s.getValue(LibraryTab.Albums)
         val res = l.index.searchAlbums(l.albums, q, AlbumSort.fromStorage(ts.key), ts.ascending)
         HomeTabState(LibraryTab.Albums, q, ts, albums = res, songs = res.flatMap { it.songs }, totalCount = l.albums.size, loaded = true)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Albums))
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, HomeTabState(LibraryTab.Albums))
 
     val artists: StateFlow<HomeTabState> = combine(lib, _query, sorts) { l, q, s ->
         val ts = s.getValue(LibraryTab.Artists)
         val res = l.index.searchArtists(l.artists, q, ArtistSort.fromStorage(ts.key), ts.ascending)
         HomeTabState(LibraryTab.Artists, q, ts, artists = res, songs = res.flatMap { it.songs }, totalCount = l.artists.size, loaded = true)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Artists))
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, HomeTabState(LibraryTab.Artists))
 
     val playlists: StateFlow<HomeTabState> = combine(lib, playlistRepo.playlists, _query, sorts) { l, pls, q, s ->
         val ts = s.getValue(LibraryTab.Playlists)
         val ids = l.songs.mapTo(HashSet()) { it.id }
         val res = LibrarySorter.sortPlaylists(LibrarySearchIndex.filterPlaylists(pls, q), PlaylistSort.fromStorage(ts.key), ts.ascending, ids)
         HomeTabState(LibraryTab.Playlists, q, ts, playlists = res, totalCount = pls.size, loaded = true, librarySongIds = ids)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeTabState(LibraryTab.Playlists))
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, HomeTabState(LibraryTab.Playlists))
 
     /** UI-12 sync banner, computed once at startup (LIB-21). */
     private val _syncBanner = MutableStateFlow(false)
