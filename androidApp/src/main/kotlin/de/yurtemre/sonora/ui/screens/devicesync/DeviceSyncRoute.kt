@@ -8,7 +8,9 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +44,7 @@ private enum class SyncRole { Send, Receive }
 
 /**
  * Settings › Device sync (DSYNC-01..13): follows [DeviceSyncController.state] and shows one small screen per state.
- * Owns the platform flows: notification permission (33+, best-effort), the folder picker (write access), the
+ * Owns the platform flows: local network (37+, required) and notification (33+, best-effort) permissions, the folder picker (write access), the
  * MediaStore delete confirmation and applying a synced app language.
  */
 @Composable
@@ -74,21 +76,43 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         SyncRole.Receive -> controller.startReceiving()
     }
 
-    // The foreground service notification needs POST_NOTIFICATIONS on 33+; device sync works without it.
-    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        pendingRole?.let(::start)
+    // Android 17+: no discovery or connection to the other phone without the local network grant (required).
+    fun showLocalNetworkDenied() {
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val result = snackbar.showSnackbar(
+                message = res.getString(R.string.devicesync_local_network_denied),
+                actionLabel = res.getString(R.string.devicesync_open_settings),
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) MediaPermissions.openAppSettings(context)
+        }
+    }
+
+    // The foreground service notification needs POST_NOTIFICATIONS on 33+ (best-effort); the local network grant
+    // (37+) is required. Both are asked together before sending or receiving.
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        val role = pendingRole
         pendingRole = null
+        when {
+            role == null -> Unit
+            MediaPermissions.hasLocalNetwork(context) -> start(role)
+            else -> showLocalNetworkDenied()
+        }
     }
 
     fun startWithNotifications(role: SyncRole) {
-        val permission = MediaPermissions.notifications
-        if (permission == null || MediaPermissions.hasNotifications(context)) return start(role)
+        val missing = listOfNotNull(
+            MediaPermissions.localNetwork?.takeUnless { MediaPermissions.hasLocalNetwork(context) },
+            MediaPermissions.notifications?.takeUnless { MediaPermissions.hasNotifications(context) },
+        )
+        if (missing.isEmpty()) return start(role)
         pendingRole = role
         try {
-            notificationLauncher.launch(permission)
+            permissionLauncher.launch(missing.toTypedArray())
         } catch (_: ActivityNotFoundException) {
             pendingRole = null
-            start(role)
+            if (MediaPermissions.hasLocalNetwork(context)) start(role) else showLocalNetworkDenied()
         }
     }
 

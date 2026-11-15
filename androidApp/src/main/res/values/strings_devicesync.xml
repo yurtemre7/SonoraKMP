@@ -17,7 +17,7 @@
     <string name="devicesync_notif_cancel">Cancel</string>
     <!-- Screens (DSYNC-01..13) -->
     <string name="settings_perm_devicesync_title">Device sync on your Wi-Fi</string>
-    <string name="settings_perm_devicesync_body">Device sync finds your other phone on the same Wi-Fi (Wi-Fi multicast) and copies files directly between the two phones, encrypted with the code you enter. A data sync foreground service keeps the transfer running in the background and shows its progress.</string>
+    <string name="settings_perm_devicesync_body">Device sync finds your other phone on the same Wi-Fi (Wi-Fi multicast; on Android 17 and later it asks for local network access) and copies files directly between the two phones, encrypted with the code you enter. A data sync foreground service keeps the transfer running in the background and shows its progress.</string>
     <string name="settings_devicesync_title">Device sync</string>
     <string name="settings_devicesync_subtitle">Copy music and data to another phone on the same Wi-Fi</string>
     <string name="devicesync_intro">Copy music, playlists, favorites, settings and stats from one phone to another. Both phones need SonoraKMP and the same Wi-Fi. It works one way: the receiving phone gets what the sending phone has.</string>
@@ -179,4 +179,6 @@
     <string name="devicesync_preparing">Preparing the library to send…</string>
     <string name="devicesync_search_again">Search again</string>
     <string name="devicesync_search_stopped">Stopped searching. Search again, or enter the address shown on the other phone.</string>
+    <string name="devicesync_local_network_denied">Device sync needs access to devices on your local network to find and reach the other phone. Allow it in the app settings.</string>
+    <string name="devicesync_open_settings">Open settings</string>
 </resources>

@@ -10,7 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 
-/** LIB-02 runtime permissions: audio (required), notifications (33+, best-effort). */
+/** Runtime permissions: audio (LIB-02, required), notifications (33+, best-effort), local network (37+, device sync). */
 object MediaPermissions {
     val audio: String =
         if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
@@ -19,6 +19,14 @@ object MediaPermissions {
     val storageRequest: Array<String> = arrayOf(audio)
 
     val notifications: String? = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.POST_NOTIFICATIONS else null
+
+    /**
+     * Device sync (DSYNC-02/04): from Android 17 an app targeting API 37 needs this runtime grant to discover
+     * (NSD) and connect to devices on the local network; null below 37, where it isn't needed.
+     */
+    val localNetwork: String? = if (Build.VERSION.SDK_INT >= 37) Manifest.permission.ACCESS_LOCAL_NETWORK else null
+
+    fun hasLocalNetwork(context: Context): Boolean = localNetwork?.let { granted(context, it) } ?: true
 
     fun hasAudio(context: Context): Boolean = granted(context, audio)
 
