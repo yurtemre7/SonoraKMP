@@ -45,8 +45,9 @@ sealed class DeviceSyncDataException(message: String, cause: Throwable? = null) 
     class InvalidBundle(cause: Throwable) : DeviceSyncDataException("Invalid device sync bundle: ${cause.message}", cause)
     /**
      * Writing failed. Settings/DB failure: Room rolled back and DataStore was restored when [rolledBack].
-     * A failure in the stats step leaves the (idempotent) playlists/favorites/settings applied and the baseline
-     * untouched, so the next sync adds the same difference again.
+     * A failure in the stats step leaves the (idempotent) playlists/favorites/settings applied. If it failed
+     * before the stats merge committed, the baseline is untouched and the next sync adds the same difference (once).
+     * If the merge committed and only the baseline write failed, the next sync adds that difference a second time.
      */
     class WriteFailed(cause: Throwable, val rolledBack: Boolean) :
         DeviceSyncDataException("Device sync apply failed: ${cause.message}", cause)

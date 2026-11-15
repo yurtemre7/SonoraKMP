@@ -177,6 +177,30 @@ class DeviceSyncDataTest {
         assertEquals(3, r.completeListensAdded)
     }
 
+    @Test fun playsOfASongThatMatchesOnlyLaterArriveExactlyOnce() = runBlocking {
+        seedSender()
+        // First device sync: "Three" was deselected, so the receiver has no song for it yet.
+        receiver.db.songDao().upsertAll(listOf(
+            song(11, "/storage/emulated/0/Music/One.flac", "One"),
+            song(12, "/storage/emulated/0/Music/Two.mp3", "Two"),
+        ))
+        receiver.repo.applyBundle(sender.repo.exportBundle(), "sender-1")
+        assertEquals(null, receiver.stats.snapshot.first().songs[13])
+
+        // "Three" arrives later (a second device sync copied it and the library was rescanned).
+        receiver.db.songDao().upsertAll(listOf(song(13, "/storage/emulated/0/Music/Three.mp3", "Three")))
+        val r = receiver.repo.applyBundle(sender.repo.exportBundle(), "sender-1")
+        assertEquals(2, receiver.stats.snapshot.first().songs.getValue(13).plays)
+        assertEquals(1, r.statsSongsAdded)
+        assertEquals(0, r.completeListensAdded) // the aggregate counters were imported by the first sync
+
+        // Repeating the sync adds nothing.
+        val before = receiver.dump()
+        receiver.repo.applyBundle(sender.repo.exportBundle(), "sender-1")
+        assertEquals(before, receiver.dump())
+        assertEquals(2, receiver.stats.snapshot.first().songs.getValue(13).plays)
+    }
+
     @Test fun baselineFileWrittenWithReceivedStats() = runBlocking {
         seedSender(); seedReceiver()
         val bundle = sender.repo.exportBundle()

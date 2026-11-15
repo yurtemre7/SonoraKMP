@@ -37,6 +37,23 @@ object StatsDelta {
         )
     }
 
+    /**
+     * The baseline to store after applying [now] (DSYNC-06: the sender totals actually imported). Songs in
+     * [imported] (they matched a receiver song) advance to [now]; every other song keeps its [previous] entry, or
+     * none, so its plays are added once it matches in a later device sync. The aggregate counters (complete
+     * listens, weekdays, playlist plays, shuffle sessions, first play) were applied in full and advance. After a
+     * sender reset ([difference] ignores [previous]) the old entries are dropped as well.
+     */
+    fun nextBaseline(now: SyncStats, previous: SyncStats?, imported: Set<String>): SyncStats {
+        val base = previous?.takeUnless { now.completeListens < it.completeListens }
+        fun <V> keep(current: Map<String, V>, old: Map<String, V>?): Map<String, V> = buildMap {
+            for ((path, v) in current) {
+                if (path in imported) put(path, v) else old?.get(path)?.let { put(path, it) }
+            }
+        }
+        return now.copy(songs = keep(now.songs, base?.songs), recentlyPlayed = keep(now.recentlyPlayed, base?.recentlyPlayed))
+    }
+
     /** Maps sender paths to receiver song ids; unknown paths are dropped. */
     fun toSnapshotDelta(delta: SyncStats, pathToReceiverId: Map<String, Long>): StatsSnapshot {
         val songs = HashMap<Long, SongStats>()

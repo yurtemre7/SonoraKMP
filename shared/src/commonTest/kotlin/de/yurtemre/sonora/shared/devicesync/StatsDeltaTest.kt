@@ -83,6 +83,29 @@ class StatsDeltaTest {
         assertEquals(mapOf("/m/a.mp3" to 100L), d.recentlyPlayed)
     }
 
+    @Test fun nextBaselineAdvancesOnlyImportedSongs() {
+        val previous = SyncStats(songs = mapOf("b" to SongCounters(plays = 1)), completeListens = 1)
+        val now = SyncStats(
+            songs = mapOf("a" to SongCounters(plays = 5), "b" to SongCounters(plays = 3), "c" to SongCounters(plays = 2)),
+            completeListens = 10,
+            recentlyPlayed = mapOf("a" to 1L, "c" to 2L),
+        )
+        val next = StatsDelta.nextBaseline(now, previous, imported = setOf("a"))
+        assertEquals(mapOf("a" to SongCounters(plays = 5), "b" to SongCounters(plays = 1)), next.songs)
+        assertEquals(mapOf("a" to 1L), next.recentlyPlayed)
+        assertEquals(10, next.completeListens)
+        // "c" matches later: its plays are then added in full, once.
+        assertEquals(2, StatsDelta.difference(now, next).songs.getValue("c").plays)
+        assertEquals(2, StatsDelta.difference(now, next).songs.getValue("b").plays)
+        assertTrue("a" !in StatsDelta.difference(now, next).songs)
+    }
+
+    @Test fun nextBaselineAfterSenderResetDropsOldEntries() {
+        val previous = SyncStats(songs = mapOf("b" to SongCounters(plays = 9)), completeListens = 50)
+        val now = SyncStats(songs = mapOf("b" to SongCounters(plays = 2)), completeListens = 3)
+        assertEquals(emptyMap(), StatsDelta.nextBaseline(now, previous, imported = emptySet()).songs)
+    }
+
     @Test fun toSnapshotDeltaDropsUnknownPathsAndFoldsRecent() {
         val delta = SyncStats(
             songs = mapOf(

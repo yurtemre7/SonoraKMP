@@ -33,7 +33,8 @@ import kotlin.uuid.Uuid
  *
  * The bundle's backup JSON carries an empty `stats` section; the planner's stats replacement is always dropped
  * on apply, stats travel only as [SyncBundle.stats] and are added as a difference against the per-sender
- * baseline `files/device_sync/peers/<senderDeviceId>.json`, written after a successful apply.
+ * baseline `files/device_sync/peers/<senderDeviceId>.json`, written after a successful apply. The baseline advances
+ * only for songs that matched here ([StatsDelta.nextBaseline]), so a song that arrives later still gets its plays.
  */
 class DeviceSyncDataRepositoryImpl(
     private val db: SonoraDatabase,
@@ -124,7 +125,8 @@ class DeviceSyncDataRepositoryImpl(
                 val pathToId = plan.idMap.mapNotNull { (ref, id) -> doc.songs[ref]?.let { it.path to id } }.toMap()
                 val delta = StatsDelta.toSnapshotDelta(diff, pathToId)
                 stats.mergeDelta(delta)
-                files.writeText(baselinePath, json.encodeToString(SyncStats.serializer(), senderStats))
+                val next = StatsDelta.nextBaseline(senderStats, baseline, pathToId.keys)
+                files.writeText(baselinePath, json.encodeToString(SyncStats.serializer(), next))
                 statsSongs = delta.songs.values.count { it.plays > 0 || it.skips > 0 || it.restarts > 0 }
                 listens = delta.completeListens
             } catch (e: CancellationException) {
