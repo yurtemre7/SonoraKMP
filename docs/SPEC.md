@@ -366,6 +366,38 @@ Dropped (D-52).
 
 ---
 
+### 4.12 Device sync (DSYNC) — planned, not built
+
+One-way copy from a **sender** phone to a **receiver** phone on the same local network: settings, playlists,
+favorites, stats (as a difference) and selected music files with their lyrics and cover images. Started by typing a
+one-time code. No Google Play Services, no internet, no account. ("Library sync" elsewhere in this spec means the
+folder/MediaStore scan; this feature is always called *device sync*.) Decisions D-69..D-73.
+
+| ID | Feature & behaviour | Acceptance |
+|---|---|---|
+| DSYNC-01 | **Roles & entry.** Settings › Device sync: *Send from this phone* / *Receive on this phone*. One-way only (D-69). The sender shows a 6-digit code (expires after 5 min or 3 failed attempts, then a new code is shown); the receiver types it. | |
+| DSYNC-02 | **Transport.** Same Wi-Fi/LAN only (phase 1–3): sender listens on a free TCP port and advertises `_sonora-sync._tcp` via `NsdManager` (TXT: protocol version, display name); receiver discovers (multicast lock held while discovering) and tries each sender — only the one with the matching code completes DSYNC-03. Manual "enter IP:port" fallback for networks that block mDNS. No Bluetooth (too slow for files: ~0.1–0.2 MB/s), no Nearby Connections (D-70). | Two phones on one router find each other in < 5 s. |
+| DSYNC-03 | **Pairing & encryption.** Password-authenticated key exchange with the code as password (J-PAKE, BouncyCastle), never the code as a key directly; then AES-256-GCM frames (64 KiB, counter nonce, per-direction keys via HKDF). Wrong code → both sides show "code didn't match" and the attempt counts toward the limit. | Unit: wrong code fails, right code derives equal keys; captured traffic can't be brute-forced offline. |
+| DSYNC-04 | **Protocol (receiver pulls).** `HELLO{proto, deviceId, name}` → `MANIFEST` (sender's data bundle + file list) → receiver plans and the user picks → `FETCH{fileIds}` → per file `FILE{id,size}` + chunks + `END{sha256}` → `DONE`. The sender serves only ids from its own manifest (paths under its music root); unknown id → error frame, never a file outside the root. Version mismatch → "update both phones". | Fuzz/negative tests on the frame parser. |
+| DSYNC-05 | **Data bundle.** Reuses backup v1 (§5.5, BAK-03 matcher, BAK-04 merge rules) for playlists, favorites and whitelisted settings, **excluding device-specific keys**: scan folder path/URI, volume, onboarding, update check/rate-limit, last library sync times, `colorless_artwork_paths`, `last_played_*`. | Same bundle twice → identical receiver DB (idempotent). |
+| DSYNC-06 | **Stats as a difference (D-71).** Receiver stores, per sender `deviceId`, the sender totals it imported last time (`files/device_sync/peers/<deviceId>.json`). Import adds `sender_now − sender_last` per counter (plays, skips, restarts, listen time, shuffle sessions, per song/album/artist/playlist; songs remapped via BAK-03); first played = min, last played = max, recently played merged by time. Negative differences (sender reset its stats) → baseline reset, nothing subtracted. | Syncing twice without new listens adds 0; 3 new plays on the sender add exactly 3. |
+| DSYNC-07 | **File manifest.** Per file: relative path (from the sender's music root), size, modified time, type (audio/lyrics/cover), and for audio title, artist, album, duration. Lyrics = `.lrc`/`.txt` sidecars (LIB-24); covers = folder images (`COVER_NAMES`); embedded art travels inside the audio file. | |
+| DSYNC-08 | **Missing-only plan, no up-front hashing.** For each sender file the receiver decides: **Present** — same relative path and size, or (audio) same song by BAK-03 tag matching *and* same format; **Replace** — same song by tags but a different format (D-72); **New** — otherwise. Ambiguous cases (same size, other name) get a quick fingerprint: size + SHA-256 of first and last 64 KiB from both sides. Full SHA-256 is computed while streaming (DSYNC-11). Fingerprints cached by (path, size, mtime). | Plan table tests incl. MP3→FLAC replace, renamed file, retagged same file. |
+| DSYNC-09 | **Selection screen (receiver).** Grouped by type then folder: Audio (format chips MP3/FLAC/M4A/OGG/OPUS/WAV…), Lyrics, Covers; per row status New / Replace (shows "MP3 → FLAC") / Present (greyed, not selectable); per-file checkboxes, per-group and **Select all**; defaults: all New and Replace selected. Live total "needs 3.2 GB · 18.4 GB free" (StatFs of the destination, 200 MB margin); Start disabled when it doesn't fit. Replace rows also show what space they free afterwards. | |
+| DSYNC-10 | **Destination folder.** Defaults to the receiver's music folder (`scan_folder_uri`); the app asks once for **write** access to that tree (OpenDocumentTree with `EXTRA_INITIAL_URI`, persisted read+write). MediaStore-only users pick a folder (initially `Music/`). The sender's folder structure is kept below it. | |
+| DSYNC-11 | **Safe writing.** Allowed extensions only (audio types the scanner accepts, `.lrc`/`.txt`, `.jpg`/`.jpeg`/`.png`/`.webp`); relative paths sanitized (no `..`, no absolute, no control/reserved characters, segment ≤ 255 bytes, depth ≤ 16); write to `<name>.sonora-part`, verify size + full SHA-256 against `END`, then rename; never overwrite an existing file — a name clash gets ` (2)` etc.; per-file failure is listed and skipped, not fatal. | Path-traversal and checksum-mismatch tests. |
+| DSYNC-12 | **Replace (D-72).** Old file is deleted only after the new one is verified and scanned; its favorites, playlist entries and stats move to the new song id in one transaction. Folder mode: delete via SAF; MediaStore mode on API 30+: `MediaStore.createDeleteRequest` (system confirmation, batched). If deletion is declined the old file stays and both are kept. | |
+| DSYNC-13 | **Running transfer.** Foreground service type `dataSync` with progress notification (files, bytes, speed, ETA) and Cancel; high-performance Wi-Fi lock + partial wake lock. Interrupted transfers resume by re-planning (verified files are Present). Data bundle is applied after the files, so playlists/favorites can match newly arrived songs; then the library rescans only the new folders. | Kill Wi-Fi mid-transfer → reconnect → only the rest is fetched. |
+| DSYNC-14 | **Phone hotspot fallback (phase 4).** Sender opens a `LocalOnlyHotspot`; its random SSID/passphrase + code are shown as a QR code (ZXing, no Google services); receiver scans and joins via `WifiNetworkSpecifier` (API 29+; system dialog), then DSYNC-02..13 as usual. | |
+
+Phases: (1) DSYNC-01..06 settings/playlists/favorites/stats over LAN; (2) DSYNC-07..10 manifest, plan, selection,
+space, folder; (3) DSYNC-11..13 transfer, replace, service, resume; (4) DSYNC-14 hotspot + QR.
+New permissions: `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `FOREGROUND_SERVICE_DATA_SYNC` (phase 1–3);
+`NEARBY_WIFI_DEVICES` (API 33+, `neverForLocation`), `ACCESS_FINE_LOCATION` (maxSdk 32), `CAMERA` (phase 4).
+New dependencies: BouncyCastle (J-PAKE, HKDF); ZXing core (phase 4).
+
+---
+
 ## 5. Data models & persistence
 
 ### 5.1 Kotlin models (`S/model/`)
@@ -495,6 +527,9 @@ Dropped Flutter keys: `last_sync_time`, `last_perf_log`, `sync_method`, `metadat
 | `cache/image_cache/` | Coil disk cache |
 | `shared_prefs/sonora_home_widget.xml` | widget state |
 | `assets/CHANGELOG.md` (APK) | bundled changelog |
+| `files/device_sync/device_id` | random UUID identifying this phone to sync peers (never backed up) |
+| `files/device_sync/peers/<deviceId>.json` | stats totals last imported from that sender (DSYNC-06) |
+| `files/device_sync/fingerprints.json` | (path, size, mtime) → partial/full SHA-256 cache (DSYNC-08) |
 
 ### 5.5 Backup v1 JSON (must match Flutter byte-semantics, audit/data §12)
 
@@ -769,6 +804,10 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 | R-13 | Palette seeds differ from Flutter mean colors | Accepted (D-41); ContrastTest fallback |
 | R-15 | Per-app locale on API < 33 requires AppCompat + autoStoreLocales | MainActivity is AppCompatActivity |
 | R-16 | Visualizer remains fake (no RECORD_AUDIO) | Documented |
+| R-17 | Routers with client isolation / mDNS filtering (guest networks) block DSYNC-02 | Manual IP:port entry; phase-4 hotspot fallback |
+| R-18 | Android 15 caps `dataSync` foreground services at ~6 h per 24 h | Resume by re-planning (DSYNC-13); show the limit if hit |
+| R-19 | SAF `createDocument` is slow for thousands of files (one binder call each) | Create folders once, stream into each document; acceptable for typical libraries, measure in phase 3 |
+| R-20 | Replace deletes the receiver's file | Only after verify + scan; system confirmation in MediaStore mode; stats/favorites/playlists moved first |
 
 ### Open questions
 - **Q-1 → D-49 (resolved 2026-11-10):** when MediaStore ids change on re-index, playlist entries, stats and favorites relink by file path.
@@ -782,6 +821,11 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 - **D-53 (2026-11-10):** a lyrics sidecar containing only metadata tags counts as "no lyrics" (Flutter showed an empty lyrics view).
 - **D-54 (2026-11-10):** releases are triggered by a `release: X.Y.Z` commit on main (tag `vX.Y.Z` is created by the workflow); a nightly workflow publishes a rolling `nightly` pre-release (version `<next patch>-nightly.<date>+<sha>`) that the updater ignores because its tag is not a version. All GitHub Actions on their latest majors (Node 24).
 - **D-55 (2026-11-10):** on API 30+ lyric sidecars and artist images (non-media files) are read through the user's picked folder (SAF tree URI index), since direct file access can't see them. Shared host tests load the bundled SQLite native for the build machine from `sqlite-bundled-jvm`.
+- **D-69 (2026-11-15):** device sync is one-way (sender → receiver); no two-way merge.
+- **D-70 (2026-11-15):** no Google Play Services: own LAN transport (NSD + TCP) with a hotspot + QR fallback instead of Nearby Connections; Bluetooth not used (too slow for music files).
+- **D-71 (2026-11-15):** synced stats are added as the difference since the last sync from that sender (per-peer baseline), never as full totals, so repeated syncs don't double-count.
+- **D-72 (2026-11-15):** if the receiver has the same song (tag match) in a different format, the sender's file replaces it (row status "Replace", selected by default); same song in the same format counts as present.
+- **D-73 (2026-11-15):** the one-time code is a 6-digit PAKE password (J-PAKE), expiring after 5 min / 3 failed attempts; it is never used directly as an encryption key.
 - **D-68 (2026-11-12):** Room schema frozen at v3 for 1.0; future changes require a migration + MigrationTest.
 - **D-67 (2026-11-11):** seek bar total = max(player length, scanned length, position); both sources under-report VBR MP3s without a Xing header (scanner measured 29.9 s for a 180 s file). Duration and position share media time at any speed; ExoPlayer uses MP3 index seeking.
 - **D-66 (2026-11-11):** string resources stay split per feature (`strings_<feature>.xml`, en + ja); `strings.xml` stays generated from the Flutter audit. A parity test enforces identical key sets and format arguments.
