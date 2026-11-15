@@ -53,8 +53,8 @@ sealed interface ServerState {
  * - **Code (D-73):** a new 6-digit code after 5 minutes (also while nobody connects: checked on every accept and
  *   once a second against [clock]) or after the 3rd handshake that failed a check ([DeviceSyncAuthException]).
  *   Disconnects, timeouts and malformed handshake data do not count. A completed session (DONE) also gets a new code.
- * - **Cool-down (I7):** a rotation caused by wrong codes also refuses pairing for [coolDownMs] (30 s, doubling per
- *   further lockout up to 10 min; reset by a successful pairing). A receiver that connects meanwhile reads a
+ * - **Cool-down (I7):** a rotation caused by wrong codes also refuses pairing for [COOL_DOWN_MS] (a short, fixed
+ *   10 s: a personal-use feature, so this only slows scripted guessing without getting in the way). A receiver that connects meanwhile reads a
  *   "locked" handshake message and fails with `too_many_attempts`; that never counts as an attempt.
  * - **One receiver at a time:** while a connection is being served, further connections are closed before any
  *   handshake.
@@ -79,7 +79,6 @@ class DeviceSyncServer(
     private val codeLock = Any()
     private var failedAttempts = 0
     /** Rotations caused by wrong codes since the last successful pairing (guarded by [codeLock]). */
-    private var lockouts = 0
     private var lockedUntilMs = 0L
     private val _code = MutableStateFlow(PairingCode.generate())
     private val _codeExpiresAtMs = MutableStateFlow(clock() + CODE_LIFETIME_MS)
@@ -166,7 +165,6 @@ class DeviceSyncServer(
             } catch (e: DeviceSyncAuthException) {
                 return recordFailedAttempt(code)
             }
-            synchronized(codeLock) { lockouts = 0 }
             val channel = SecureChannel(input, output, keyingMaterial, Role.Sender)
             val hello = (channel.receive() as? Frame.Hello)?.value
                 ?: throw DeviceSyncProtocolException("Expected HELLO")
@@ -303,8 +301,7 @@ class DeviceSyncServer(
         failedAttempts++
         if (failedAttempts < MAX_FAILED_ATTEMPTS) return ServerState.Failed(ERROR_CODE_MISMATCH)
         rotateCode()
-        lockouts++
-        lockedUntilMs = clock() + coolDownMs(lockouts)
+        lockedUntilMs = clock() + COOL_DOWN_MS
         ServerState.Failed(ERROR_TOO_MANY_ATTEMPTS, lockedUntilMs)
     }
 
@@ -337,14 +334,7 @@ class DeviceSyncServer(
         const val ERROR_LIBRARY_TOO_LARGE = "library_too_large"
 
         private const val CODE_CHECK_INTERVAL_MS = 1_000L
-        private const val COOL_DOWN_BASE_MS = 30_000L
-        private const val COOL_DOWN_MAX_MS = 10 * 60_000L
-
-        /** Cool-down after the [lockout]-th code rotation caused by wrong codes: 30 s, 60 s, 120 s, … at most 10 min. */
-        fun coolDownMs(lockout: Int): Long {
-            var ms = COOL_DOWN_BASE_MS
-            repeat(lockout - 1) { ms = minOf(ms * 2, COOL_DOWN_MAX_MS) }
-            return ms
-        }
+        /** Cool-down after a code rotation caused by wrong codes. */
+        const val COOL_DOWN_MS = 10_000L
     }
 }

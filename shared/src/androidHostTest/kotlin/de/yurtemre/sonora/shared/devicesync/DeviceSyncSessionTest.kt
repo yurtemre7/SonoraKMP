@@ -317,42 +317,29 @@ class DeviceSyncSessionTest {
     }
 
     @Test
-    fun rotationAfterWrongCodesStartsAnExponentialCoolDown() = test {
+    fun rotationAfterWrongCodesStartsAShortCoolDown() = test {
         val clock = FakeClock()
         val (server, port) = server(clock = clock)
 
         repeat(3) { attemptWrongCode(server, port) }
         server.state.first { it is ServerState.Failed && it.reason == "too_many_attempts" }
-        assertEquals(ServerState.Failed("too_many_attempts", lockedUntilMs = clock.now + 30_000), server.state.value)
+        assertEquals(ServerState.Failed("too_many_attempts", lockedUntilMs = clock.now + 10_000), server.state.value)
         // Even the right (new) code is refused during the cool-down, and that does not count as an attempt.
         assertLockedOut(port, server.code.value)
-        clock.now += 29_999
+        clock.now += 9_999
         assertLockedOut(port, server.code.value)
 
-        // The second lockout doubles the wait.
+        // A second lockout waits the same 10 s (no growth).
         clock.now += 1
         repeat(3) { attemptWrongCode(server, port) }
+        val lockedAt = clock.now
+        server.state.first { it is ServerState.Failed && it.lockedUntilMs == lockedAt + 10_000 }
         val code = server.code.value
-        clock.now += 59_999
+        clock.now += 9_999
         assertLockedOut(port, code)
         clock.now += 1
         connectWith(port, code).close()
         server.state.first { it == ServerState.Done }
-
-        // A successful pairing resets the backoff to 30 s.
-        repeat(3) { attemptWrongCode(server, port) }
-        clock.now += 30_000
-        connectWith(port, server.code.value).close()
-    }
-
-    @Test
-    fun coolDownIsCappedAtTenMinutes() {
-        assertEquals(30_000L, DeviceSyncServer.coolDownMs(1))
-        assertEquals(60_000L, DeviceSyncServer.coolDownMs(2))
-        assertEquals(120_000L, DeviceSyncServer.coolDownMs(3))
-        assertEquals(480_000L, DeviceSyncServer.coolDownMs(5))
-        assertEquals(600_000L, DeviceSyncServer.coolDownMs(6))
-        assertEquals(600_000L, DeviceSyncServer.coolDownMs(100))
     }
 
     @Test
