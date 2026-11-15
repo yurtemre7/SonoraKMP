@@ -17,7 +17,7 @@ class ManifestTooLargeException : Exception(DeviceSyncServer.ERROR_LIBRARY_TOO_L
 object ManifestTransfer {
     /** = [FrameCodec.MANIFEST_PART] × [FrameCodec.MAX_MANIFEST_PARTS]. */
     const val MAX_COMPRESSED = FrameCodec.MANIFEST_PART * FrameCodec.MAX_MANIFEST_PARTS
-    const val MAX_INFLATED = 256 * 1024 * 1024
+    const val MAX_INFLATED = 64 * 1024 * 1024
 
     private const val BUFFER = 64 * 1024
 

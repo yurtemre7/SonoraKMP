@@ -79,7 +79,7 @@ class ManifestTransferTest {
 
     @Test
     fun inflationStopsAtTheCap() {
-        assertEquals(256 * 1024 * 1024, ManifestTransfer.MAX_INFLATED)
+        assertEquals(64 * 1024 * 1024, ManifestTransfer.MAX_INFLATED)
         // A zip bomb: 64 MiB of zeros deflate to about 64 KiB.
         val bomb = deflate(ByteArray(64 * 1024 * 1024))
         assertTrue(bomb.size < FrameCodec.MANIFEST_PART)

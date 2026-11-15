@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -194,6 +195,16 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
     }
     DisposableEffect(controller) {
         onDispose { if (activity?.isChangingConfigurations != true) controller.onScreenHidden() }
+    }
+
+    // The screen-off reset above would throw away a long folder walk, pairing or first plan on a big library, so the
+    // screen stays on while one of those runs (the user is waiting on it anyway).
+    val view = LocalView.current
+    val busy = state is DeviceSyncState.Preparing || state is DeviceSyncState.Connecting ||
+        (state as? DeviceSyncState.Planning)?.computing == true
+    DisposableEffect(view, busy) {
+        view.keepScreenOn = busy
+        onDispose { view.keepScreenOn = false }
     }
 
     when (val s = state) {
