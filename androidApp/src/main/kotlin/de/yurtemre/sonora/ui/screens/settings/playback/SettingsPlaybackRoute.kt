@@ -112,8 +112,8 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
             ChoiceRow(
                 title = stringResource(R.string.settings_sleep_default),
                 options = AppSettings.SLEEP_TIMER_MINUTES_OPTIONS,
-                // Invalid stored values are shown as 60 (audit/settings §5).
-                selected = s.sleepTimerDefaultMinutes.takeIf { it in AppSettings.SLEEP_TIMER_MINUTES_OPTIONS } ?: 60,
+                // The repository snaps stored values to these options, so the default is always one of them.
+                selected = s.sleepTimerDefaultMinutes,
                 label = { stringResource(R.string.settings_minutes, it) },
                 onSelect = { save { setSleepTimerDefaultMinutes(it) } },
                 icon = Icons.Rounded.Timer,
@@ -124,7 +124,7 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
             ChoiceRow(
                 title = stringResource(R.string.settings_sleep_fade),
                 options = AppSettings.SLEEP_TIMER_FADE_OPTIONS,
-                selected = s.sleepTimerFadeOutSeconds.takeIf { it in AppSettings.SLEEP_TIMER_FADE_OPTIONS } ?: 10,
+                selected = s.sleepTimerFadeOutSeconds,
                 label = { if (it == 0) stringResource(R.string.settings_off) else stringResource(R.string.settings_seconds, it) },
                 onSelect = { save { setSleepTimerFadeOutSeconds(it) } },
                 icon = Icons.Rounded.VolumeDown,

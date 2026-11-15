@@ -159,8 +159,11 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 pauseOnDisconnect = p[K.PAUSE_ON_DISCONNECT] ?: d.pauseOnDisconnect,
                 resumeOnConnect = p[K.RESUME_ON_CONNECT] ?: d.resumeOnConnect,
                 bluetoothMfxPatch = p[K.MFX_BLUETOOTH_PATCH] ?: d.bluetoothMfxPatch,
-                sleepTimerDefaultMinutes = p[K.SLEEP_TIMER_DEFAULT_MINUTES] ?: d.sleepTimerDefaultMinutes,
-                sleepTimerFadeOutSeconds = p[K.SLEEP_TIMER_FADE_OUT_SECONDS] ?: d.sleepTimerFadeOutSeconds,
+                // Snapped to the offered choices: values from older versions or backups (e.g. 25/45 min) stay usable.
+                sleepTimerDefaultMinutes = p[K.SLEEP_TIMER_DEFAULT_MINUTES]
+                    ?.let { AppSettings.nearestOption(AppSettings.SLEEP_TIMER_MINUTES_OPTIONS, it) } ?: d.sleepTimerDefaultMinutes,
+                sleepTimerFadeOutSeconds = p[K.SLEEP_TIMER_FADE_OUT_SECONDS]
+                    ?.let { AppSettings.nearestOption(AppSettings.SLEEP_TIMER_FADE_OPTIONS, it) } ?: d.sleepTimerFadeOutSeconds,
                 sleepTimerFinishSong = p[K.SLEEP_TIMER_FINISH_SONG] ?: d.sleepTimerFinishSong,
                 repeatMode = RepeatMode.fromStorage(p[K.REPEAT_MODE]),
                 filterTitleFeatures = p[K.FILTER_TITLE_FEATURES] ?: d.filterTitleFeatures,

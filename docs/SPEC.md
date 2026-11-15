@@ -281,7 +281,7 @@ Format: **ID — feature**: behaviour (constants) → ✅ acceptance. "audit/x �
 | SET-01 | **Settings root.** Sections: Library sync card (folder or `set_music_directory`, `active_sync_location`, Change/Set button → LIB-01 → sync, `sync_explanation`, last sync (localized date-time from `last_sync_timestamp` or `never_synced`) + duration, Sync now (spinner)); Stats → Statistics; App language (subtitle current; dialog System / English / 日本語); tiles Appearance, Library formatting, Playback, Privacy, Backup, Info; debug builds: Developer tools → Debug caches. audit/settings §2. | |
 | SET-02 | **Appearance.** Theme mode segmented; Color source segmented (Sleeve / System (API ≥ 31 only) / Album art / Custom) with description cards, fallback/custom accent swatch row (pie of primary/secondary/tertiary, 56 dp); AMOLED switch; Blurred backgrounds; Now Playing style dropdown; Prefer local artist images; Show visualizer; Greeting switch + name dialog (blank → "User"). audit/settings §3. | Persist each; source switch recolors app. |
 | SET-03 | **Library formatting.** Preview card (original struck-through `"Awesome Artist - The Greatest Hit (feat. Someone)"` / displayed result live); switches features/artist. | |
-| SET-04 | **Playback.** keep playing on close, remember last song, Volume levelling (off/track/album), pause on notifications (duck), pause on disconnect, resume on connect, BT patch; default sleep timer (5,10,15,20,25,30,45,60), fade-out (Off,10,30,60 s), finish song, default start page (Songs/Albums/Artists/Playlists). Changes apply to running service immediately. audit/settings §5. | |
+| SET-04 | **Playback.** keep playing on close, remember last song, Volume levelling (off/track/album), pause on notifications (duck), pause on disconnect, resume on connect, BT patch; default sleep timer (5,10,15,20,30,60 = the sheet's quick presets; custom slider 1–60 min), fade-out (Off,10,30,60 s; same choices in the sheet), finish song, default start page (Songs/Albums/Artists/Playlists). Changes apply to running service immediately. audit/settings §5. | |
 | SET-05 | **Privacy & permissions.** Static cards (data, storage, notifications, wake lock, internet + install-updates sentence, delete data → danger zone) matching the manifest. | |
 | SET-06 | **Backup screen.** Export (CreateDocument `sonora-backup-YYYY-MM-DD.json`), Import (OpenDocument json) → confirm (`backup_restore_confirm_content(date)`) → restore → summary snackbar joined " · "; progress bar while busy; error mapping §BAK-06. | |
 | SET-07 | **Info & support.** About (version `VERSION_NAME (VERSION_CODE)`, DEV badge, About dialog with app icon, description, made-with-love, "Kotlin • Material 3 Expressive"); Check for updates (UPD-07); Auto-check switch; Include pre-releases switch (UPD-03); Changelog; Licenses; thank-you card with heartbeat (1400 ms, 1.0→1.15→1.02→1.10→1.0, 40 % rest; static when reduce-motion), name variant iff name ≠ "user" (ci); links: source `https://github.com/yurtemre7/SonoraKMP`, developer `https://github.com/yurtemre7`, Telegram `https://t.me/emredev`. | |
@@ -446,8 +446,8 @@ Types: B Boolean, I Int, L Long, D Double, S String, SS StringSet. ★ = new key
 | pause_on_disconnect ⓑ | B | true | |
 | resume_on_connect ⓑ | B | false | |
 | mfx_bluetoothMfxPatch ⓑ | B | false | |
-| sleep_timer_default_minutes ⓑ | I | 5 | {5,10,15,20,25,30,45,60} |
-| sleep_timer_fade_out_seconds ⓑ | I | 10 | {0,10,30,60} |
+| sleep_timer_default_minutes ⓑ | I | 5 | {5,10,15,20,30,60}; other stored values snap to the nearest |
+| sleep_timer_fade_out_seconds ⓑ | I | 10 | {0,10,30,60}; other stored values snap to the nearest |
 | sleep_timer_finish_song ⓑ | B | false | |
 | filter_title_features ⓑ, filter_title_artist ⓑ | B | false | |
 | auto_check_updates ⓑ | B | true | |
