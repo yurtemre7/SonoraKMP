@@ -16,6 +16,7 @@ import de.yurtemre.sonora.shared.settings.SettingsRepository
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 /** A file found on disk during the walk: absolute [path] plus its size and modification time. */
@@ -46,13 +47,26 @@ class SenderManifestBuilder(
         if (root != null) {
             if (treeUri != null) {
                 TreeWalker.walk(resolver, treeUri) { f ->
-                    walked += WalkedFile(f.path, f.size, f.lastModifiedMs)
-                    uris[f.path] = f.uri
+                    // Keep the first entry per path so size, mtime and Uri always come from the same document.
+                    if (uris.putIfAbsent(f.path, f.uri) == null) walked += WalkedFile(f.path, f.size, f.lastModifiedMs)
                 }
             } else {
-                runCatching {
-                    File(root).walkTopDown().filter { it.isFile }.forEach {
-                        walked += WalkedFile(it.path, it.length(), it.lastModified())
+                // Only the song directories, non-recursively: lyrics and covers matter only next to audio, and the
+                // root of a MediaStore library can be as shallow as "/".
+                val prefix = if (root.endsWith("/")) root else "$root/"
+                val dirs = songs.map { it.filePath }.filter { it.startsWith(prefix) }
+                    .mapTo(LinkedHashSet()) { it.substringBeforeLast('/') }
+                for (dir in dirs) {
+                    ensureActive()
+                    val dirCanon = try { File(dir).canonicalPath } catch (_: Exception) { continue }
+                    val kids = try { File(dir).listFiles() } catch (_: Exception) { null } ?: continue
+                    for (k in kids) {
+                        try {
+                            // A symlinked entry canonicalises to somewhere other than <dir>/<name> (API 24-safe, no java.nio).
+                            if (k.canonicalPath != File(dirCanon, k.name).path || !k.isFile) continue
+                            walked += WalkedFile(k.path, k.length(), k.lastModified())
+                        } catch (_: Exception) {
+                        }
                     }
                 }
             }
@@ -60,7 +74,7 @@ class SenderManifestBuilder(
         val plan = if (root == null) SenderPlan(emptyList(), emptyMap()) else plan(root, songs, walked)
         val entries = plan.files.associate { f ->
             val path = plan.absPathById.getValue(f.id)
-            f.id to AndroidSyncFileSource.Entry(f.relPath, path, uris[path])
+            f.id to AndroidSyncFileSource.Entry(f.relPath, path, uris[path], root.orEmpty())
         }
         val manifest = Manifest(
             protocol = DeviceSyncServer.PROTOCOL_VERSION,
@@ -89,7 +103,7 @@ class SenderManifestBuilder(
         /**
          * Pure inclusion logic. Audio: library songs under [root] (meta from the song; size/mtime from the walk, else
          * from the song, else skipped). Lyrics: `.lrc`/`.txt` walked files next to an included audio file with the
-         * same base name. Covers: walked images with a cover file name. Only paths that pass [SyncPaths.sanitize]
+         * same base name. Covers: walked images with a cover file name in a directory that holds an included audio file. Only paths that pass [SyncPaths.sanitize]
          * unchanged and have a [SyncPaths.kindOf] are kept; ids are indexes in the relPath-sorted list.
          */
         fun plan(root: String, songs: List<Song>, walked: List<WalkedFile>): SenderPlan {
@@ -104,6 +118,7 @@ class SenderManifestBuilder(
 
             class Item(val abs: String, val rel: String, val size: Long, val mod: Long, val kind: FileKind, val audio: AudioMeta?)
             val items = LinkedHashMap<String, Item>()
+            val audioDirs = HashSet<String>() // relative directories holding an included audio file
             val audioBases = HashSet<String>() // "<dir>\u0000<base>" of included audio files
             for (song in songs) {
                 val r = rel(song.filePath) ?: continue
@@ -115,6 +130,7 @@ class SenderManifestBuilder(
                     song.filePath, r, size, mod, FileKind.Audio,
                     AudioMeta(song.title, song.artist, song.album, song.durationMs),
                 )
+                audioDirs += SyncPaths.parent(r)
                 audioBases += SyncPaths.parent(r) + "\u0000" + SyncPaths.baseName(r).substringBeforeLast('.')
             }
             for (w in walkedByPath.values) {
@@ -125,7 +141,7 @@ class SenderManifestBuilder(
                     FileKind.Audio -> false
                     FileKind.Lyrics ->
                         (SyncPaths.parent(r) + "\u0000" + SyncPaths.baseName(r).substringBeforeLast('.')) in audioBases
-                    FileKind.Cover -> true
+                    FileKind.Cover -> SyncPaths.parent(r) in audioDirs
                 }
                 if (keep) items[w.path] = Item(w.path, r, w.size, w.modifiedMs, kind, null)
             }

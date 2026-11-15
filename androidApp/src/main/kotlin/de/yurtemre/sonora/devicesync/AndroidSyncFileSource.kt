@@ -19,7 +19,7 @@ class AndroidSyncFileSource(
     private val entries: Map<Int, Entry>,
 ) : SyncFileSource {
     /** [uri] is the SAF document Uri in folder mode; otherwise the file is read by [path]. */
-    data class Entry(val relPath: String, val path: String, val uri: Uri?)
+    data class Entry(val relPath: String, val path: String, val uri: Uri?, val root: String)
 
     override fun open(file: ManifestFile): InputStream {
         val e = entries[file.id]
@@ -28,7 +28,7 @@ class AndroidSyncFileSource(
             if (e.uri != null) {
                 resolver.openInputStream(e.uri) ?: throw IOException("open_failed")
             } else {
-                openFileOrMediaStore(e.path)
+                openFileOrMediaStore(e.path, e.root)
             }
         } catch (ex: IOException) {
             throw ex
@@ -37,9 +37,14 @@ class AndroidSyncFileSource(
         }
     }
 
-    private fun openFileOrMediaStore(path: String): InputStream {
+    private fun openFileOrMediaStore(path: String, root: String): InputStream {
         try {
-            return File(path).inputStream()
+            val file = File(path)
+            val canonRoot = File(root.ifEmpty { "/" }).canonicalPath
+            val prefix = if (canonRoot.endsWith("/")) canonRoot else "$canonRoot/"
+            // A symlink must not lead outside the music root.
+            if (!file.canonicalPath.startsWith(prefix)) throw IOException("outside_root")
+            return file.inputStream()
         } catch (_: IOException) {
             // API 30+: java.io.File may be denied for media files; fall back to the MediaStore content Uri.
         } catch (_: SecurityException) {

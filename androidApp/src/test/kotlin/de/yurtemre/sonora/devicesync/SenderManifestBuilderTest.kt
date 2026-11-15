@@ -90,4 +90,20 @@ class SenderManifestBuilderTest {
     @Test fun emptyInputGivesEmptyPlan() {
         assertTrue(SenderManifestBuilder.plan("/m", emptyList(), emptyList()).files.isEmpty())
     }
+
+    @Test fun coversNeedAnIncludedAudioFileInTheSameDirectory() {
+        val plan = SenderManifestBuilder.plan(
+            "/m",
+            listOf(song("/m/A/a.mp3")),
+            listOf(walked("/m/A/a.mp3"), walked("/m/A/cover.jpg"), walked("/m/DCIM/cover.jpg"), walked("/m/cover.png")),
+        )
+        assertEquals(listOf("A/a.mp3", "A/cover.jpg"), plan.files.map { it.relPath })
+    }
+
+    @Test fun lyricsBaseNameWithDotsMatches() {
+        val plan = SenderManifestBuilder.plan(
+            "/m", listOf(song("/m/a.b.mp3")), listOf(walked("/m/a.b.mp3"), walked("/m/a.b.lrc"), walked("/m/a.lrc")),
+        )
+        assertEquals(listOf("a.b.lrc", "a.b.mp3"), plan.files.map { it.relPath })
+    }
 }
