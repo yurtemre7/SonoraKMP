@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Device sync transfer service (DSYNC-13) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- In-app APK updates (UPD-08) -->
@@ -55,6 +57,12 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <!-- Device sync transfer (DSYNC-13) -->
+        <service
+            android:name=".devicesync.DeviceSyncService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Media buttons (PLAY-23) -->
         <receiver

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="devicesync_channel_name">Device sync</string>
+    <string name="devicesync_channel_description">Shows the progress of copying music between phones</string>
+    <string name="devicesync_notif_sending_title">Sending to another phone</string>
+    <string name="devicesync_notif_waiting">Waiting for the other phone…</string>
+    <string name="devicesync_notif_connected">Connected to %1$s</string>
+    <string name="devicesync_notif_sent_bytes">%1$s of %2$s sent</string>
+    <string name="devicesync_notif_sender_done">Transfer complete</string>
+    <string name="devicesync_notif_receiving_title">Receiving from another phone</string>
+    <plurals name="devicesync_notif_progress">
+        <item quantity="one">%1$d of %2$d file · %3$s of %4$s</item>
+        <item quantity="other">%1$d of %2$d files · %3$s of %4$s</item>
+    </plurals>
+    <string name="devicesync_notif_speed_eta">%1$s/s · %2$s left</string>
+    <string name="devicesync_notif_applying">Updating the library…</string>
+    <string name="devicesync_notif_cancel">Cancel</string>
+</resources>

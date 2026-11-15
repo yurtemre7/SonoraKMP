@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
 import de.yurtemre.sonora.shared.devicesync.ManifestFile
-import de.yurtemre.sonora.shared.devicesync.SyncFileSink
 import de.yurtemre.sonora.shared.devicesync.SyncPaths
 import de.yurtemre.sonora.shared.scan.TreeWalker
 import java.io.IOException
@@ -65,7 +64,7 @@ object SyncNames {
  * [committed] maps each committed file id to the relPath it actually ended up at (collision suffix, provider
  * auto-rename) for library rescan, stats relink and Replace deletion. All blocking; call on IO.
  */
-class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri) : SyncFileSink {
+class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri) : CommittingSyncFileSink {
     private val resolver: ContentResolver = context.contentResolver
     private val rootDocUri: Uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
 
@@ -80,7 +79,7 @@ class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri
     private class Part(val relPath: String, val parent: Dir, val partUri: Uri)
 
     /** Snapshot of file id -> actual final relPath (real directory and file names) of every committed file. */
-    val committed: Map<Int, String> @Synchronized get() = LinkedHashMap(done)
+    override val committed: Map<Int, String> @Synchronized get() = LinkedHashMap(done)
 
     /**
      * Deletes every `*.sonora-part` under the tree (left over from an interrupted run). Runs automatically before

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="devicesync_channel_name">デバイス同期</string>
+    <string name="devicesync_channel_description">スマートフォン間の音楽コピーの進行状況を表示します</string>
+    <string name="devicesync_notif_sending_title">別のスマートフォンに送信中</string>
+    <string name="devicesync_notif_waiting">相手のスマートフォンを待っています…</string>
+    <string name="devicesync_notif_connected">%1$s に接続しました</string>
+    <string name="devicesync_notif_sent_bytes">%2$s 中 %1$s を送信済み</string>
+    <string name="devicesync_notif_sender_done">転送が完了しました</string>
+    <string name="devicesync_notif_receiving_title">別のスマートフォンから受信中</string>
+    <plurals name="devicesync_notif_progress">
+        <item quantity="other">%2$d 件中 %1$d 件のファイル · %4$s 中 %3$s</item>
+    </plurals>
+    <string name="devicesync_notif_speed_eta">%1$s/秒 · 残り %2$s</string>
+    <string name="devicesync_notif_applying">ライブラリを更新しています…</string>
+    <string name="devicesync_notif_cancel">キャンセル</string>
+</resources>
