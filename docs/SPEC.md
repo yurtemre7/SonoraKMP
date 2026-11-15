@@ -364,12 +364,12 @@ Dropped (D-52).
 | A11Y-07 | Reduce motion (`ANIMATOR_DURATION_SCALE == 0`): no cookie rotation, visualizer, vinyl spin, carousel auto-scroll, heartbeat | |
 | A11Y-08 | Seek bar & sliders expose `progressBarRangeInfo` + set-progress action; lyrics lines are buttons "seek to" | |
 
-### 4.12 Device sync (DSYNC) — planned, not built
+### 4.12 Device sync (DSYNC) — built (DSYNC-01..13); DSYNC-14 deferred
 
 One-way copy from a **sender** phone to a **receiver** phone on the same local network: settings, playlists,
 favorites, stats (as a difference) and selected music files with their lyrics and cover images. Started by typing a
 one-time code. No Google Play Services, no internet, no account. ("Library sync" elsewhere in this spec means the
-folder/MediaStore scan; this feature is always called *device sync*.) Decisions D-69..D-73.
+folder/MediaStore scan; this feature is always called *device sync*.) Decisions D-69..D-74. Implementation notes and deviations: D-75.
 
 | ID | Feature & behaviour | Acceptance |
 |---|---|---|
@@ -388,7 +388,7 @@ folder/MediaStore scan; this feature is always called *device sync*.) Decisions 
 | DSYNC-13 | **Running transfer.** Foreground service type `dataSync` with progress notification (files, bytes, speed, ETA) and Cancel; high-performance Wi-Fi lock + partial wake lock. Interrupted transfers resume by re-planning (verified files are Present). Data bundle is applied after the files, so playlists/favorites can match newly arrived songs; then the library rescans only the new folders. | Kill Wi-Fi mid-transfer → reconnect → only the rest is fetched. |
 | DSYNC-14 | **Phone hotspot fallback (phase 4, deferred — D-74).** Sender opens a `LocalOnlyHotspot`; its random SSID/passphrase + code are shown as a QR code (ZXing, no Google services); receiver scans and joins via `WifiNetworkSpecifier` (API 29+; system dialog), then DSYNC-02..13 as usual. | |
 
-Phases: (1) DSYNC-01..06 settings/playlists/favorites/stats over LAN; (2) DSYNC-07..10 manifest, plan, selection,
+Status: DSYNC-01..13 are built; DSYNC-14 is deferred (D-74). Phases: (1) DSYNC-01..06 settings/playlists/favorites/stats over LAN; (2) DSYNC-07..10 manifest, plan, selection,
 space, folder; (3) DSYNC-11..13 transfer, replace, service, resume; (4) DSYNC-14 hotspot + QR — deferred (D-74).
 New permissions: `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `FOREGROUND_SERVICE_DATA_SYNC` (phase 1–3);
 `NEARBY_WIFI_DEVICES` (API 33+, `neverForLocation`), `ACCESS_FINE_LOCATION` (maxSdk 32), `CAMERA` (phase 4, deferred).
@@ -820,6 +820,16 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 - **D-54 (2026-11-10):** releases are triggered by a `release: X.Y.Z` commit on main (tag `vX.Y.Z` is created by the workflow); a nightly workflow publishes a rolling `nightly` pre-release (version `<next patch>-nightly.<date>+<sha>`) that the updater ignores because its tag is not a version. All GitHub Actions on their latest majors (Node 24).
 - **D-55 (2026-11-10):** on API 30+ lyric sidecars and artist images (non-media files) are read through the user's picked folder (SAF tree URI index), since direct file access can't see them. Shared host tests load the bundled SQLite native for the build machine from `sqlite-bundled-jvm`.
 - **D-74 (2026-11-15):** no QR code for now, so the phone-hotspot fallback (DSYNC-14, phase 4) is deferred; same Wi-Fi + manual IP:port entry only.
+- **D-75 (2026-11-15):** device sync as built, where it differs from or refines §4.12:
+  - **Timeouts (DSYNC-02/04):** the sender's socket waits 10 s for pairing to start, 15 min idle between requests (the receiver is choosing files) and 30 s inside a request; the client uses 30 s.
+  - **Choosing the sender (DSYNC-02):** the receiver lists discovered senders by name, the user picks one (automatic if only one), then types the code. The code is never tried on every sender, so wrong attempts cannot burn other phones' codes.
+  - **Handshake (DSYNC-03):** the receiver's J-PAKE confirmation MAC is sent first.
+  - **Ambiguous plan cases (DSYNC-08):** any receiver file of the same size whose quick fingerprint equals the sender's makes the item Present. Sender fingerprints are requested in batches of up to 200 ids.
+  - **Replace order (DSYNC-12):** after the rescan, favorites/playlists/stats are relinked to the new song first, then the old file is deleted. Before deleting, the old song is re-read and must still match by path and tags; if not, both files are kept. On API 30+ MediaStore deletes go through `createDeleteRequest`; if the user declines, both files stay (links stay on the new file).
+  - **Empty selection (DSYNC-09):** runs a data-only sync: settings, playlists, favorites and stats are applied and the 200 MB margin is not required.
+  - **Rescan (DSYNC-13):** after the transfer the whole library is rescanned, not only the new folders.
+  - **Destination (DSYNC-10):** a folder picked by a MediaStore-mode user is used for that transfer only and not persisted.
+  - **Covers (DSYNC-07):** the sender collects cover images only from the audio file's own directory (not parent folders).
 - **D-69 (2026-11-15):** device sync is one-way (sender → receiver); no two-way merge.
 - **D-70 (2026-11-15):** no Google Play Services: own LAN transport (NSD + TCP) with a hotspot + QR fallback instead of Nearby Connections; Bluetooth not used (too slow for music files).
 - **D-71 (2026-11-15):** synced stats are added as the difference since the last sync from that sender (per-peer baseline), never as full totals, so repeated syncs don't double-count.
