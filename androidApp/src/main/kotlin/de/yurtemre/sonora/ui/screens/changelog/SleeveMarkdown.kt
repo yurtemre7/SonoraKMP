@@ -46,12 +46,23 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 fun SleeveMarkdown(content: String, modifier: Modifier = Modifier) {
-    val parsed by produceState<State?>(null, content) {
-        value = withContext(Dispatchers.Default) { parseMarkdown(content) }
-    }
+    val parsed by rememberParsedMarkdown(content)
     val state = parsed ?: return
     MarkdownBody(state, rememberSleeveMarkdownConfig(), modifier)
 }
+
+/** Renders an already parsed [state] (see [rememberParsedMarkdown]), so the text is there on the first frame. */
+@Composable
+fun SleeveMarkdown(state: State, modifier: Modifier = Modifier) {
+    MarkdownBody(state, rememberSleeveMarkdownConfig(), modifier)
+}
+
+/** Parses [content] off the main thread; null until done. */
+@Composable
+fun rememberParsedMarkdown(content: String): androidx.compose.runtime.State<State?> =
+    produceState<State?>(null, content) {
+        value = withContext(Dispatchers.Default) { parseMarkdown(content) }
+    }
 
 /** Renderer settings held for as long as the theme doesn't change. */
 private class SleeveMarkdownConfig(
