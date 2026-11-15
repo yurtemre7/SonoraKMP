@@ -5,8 +5,10 @@ import androidx.room.useWriterConnection
 import de.yurtemre.sonora.shared.db.PlaylistStatsEntity
 import de.yurtemre.sonora.shared.db.SongStatsEntity
 import de.yurtemre.sonora.shared.db.SonoraDatabase
+import de.yurtemre.sonora.shared.db.StatsDao
 import de.yurtemre.sonora.shared.db.StatsSummaryEntity
 import de.yurtemre.sonora.shared.db.WeekdayStatsEntity
+import de.yurtemre.sonora.shared.devicesync.StatsDelta
 import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.repo.api.StatsSnapshot
@@ -107,29 +109,41 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
         }
     }
 
-    override suspend fun relinkSongIds(idRemap: Map<Long, Long>) {
-        if (idRemap.isEmpty()) return
+    override suspend fun mergeDelta(delta: StatsSnapshot) {
         db.useWriterConnection { c ->
             c.immediateTransaction {
-                val all = dao.getAllSongStats().associateBy { it.songId }.toMutableMap()
-                val moved = idRemap.filter { (old, new) -> old != new && old in all }
-                for ((old, new) in moved) {
-                    val src = all.remove(old)!!
-                    val dst = all[new]
-                    all[new] = if (dst == null) src.copy(songId = new) else dst.copy(
-                        plays = dst.plays + src.plays, skips = dst.skips + src.skips, restarts = dst.restarts + src.restarts,
-                        lastPlayedAtMs = listOfNotNull(dst.lastPlayedAtMs, src.lastPlayedAtMs).maxOrNull(),
-                        filePath = dst.filePath ?: src.filePath,
-                    )
-                }
-                if (moved.isEmpty()) return@immediateTransaction
-                dao.deleteSongStats(moved.keys.toList())
-                dao.upsertSongStats(moved.values.toSet().mapNotNull { all[it] })
+                val rows = dao.getAllSongStats().associateBy { it.songId }
                 val sum = dao.getSummary()
-                val first = sum?.firstPlayedSongId
-                if (sum != null && first != null && first in moved) dao.upsertSummary(sum.copy(firstPlayedSongId = moved.getValue(first)))
+                val current = StatsSnapshot(
+                    songs = rows.mapValues { (_, r) -> SongStats(r.plays, r.skips, r.restarts, r.lastPlayedAtMs) },
+                    weekdayCounts = dao.getAllWeekdayStats().associate { it.day to it.plays },
+                    playlistPlays = dao.getAllPlaylistStats().associate { it.playlistId to it.plays },
+                    completeListens = sum?.completeSongListens ?: 0,
+                    shuffleSessions = sum?.shuffleSessionStarts ?: 0,
+                    firstPlayedSongId = sum?.firstPlayedSongId?.takeIf { it >= 0 },
+                    firstPlayedDate = sum?.firstPlayedDate?.let(::decodeDate),
+                )
+                val merged = StatsDelta.merge(current, delta)
+                // Only rows the delta touches change; existing rows keep their stored path.
+                dao.upsertSongStats(delta.songs.keys.map { id ->
+                    val s = merged.songs.getValue(id)
+                    SongStatsEntity(id, rows[id]?.filePath ?: songs.getById(id)?.filePath, s.plays, s.skips, s.restarts, s.lastPlayedAtMs)
+                })
+                dao.upsertWeekdayStats(delta.weekdayCounts.keys.map { WeekdayStatsEntity(it, merged.weekdayCounts.getValue(it)) })
+                dao.upsertPlaylistStats(delta.playlistPlays.keys.map { PlaylistStatsEntity(it, merged.playlistPlays.getValue(it)) })
+                dao.upsertSummary((sum ?: StatsSummaryEntity()).copy(
+                    completeSongListens = merged.completeListens,
+                    firstPlayedSongId = merged.firstPlayedSongId ?: -1,
+                    firstPlayedDate = merged.firstPlayedDate?.let(::encodeDate),
+                    shuffleSessionStarts = merged.shuffleSessions,
+                ))
             }
         }
+    }
+
+    override suspend fun relinkSongIds(idRemap: Map<Long, Long>) {
+        if (idRemap.isEmpty()) return
+        db.useWriterConnection { c -> c.immediateTransaction { dao.moveSongStats(idRemap) } }
     }
 
     private fun encodeDate(d: String): Long? = d.replace("-", "").toLongOrNull()
@@ -137,4 +151,28 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
         val s = v.toString().padStart(8, '0')
         return "${s.substring(0, 4)}-${s.substring(4, 6)}-${s.substring(6, 8)}"
     }
+}
+
+/**
+ * Moves per-song stats from old to new ids (collisions summed, lastPlayed max) and the first-played song.
+ * Call inside a write transaction (D-49 relink, D-72 replace).
+ */
+internal suspend fun StatsDao.moveSongStats(idRemap: Map<Long, Long>) {
+    val all = getAllSongStats().associateBy { it.songId }.toMutableMap()
+    val moved = idRemap.filter { (old, new) -> old != new && old in all }
+    for ((old, new) in moved) {
+        val src = all.remove(old)!!
+        val dst = all[new]
+        all[new] = if (dst == null) src.copy(songId = new) else dst.copy(
+            plays = dst.plays + src.plays, skips = dst.skips + src.skips, restarts = dst.restarts + src.restarts,
+            lastPlayedAtMs = listOfNotNull(dst.lastPlayedAtMs, src.lastPlayedAtMs).maxOrNull(),
+            filePath = dst.filePath ?: src.filePath,
+        )
+    }
+    if (moved.isEmpty()) return
+    deleteSongStats(moved.keys.toList())
+    upsertSongStats(moved.values.toSet().mapNotNull { all[it] })
+    val sum = getSummary()
+    val first = sum?.firstPlayedSongId
+    if (sum != null && first != null && first in moved) upsertSummary(sum.copy(firstPlayedSongId = moved.getValue(first)))
 }

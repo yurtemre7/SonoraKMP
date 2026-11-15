@@ -51,12 +51,17 @@ data class RestorePlan(
 
 /** Pure restore planner (BAK-04, Flutter `BackupService._restore` plan phase, audit/data §12.5). */
 object RestorePlanner {
-    fun plan(doc: BackupDocument, state: RestoreState, nowMs: Long): RestorePlan {
+    /**
+     * @param requireMatches when false (device sync, DSYNC-05) an empty library or a backup none of whose songs
+     *   match is planned like any partial match instead of throwing [BackupError.LibraryEmpty] /
+     *   [BackupError.NoMatchingSongs].
+     */
+    fun plan(doc: BackupDocument, state: RestoreState, nowMs: Long, requireMatches: Boolean = true): RestorePlan {
         val library = state.library
-        if (library.isEmpty()) throw BackupError.LibraryEmpty()
+        if (requireMatches && library.isEmpty()) throw BackupError.LibraryEmpty()
         val idMap = SongMatcher.match(doc.songs.values, library)
         val referenced = doc.referencedSongIds
-        if (referenced.isNotEmpty() && referenced.none { it in idMap }) throw BackupError.NoMatchingSongs()
+        if (requireMatches && referenced.isNotEmpty() && referenced.none { it in idMap }) throw BackupError.NoMatchingSongs()
         val unmatched = referenced.count { it !in idMap }
 
         // Settings: overwrite; drop effect keys absent from a present settings section.

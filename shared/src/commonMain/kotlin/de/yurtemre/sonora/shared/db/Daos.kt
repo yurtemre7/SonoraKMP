@@ -201,6 +201,8 @@ interface StatsDao {
     @Query("SELECT * FROM song_stats") suspend fun getAllSongStats(): List<SongStatsEntity>
     @Query("SELECT * FROM playlist_stats WHERE playlist_id = :id") suspend fun getPlaylistStats(id: String): PlaylistStatsEntity?
     @Query("SELECT * FROM weekday_stats WHERE day = :day") suspend fun getWeekday(day: Int): WeekdayStatsEntity?
+    @Query("SELECT * FROM weekday_stats ORDER BY day") suspend fun getAllWeekdayStats(): List<WeekdayStatsEntity>
+    @Query("SELECT * FROM playlist_stats") suspend fun getAllPlaylistStats(): List<PlaylistStatsEntity>
     @Query("SELECT * FROM stats_summary WHERE id = 0") suspend fun getSummary(): StatsSummaryEntity?
 
     @Upsert suspend fun upsertSongStats(items: List<SongStatsEntity>)
@@ -273,6 +275,16 @@ interface RelinkDao {
 
     @Query("UPDATE OR REPLACE song_stats SET song_id = :newId WHERE song_id = :oldId")
     suspend fun relinkStats(oldId: Long, newId: Long)
+
+    /** Sets the stored path of [ids]' favorites / playlist entries / stats to their library song's path (D-72). */
+    @Query("UPDATE favorite_songs SET file_path = (SELECT file_path FROM songs WHERE songs.id = favorite_songs.song_id) WHERE song_id IN (:ids) AND song_id IN (SELECT id FROM songs)")
+    suspend fun refreshFavoritePaths(ids: List<Long>)
+
+    @Query("UPDATE playlist_entries SET file_path = (SELECT file_path FROM songs WHERE songs.id = playlist_entries.song_id) WHERE song_id IN (:ids) AND song_id IN (SELECT id FROM songs)")
+    suspend fun refreshPlaylistPaths(ids: List<Long>)
+
+    @Query("UPDATE song_stats SET file_path = (SELECT file_path FROM songs WHERE songs.id = song_stats.song_id) WHERE song_id IN (:ids) AND song_id IN (SELECT id FROM songs)")
+    suspend fun refreshStatsPaths(ids: List<Long>)
 
     /** Fills missing paths of playlist entries / stats from the current library. */
     @Query("UPDATE playlist_entries SET file_path = (SELECT file_path FROM songs WHERE songs.id = playlist_entries.song_id) WHERE file_path IS NULL")

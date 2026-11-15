@@ -23,6 +23,11 @@ interface StatsRepository {
     suspend fun reset()
     /** BAK-04: replace all stats with the remapped backup snapshot. */
     suspend fun replaceAll(snapshot: StatsSnapshot)
+    /**
+     * DSYNC-06: adds a device sync stats difference ([de.yurtemre.sonora.shared.devicesync.StatsDelta.merge]
+     * semantics) in one transaction. Like [replaceAll] it is an import and runs even while recording is paused.
+     */
+    suspend fun mergeDelta(delta: StatsSnapshot)
     /** D-49: move per-song stats from old to new ids (collisions summed, lastPlayed max). */
     suspend fun relinkSongIds(idRemap: Map<Long, Long>)
 }
