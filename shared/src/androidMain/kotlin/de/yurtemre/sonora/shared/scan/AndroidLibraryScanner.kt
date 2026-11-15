@@ -64,7 +64,10 @@ class AndroidLibraryScanner(
 
         // Blocking path = MediaStore query + row mapping only; the SAF index, lyrics, covers and artist
         // images are resolved in [enrich] after the songs are persisted.
-        val rows = mediaStore.query(root)
+        // MediaStore is an index, not the truth: a file manager (or any app that deletes files directly) leaves rows
+        // behind until MediaStore prunes them lazily, a few at a time. Trusting those rows kept deleted songs in the
+        // library across rescans, shrinking slowly and never reaching zero. Only files that still exist count.
+        val rows = mediaStore.query(root)?.filter { File(it.filePath).exists() }
 
         if (!rows.isNullOrEmpty()) return fromMediaStore(rows, cached)
 
