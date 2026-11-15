@@ -95,8 +95,11 @@ class DeviceSyncSessionTest {
         manifest: Manifest = manifest(),
         source: SyncFileSource = MemorySource(data),
         clock: () -> Long = FakeClock(),
+        pairingTimeoutMs: Int = 10_000,
+        idleTimeoutMs: Int = 15 * 60_000,
+        requestTimeoutMs: Int = 30_000,
     ): Pair<DeviceSyncServer, Int> {
-        val server = DeviceSyncServer({ manifest }, source, clock)
+        val server = DeviceSyncServer({ manifest }, source, clock, pairingTimeoutMs, idleTimeoutMs, requestTimeoutMs)
         servers += server
         return server to server.start()
     }
@@ -363,6 +366,123 @@ class DeviceSyncSessionTest {
         assertEquals(listOf(2), sink.aborted)
         assertTrue(sink.committed.isEmpty())
         assertTrue(peerClosed.await(2, TimeUnit.SECONDS), "the socket is closed on cancellation")
+    }
+
+    @Test
+    fun pairedSessionSurvivesAnIdleGapLongerThanTheRequestTimeout() = test {
+        val (server, port) = server(requestTimeoutMs = 200, idleTimeoutMs = 5_000)
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello)
+        delay(700) // the receiver plans and the user picks files
+
+        assertEquals(setOf(3), client.fingerprints(listOf(3)).keys)
+        delay(700)
+        assertEquals(listOf(3), client.fetch(listOf(3), MemorySink()) {}.committed)
+        client.close()
+        server.state.first { it == ServerState.Done }
+    }
+
+    @Test
+    fun idleTimeoutEndsAPairedSession() = test {
+        val (server, port) = server(idleTimeoutMs = 300)
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello)
+        server.state.first { it == ServerState.Waiting }
+        assertFailsWith<IOException> { client.fetch(listOf(3), MemorySink()) {} }
+    }
+
+    @Test
+    fun silentConnectionIsDroppedAfterThePairingTimeout() = test {
+        val (server, port) = server(pairingTimeoutMs = 300)
+        Socket(loopback, port).use { socket ->
+            socket.soTimeout = 5_000
+            val input = DataInputStream(socket.getInputStream())
+            JpakeHandshake.readRound(input, 6) // the server is pairing; we stay silent
+            val start = System.nanoTime()
+            val end = try { input.read() } catch (e: IOException) { -1 }
+            assertEquals(-1, end, "the server closed the connection")
+            assertTrue(System.nanoTime() - start < 3_000_000_000L)
+        }
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello) // the slot is free again
+        client.close()
+    }
+
+    @Test
+    fun stopSetsAFinalStateThatSessionsCannotOverwrite() = test {
+        val (server, port) = server()
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello)
+        server.stop()
+        assertEquals(ServerState.Stopped, server.state.value)
+        assertFailsWith<Exception> { client.fetch(listOf(2), MemorySink()) {} }
+        delay(200)
+        assertEquals(ServerState.Stopped, server.state.value)
+    }
+
+    @Test
+    fun failingSinkCommitOrAbortOnlyFailsThatFile() = test {
+        val (server, port) = server()
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello)
+        val sink = object : SyncFileSink by MemorySink() {
+            val inner = MemorySink()
+            override fun begin(file: ManifestFile) = inner.begin(file)
+            override fun commit(file: ManifestFile, sha256Hex: String) =
+                if (file.id == 3) throw IllegalStateException("rename failed") else inner.commit(file, sha256Hex)
+            override fun abort(file: ManifestFile) = throw IllegalStateException("delete failed")
+        }
+
+        val result = client.fetch(listOf(3, 2), sink) {}
+
+        assertEquals(listOf(2), result.committed)
+        assertEquals(mapOf(3 to "write_failed"), result.failed)
+        assertContentEquals(big, sink.inner.committed[2])
+        client.close()
+    }
+
+    @Test
+    fun anySourceExceptionIsAReadFailureForThatFileOnly() = test {
+        val source = object : SyncFileSource {
+            override fun open(file: ManifestFile): InputStream = when (file.id) {
+                3 -> throw SecurityException("permission revoked")
+                2 -> object : InputStream() {
+                    var left = FrameCodec.CHUNK
+                    override fun read(): Int = if (left-- > 0) 1 else throw IllegalStateException("provider died")
+                }
+                else -> ByteArrayInputStream(data.getValue(file.id))
+            }
+        }
+        val (server, port) = server(source = source)
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, server.code.value, hello)
+        val sink = MemorySink()
+
+        val result = client.fetch(listOf(3, 2, 1), sink) {}
+
+        assertEquals(listOf(1), result.committed)
+        assertEquals(mapOf(3 to "read_failed", 2 to "read_failed"), result.failed)
+        assertEquals(listOf(2), sink.aborted)
+        assertEquals(setOf(1), client.fingerprints(listOf(1, 2, 3)).keys) // the session goes on
+        client.close()
+    }
+
+    @Test
+    fun moreBytesThanAnnouncedFailTheSessionAndLaterCallsAreRefused() = test {
+        val port = fakeSender { channel ->
+            channel.receive() as Frame.FetchFrame
+            channel.send(Frame.FileStartFrame(FileStart(3, small.size.toLong())))
+            channel.send(Frame.Chunk(small + 0))
+            runCatching { channel.receive() }
+        }
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, FAKE_CODE, hello)
+        val sink = MemorySink()
+
+        assertFailsWith<DeviceSyncProtocolException> { client.fetch(listOf(3), sink) {} }
+        assertEquals(listOf(3), sink.aborted)
+        assertFailsWith<IllegalStateException> { client.fingerprints(listOf(3)) }
+        client.close()
     }
 
     /**

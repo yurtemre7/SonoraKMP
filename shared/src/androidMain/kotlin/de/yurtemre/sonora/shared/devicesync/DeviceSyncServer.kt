@@ -39,6 +39,9 @@ sealed interface ServerState {
      * Other session failures return to [Waiting].
      */
     data class Failed(val reason: String) : ServerState
+
+    /** [DeviceSyncServer.stop] was called; final. */
+    data object Stopped : ServerState
 }
 
 /**
@@ -53,19 +56,28 @@ sealed interface ServerState {
  * - **After a session** the server keeps listening, so another phone can pair: [state] stays [ServerState.Done] /
  *   [ServerState.Failed] until the next receiver pairs; a session that fails after pairing returns to
  *   [ServerState.Waiting].
+ * - **Read timeouts:** [pairingTimeoutMs] from accept until HELLO (a silent connection does not hold the single
+ *   slot for long); [idleTimeoutMs] while waiting for the receiver's next request (it plans, fingerprints and lets
+ *   the user pick files in between); [requestTimeoutMs] within a request.
  *
- * Everything runs on a scope owned by the server ([Dispatchers.IO]); [stop] cancels it and closes all sockets.
+ * Everything runs on a scope owned by the server ([Dispatchers.IO]); [stop] cancels it, closes all sockets and
+ * sets the final [ServerState.Stopped].
  */
 class DeviceSyncServer(
     private val manifestProvider: suspend () -> Manifest,
     private val source: SyncFileSource,
     private val clock: () -> Long,
+    private val pairingTimeoutMs: Int = PAIRING_TIMEOUT_MS,
+    private val idleTimeoutMs: Int = IDLE_TIMEOUT_MS,
+    private val requestTimeoutMs: Int = SOCKET_TIMEOUT_MS,
 ) {
     private val codeLock = Any()
     private var failedAttempts = 0
     private val _code = MutableStateFlow(PairingCode.generate())
     private val _codeExpiresAtMs = MutableStateFlow(clock() + CODE_LIFETIME_MS)
     private val _state = MutableStateFlow<ServerState>(ServerState.Waiting)
+    private val stateLock = Any()
+    private var stopped = false
 
     val code: StateFlow<String> = _code.asStateFlow()
     val codeExpiresAtMs: StateFlow<Long> = _codeExpiresAtMs.asStateFlow()
@@ -91,6 +103,10 @@ class DeviceSyncServer(
     }
 
     fun stop() {
+        synchronized(stateLock) {
+            stopped = true
+            _state.value = ServerState.Stopped
+        }
         scope.cancel()
         runCatching { serverSocket?.close() }
         activeSocket.getAndSet(null)?.let { runCatching { it.close() } }
@@ -109,11 +125,15 @@ class DeviceSyncServer(
                 continue
             }
             launch {
-                val outcome = serveConnection(socket)
-                release(socket)
-                outcome?.let { _state.value = it }
+                serveConnection(socket)?.let(::setState)
+                release(socket) // after the final state, so it cannot overwrite the next session's
             }.invokeOnCompletion { release(socket) }
         }
+    }
+
+    /** Every state change goes through here; after [stop] nothing overwrites [ServerState.Stopped]. */
+    private fun setState(state: ServerState) = synchronized(stateLock) {
+        if (!stopped) _state.value = state
     }
 
     private fun release(socket: Socket) {
@@ -126,7 +146,7 @@ class DeviceSyncServer(
         val code = _code.value
         var paired = false
         try {
-            socket.soTimeout = SOCKET_TIMEOUT_MS
+            socket.soTimeout = pairingTimeoutMs
             val input = DataInputStream(socket.getInputStream().buffered())
             val output = DataOutputStream(socket.getOutputStream().buffered())
             val keyingMaterial = try {
@@ -143,10 +163,11 @@ class DeviceSyncServer(
                 return null
             }
             paired = true
-            _state.value = ServerState.Paired(hello.deviceName)
+            setState(ServerState.Paired(hello.deviceName))
+            socket.soTimeout = requestTimeoutMs
             val manifest = manifestProvider()
             channel.send(Frame.ManifestFrame(manifest))
-            serve(channel, manifest)
+            serve(socket, channel, manifest)
             rotateCode()
             return ServerState.Done
         } catch (e: CancellationException) {
@@ -158,16 +179,19 @@ class DeviceSyncServer(
     }
 
     /** Answers requests until the receiver sends DONE. */
-    private fun serve(channel: SecureChannel, manifest: Manifest) {
+    private fun serve(socket: Socket, channel: SecureChannel, manifest: Manifest) {
         val byId = manifest.files.associateBy { it.id }
         while (true) {
-            when (val frame = channel.receive()) {
+            socket.soTimeout = idleTimeoutMs
+            val frame = channel.receive()
+            socket.soTimeout = requestTimeoutMs
+            when (frame) {
                 is Frame.FingerprintRequestFrame -> {
                     val fingerprints = frame.value.ids.distinct().mapNotNull { id ->
                         val file = byId[id] ?: return@mapNotNull null
                         try {
                             id to Fingerprint.of(file.size) { source.open(file) }
-                        } catch (e: IOException) {
+                        } catch (e: Exception) {
                             null // unreadable: the receiver treats a missing fingerprint as "different"
                         }
                     }.toMap()
@@ -199,20 +223,20 @@ class DeviceSyncServer(
             }
             val input = try {
                 source.open(file)
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 channel.send(Frame.Error(ErrorFrame(ERROR_READ_FAILED, "File $id could not be read")))
                 continue
             }
             try {
                 channel.send(Frame.FileStartFrame(FileStart(id, file.size)))
-                _state.value = ServerState.Sending(id, bytesSent, totalBytes)
+                setState(ServerState.Sending(id, bytesSent, totalBytes))
                 val digest = MessageDigest.getInstance("SHA-256")
                 val buffer = ByteArray(FrameCodec.CHUNK)
                 var readFailed = false
                 while (true) {
                     val n = try {
                         input.readChunk(buffer)
-                    } catch (e: IOException) {
+                    } catch (e: Exception) {
                         readFailed = true
                         0
                     }
@@ -220,7 +244,7 @@ class DeviceSyncServer(
                     digest.update(buffer, 0, n)
                     channel.send(Frame.Chunk(buffer.copyOf(n)))
                     bytesSent += n
-                    _state.value = ServerState.Sending(id, bytesSent, totalBytes)
+                    setState(ServerState.Sending(id, bytesSent, totalBytes))
                 }
                 channel.send(
                     if (readFailed) {
@@ -270,7 +294,10 @@ class DeviceSyncServer(
         const val PROTOCOL_VERSION = 1
         const val CODE_LIFETIME_MS = 5 * 60_000L
         const val MAX_FAILED_ATTEMPTS = 3
+        /** Read timeout within a request (both sides). */
         const val SOCKET_TIMEOUT_MS = 30_000
+        const val PAIRING_TIMEOUT_MS = 10_000
+        const val IDLE_TIMEOUT_MS = 15 * 60_000
 
         const val ERROR_CODE_MISMATCH = "code_mismatch"
         const val ERROR_VERSION_MISMATCH = "version_mismatch"

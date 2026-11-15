@@ -5,13 +5,13 @@ import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer.Companion.PROTOCOL_
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer.Companion.SOCKET_TIMEOUT_MS
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
@@ -41,13 +41,19 @@ data class FetchResult(val committed: List<Int>, val failed: Map<Int, String>)
  * The receiving phone's side of a device sync session (DSYNC-02..04, DSYNC-11). One instance per connection:
  * [connect], then any number of [fingerprints] / [fetch] calls (one at a time), then [close].
  *
- * Blocking IO runs on [Dispatchers.IO]; cancelling a call closes the socket so a blocked read ends at once, and
- * the session is then over.
+ * Blocking IO runs on [Dispatchers.IO]; every read has the [readTimeoutMs] timeout. Cancelling a call closes the
+ * socket so a blocked read ends at once. After any failed call (or cancellation) or [close] the session is over:
+ * later calls throw [IllegalStateException].
  */
-class DeviceSyncClient {
+class DeviceSyncClient(
+    private val readTimeoutMs: Int = SOCKET_TIMEOUT_MS,
+    private val connectTimeoutMs: Int = CONNECT_TIMEOUT_MS,
+) {
     @Volatile private var socket: Socket? = null
     @Volatile private var channel: SecureChannel? = null
     @Volatile private var files: Map<Int, ManifestFile> = emptyMap()
+    /** Why the session is over ("closed" / "failed"), or null while usable. */
+    @Volatile private var ended: String? = null
 
     /**
      * Connects (10 s timeout), pairs with [code] (wrong code → [DeviceSyncAuthException]), sends [hello] and
@@ -57,28 +63,23 @@ class DeviceSyncClient {
     suspend fun connect(host: String, port: Int, code: String, hello: Hello): Manifest {
         check(socket == null) { "DeviceSyncClient is single-use" }
         val socket = Socket().also { socket = it }
-        try {
-            return blocking(socket) {
-                socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
-                socket.soTimeout = SOCKET_TIMEOUT_MS
-                val input = DataInputStream(socket.getInputStream().buffered())
-                val output = DataOutputStream(socket.getOutputStream().buffered())
-                val keyingMaterial = JpakeHandshake.run(input, output, code, Role.Receiver, hello.deviceId)
-                val channel = SecureChannel(input, output, keyingMaterial, Role.Receiver)
-                channel.send(Frame.Hello(hello))
-                val manifest = when (val frame = channel.receive()) {
-                    is Frame.ManifestFrame -> frame.value
-                    is Frame.Error -> throw DeviceSyncProtocolException(frame.value.code)
-                    else -> throw DeviceSyncProtocolException("Expected MANIFEST")
-                }
-                if (manifest.protocol != PROTOCOL_VERSION) throw DeviceSyncProtocolException(ERROR_VERSION_MISMATCH)
-                files = manifest.files.associateBy { it.id }
-                this.channel = channel
-                manifest
+        return blocking(socket) {
+            socket.connect(InetSocketAddress(host, port), connectTimeoutMs)
+            socket.soTimeout = readTimeoutMs
+            val input = DataInputStream(socket.getInputStream().buffered())
+            val output = DataOutputStream(socket.getOutputStream().buffered())
+            val keyingMaterial = JpakeHandshake.run(input, output, code, Role.Receiver, hello.deviceId)
+            val channel = SecureChannel(input, output, keyingMaterial, Role.Receiver)
+            channel.send(Frame.Hello(hello))
+            val manifest = when (val frame = channel.receive()) {
+                is Frame.ManifestFrame -> frame.value
+                is Frame.Error -> throw DeviceSyncProtocolException(frame.value.code)
+                else -> throw DeviceSyncProtocolException("Expected MANIFEST")
             }
-        } catch (e: Throwable) {
-            runCatching { socket.close() }
-            throw e
+            if (manifest.protocol != PROTOCOL_VERSION) throw DeviceSyncProtocolException(ERROR_VERSION_MISMATCH)
+            files = manifest.files.associateBy { it.id }
+            this.channel = channel
+            manifest
         }
     }
 
@@ -106,14 +107,28 @@ class DeviceSyncClient {
         return blocking(socket!!) { receiveFiles(channel, ids, sink, onProgress) }
     }
 
-    /** Sends DONE (best effort) and closes the connection. */
-    fun close() {
-        channel?.let { runCatching { it.send(Frame.Done) } }
+    /** Sends DONE (best effort, also from a cancelled coroutine) and closes the connection. */
+    suspend fun close() {
+        val channel = channel
+        this.channel = null
+        if (ended == null) ended = "closed"
+        withContext(NonCancellable + Dispatchers.IO) {
+            if (channel != null) runCatching { channel.send(Frame.Done) }
+            runCatching { socket?.close() }
+        }
+    }
+
+    private fun connectedChannel(): SecureChannel {
+        ended?.let { throw IllegalStateException("DeviceSyncClient session is $it") }
+        return checkNotNull(channel) { "Not connected" }
+    }
+
+    /** Ends the session after a failed call: the stream state is unknown, so nothing more may be sent or read. */
+    private fun fail() {
+        if (ended == null) ended = "failed"
         channel = null
         runCatching { socket?.close() }
     }
-
-    private fun connectedChannel(): SecureChannel = checkNotNull(channel) { "Not connected" }
 
     private fun receiveFiles(
         channel: SecureChannel,
@@ -163,19 +178,22 @@ class DeviceSyncClient {
         try {
             try {
                 output = sink.begin(file)
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 writeFailed = true
             }
             while (true) {
                 when (val frame = channel.receive()) {
                     is Frame.Chunk -> {
                         received += frame.bytes.size
+                        if (received > maxOf(file.size, announcedSize)) {
+                            throw DeviceSyncProtocolException("File ${file.id} is larger than announced")
+                        }
                         digest.update(frame.bytes)
                         // Past the expected size the file is rejected anyway: stop writing, keep reading the frames.
                         if (!writeFailed && received <= file.size) {
                             try {
                                 output!!.write(frame.bytes)
-                            } catch (e: IOException) {
+                            } catch (e: Exception) {
                                 writeFailed = true
                             }
                         }
@@ -193,21 +211,21 @@ class DeviceSyncClient {
                         }
                         settled = true
                         if (failure != null) {
-                            sink.abort(file)
+                            abortQuietly(sink, file)
                             return failure
                         }
                         return try {
                             sink.commit(file, hex)
                             null
-                        } catch (e: IOException) {
-                            sink.abort(file)
+                        } catch (e: Exception) {
+                            abortQuietly(sink, file)
                             FAILURE_WRITE
                         }
                     }
                     is Frame.Error -> {
                         closeQuietly(output)
                         settled = true
-                        sink.abort(file)
+                        abortQuietly(sink, file)
                         return frame.value.code
                     }
                     else -> throw DeviceSyncProtocolException("Unexpected frame during a file")
@@ -216,20 +234,42 @@ class DeviceSyncClient {
         } catch (e: Throwable) {
             if (!settled) {
                 closeQuietly(output)
-                runCatching { sink.abort(file) }
+                abortQuietly(sink, file)
             }
             throw e
         }
     }
 
     private fun closeQuietly(output: OutputStream?): Boolean =
-        output == null || runCatching { output.close() }.isSuccess
+        try {
+            output?.close()
+            true
+        } catch (e: Exception) {
+            false
+        }
+
+    /** A failing abort must not end the fetch: the file is already listed as failed. */
+    private fun abortQuietly(sink: SyncFileSink, file: ManifestFile) {
+        try {
+            sink.abort(file)
+        } catch (e: Exception) {
+            // nothing more to do for this file
+        }
+    }
 
     /**
      * Runs blocking [block] on [Dispatchers.IO]. If the calling coroutine is cancelled meanwhile, the socket is
-     * closed so a blocked read or write fails at once; the call then ends with the cancellation.
+     * closed so a blocked read or write fails at once; the call then ends with the cancellation. Any failure ends
+     * the session ([fail]).
      */
-    private suspend fun <T> blocking(socket: Socket, block: () -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> blocking(socket: Socket, block: () -> T): T = try {
+        ioClosingOnCancel(socket, block)
+    } catch (e: Throwable) {
+        fail()
+        throw e
+    }
+
+    private suspend fun <T> ioClosingOnCancel(socket: Socket, block: () -> T): T = withContext(Dispatchers.IO) {
         val job = coroutineContext.job
         val closer = launch(start = CoroutineStart.UNDISPATCHED) {
             try {
