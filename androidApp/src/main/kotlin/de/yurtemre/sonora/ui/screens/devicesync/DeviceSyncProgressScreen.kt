@@ -58,6 +58,7 @@ internal fun DeviceSyncProgressScreen(state: DeviceSyncState, snackbar: Snackbar
                         when (state.step) {
                             ApplyStep.LibrarySync -> R.string.devicesync_step_library
                             ApplyStep.Replacing -> R.string.devicesync_step_replacing
+                            ApplyStep.Removing -> R.string.devicesync_step_removing
                             ApplyStep.Data -> R.string.devicesync_step_data
                         },
                     ),

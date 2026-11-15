@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
@@ -72,12 +73,14 @@ internal fun DeviceSyncSelectionScreen(
     folderError: Boolean,
     snackbar: SnackbarHostState,
     onPickFolder: () -> Unit,
-    onStart: (Set<Int>) -> Unit,
+    onStart: (Set<Int>, Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     val plan = planning.plan
     // Kept per sender: a re-plan (same or another folder) keeps what the user deselected; the rest follows the plan.
     var deselected by rememberSaveable(planning.senderName, stateSaver = IdSetSaver) { mutableStateOf(emptySet<Int>()) }
+    // Off by default and per sync: deleting is never a side effect of just pressing Start.
+    var removeExtras by rememberSaveable(planning.senderName) { mutableStateOf(false) }
     val selected = remember(plan, deselected) { plan?.let { selectionOf(it, deselected) }.orEmpty() }
     val sections = remember(plan) { plan?.let(::sections).orEmpty() }
     SettingsScaffold(
@@ -86,7 +89,7 @@ internal fun DeviceSyncSelectionScreen(
         snackbar = snackbar,
         bottomBar = {
             if (plan != null && !planning.computing) {
-                StartBar(plan, selected, planning.freeBytes) { onStart(selected) }
+                StartBar(plan, selected, planning.freeBytes) { onStart(selected, removeExtras && plan.extras.isNotEmpty()) }
             }
         },
     ) {
@@ -121,11 +124,55 @@ internal fun DeviceSyncSelectionScreen(
                 }
             }
         }
+        if (plan.extras.isNotEmpty()) {
+            item(key = "extras", contentType = "extras") {
+                ExtrasCard(plan, removeExtras) { removeExtras = it }
+            }
+        }
         sections.forEach { section ->
             sectionItems(section, plan, selected) { deselected = deselectedAfter(plan, deselected, it) }
         }
     }
 }
+
+@Composable
+private fun ExtrasCard(plan: TransferPlan, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val extras = plan.extras
+    DeviceSyncCard(color = if (enabled) cs.errorContainer else cs.surfaceContainerHigh) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .toggleable(value = enabled, role = Role.Switch, onValueChange = onChange),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    pluralStringResource(R.plurals.devicesync_extras_title, extras.size, extras.size),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (enabled) cs.onErrorContainer else cs.onSurface,
+                )
+                Text(
+                    stringResource(R.string.devicesync_extras_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (enabled) cs.onErrorContainer else cs.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Switch(checked = enabled, onCheckedChange = null)
+        }
+        if (enabled) {
+            val shown = extras.take(EXTRAS_PREVIEW)
+            Text(
+                shown.joinToString("\n") { "• " + (it.relPath?.let(SyncPaths::baseName) ?: it.title) } +
+                    if (extras.size > shown.size) "\n" + pluralStringResource(R.plurals.devicesync_extras_more, extras.size - shown.size, extras.size - shown.size) else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onErrorContainer,
+            )
+        }
+    }
+}
+
+private const val EXTRAS_PREVIEW = 5
 
 private fun LazyListScope.sectionItems(section: KindSection, plan: TransferPlan, selected: Set<Int>, onSelect: (Set<Int>) -> Unit) {
     val kind = section.kind

@@ -32,7 +32,15 @@ data class PlanItem(
 
 data class AudioFormatStat(val count: Int, val bytes: Long)
 
-data class TransferPlan(val items: List<PlanItem>, val rejected: List<ManifestFile> = emptyList()) {
+/**
+ * [extras] are songs inside the destination that the sender does not have (no path or tag match): the optional
+ * "mirror the sender" step offers to delete them after the transfer.
+ */
+data class TransferPlan(
+    val items: List<PlanItem>,
+    val rejected: List<ManifestFile> = emptyList(),
+    val extras: List<ReceiverSong> = emptyList(),
+) {
     private val byId = items.associateBy { it.file.id }
 
     fun defaultSelection(): Set<Int> =
@@ -140,7 +148,15 @@ object TransferPlanner {
             }
             if (elsewhere) results[f.id] = PlanItem(f, Status.Present)
         }
-        return TransferPlan(accepted.map { results.getValue(it.first.id) }, rejected)
+        // Songs inside the destination that no sender file claimed. Never offered when the sender sends no audio at
+        // all (an empty or broken manifest must not wipe the receiver), nor for a path the sender is about to write.
+        val senderPaths = accepted.mapTo(HashSet()) { it.second.lowercase() }
+        val extras = if (accepted.none { it.first.kind == FileKind.Audio }) emptyList() else {
+            index.library
+                .filter { it.relPath != null && it.songId !in claimed && it.relPath.lowercase() !in senderPaths }
+                .sortedBy { it.songId }
+        }
+        return TransferPlan(accepted.map { results.getValue(it.first.id) }, rejected, extras)
     }
 
     private fun stem(path: String) = SyncPaths.baseName(path).substringBeforeLast('.')

@@ -166,7 +166,7 @@ class DeviceSyncController(
      * for a writable destination is ready and the selection fits the free space with the 200 MB margin. An empty
      * selection fetches nothing but still applies the bundle (data-only device sync).
      */
-    fun startTransfer(selectedIds: Set<Int>): Boolean {
+    fun startTransfer(selectedIds: Set<Int>, removeExtras: Boolean = false): Boolean {
         synchronized(lock) {
             val planning = _state.value as? DeviceSyncState.Planning ?: return false
             val plan = planning.plan ?: return false
@@ -182,7 +182,7 @@ class DeviceSyncController(
                 TransferProgress(-1, 0, 0, 0, plan.bytesNeeded(selectedIds), 0, ids.size, 0),
             )
             val gen = generation
-            launchWorkLocked(gen) { receive(gen, plan, index, items, dest) }
+            launchWorkLocked(gen) { receive(gen, plan, index, items, dest, removeExtras) }
         }
         service.ensureRunning()
         return true
@@ -315,7 +315,13 @@ class DeviceSyncController(
                 val senderFps = fetchSenderFingerprints(ambiguous) { c.fingerprints(it) }
                 val candidates = fingerprintCandidates(plan.items, scan.index.existing)
                 val receiverFps = storageStep { storage.fingerprints(scan, candidates) }
-                plan = TransferPlan(resolveAmbiguous(plan.items, senderFps, receiverFps), plan.rejected)
+                // A file the fingerprints matched is on the receiver (maybe under another name): never an extra.
+                val matched = receiverFps.filterValues { it in senderFps.values }.keys.mapTo(HashSet()) { it.lowercase() }
+                plan = TransferPlan(
+                    resolveAmbiguous(plan.items, senderFps, receiverFps),
+                    plan.rejected,
+                    plan.extras.filter { it.relPath?.lowercase() !in matched },
+                )
             }
             val free = storageStep { storage.freeBytes(dest) }
             synchronized(lock) {
@@ -330,7 +336,9 @@ class DeviceSyncController(
         }
     }
 
-    private suspend fun receive(gen: Int, plan: TransferPlan, index: ReceiverIndex, items: List<PlanItem>, dest: Uri) {
+    private suspend fun receive(
+        gen: Int, plan: TransferPlan, index: ReceiverIndex, items: List<PlanItem>, dest: Uri, removeExtras: Boolean,
+    ) {
         val (m, c) = synchronized(lock) {
             if (gen != generation) return
             Pair(checkNotNull(manifest) { "no manifest" }, checkNotNull(client) { "no client" })
@@ -343,7 +351,7 @@ class DeviceSyncController(
                 c.fetch(items.map { it.file.id }, sink) { set(gen, DeviceSyncState.Transferring(it)) }
             }
             val committed = sink?.committed.orEmpty()
-            val summary = afterTransfer(gen, m, plan, index, items, dest, committed)
+            val summary = afterTransfer(gen, m, plan, index, items, dest, committed, removeExtras)
             // DONE only now, after a successful transfer and apply: the sender then reports "sent" and shows a
             // new code. Any failure before this leaves without DONE (onFailure → abort).
             c.close()
@@ -371,6 +379,7 @@ class DeviceSyncController(
         items: List<PlanItem>,
         dest: Uri,
         committed: Map<Int, String>,
+        removeExtras: Boolean,
     ): DeviceSyncSummary {
         val root = storage.rootPath(dest)?.trimEnd('/')
         fun absolute(rel: String) = "$root/$rel"
@@ -420,6 +429,31 @@ class DeviceSyncController(
         }
         val replaced = oldPathById.values.count { it in deleted }
 
+        // Mirror: songs the sender does not have. Each is re-read and must still match what was planned; the files
+        // replaced above and anything just written are never touched. Declined deletions simply stay.
+        var removed = 0
+        if (removeExtras && root != null && plan.extras.isNotEmpty()) {
+            val targets = ArrayList<String>()
+            val written = committed.values.mapTo(HashSet()) { absolute(it).lowercase() }
+            for (extra in plan.extras) {
+                val current = storageStep { library.song(idRemap[extra.songId] ?: extra.songId) } ?: continue
+                if (!stillPlannedSong(current, extra, root)) continue
+                if (current.path in oldPathById.values || current.path.lowercase() in written) continue
+                targets += current.path
+            }
+            if (targets.isNotEmpty()) {
+                set(gen, DeviceSyncState.Applying(ApplyStep.Removing))
+                val gone = try {
+                    storageStep { deleter.delete(targets, dest, ::confirmDelete) }
+                } catch (e: CancellationException) {
+                    withContext(NonCancellable) { runCatching { library.sync() } }
+                    throw e
+                }
+                if (gone.isNotEmpty()) storageStep { library.sync() }
+                removed = gone.size
+            }
+        }
+
         set(gen, DeviceSyncState.Applying(ApplyStep.Data))
         val applied = dataStep { data.applyBundle(m.bundle, m.deviceId) }
         val bytes = plan.items.filter { it.file.id in committed }.sumOf { it.file.size }
@@ -427,6 +461,7 @@ class DeviceSyncController(
             filesCopied = committed.size - replaceItems.size,
             filesReplaced = replaced,
             filesKeptBoth = replaceItems.size - replaced,
+            filesRemoved = removed,
             failed = emptyList(),
             bytes = bytes,
             playlists = applied.playlists,

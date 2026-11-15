@@ -47,6 +47,8 @@ data class DeviceSyncSummary(
     val filesReplaced: Int,
     /** Replace items whose new file arrived but whose old file stayed (deletion declined, impossible or skipped). */
     val filesKeptBoth: Int,
+    /** Songs deleted because the sender does not have them (the mirror option). */
+    val filesRemoved: Int = 0,
     val failed: List<FailedFile>,
     /** Bytes of all committed files. */
     val bytes: Long,
@@ -70,6 +72,8 @@ enum class ApplyStep {
     LibrarySync,
     /** Relinking and deleting replaced files (may wait for the system delete confirmation). */
     Replacing,
+    /** Deleting the songs the sender does not have (may wait for the system delete confirmation). */
+    Removing,
     /** Playlists, favorites, settings and stats. */
     Data,
 }

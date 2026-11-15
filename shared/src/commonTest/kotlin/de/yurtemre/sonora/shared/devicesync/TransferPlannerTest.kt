@@ -16,6 +16,32 @@ class TransferPlannerTest {
     private fun plan(files: List<ManifestFile>, existing: Map<String, Long> = emptyMap(), lib: List<ReceiverSong> = emptyList()) =
         TransferPlanner.plan(files, ReceiverIndex(existing, lib))
 
+    @Test fun songsTheSenderLacksAreExtras() {
+        val keep = song(1, "x/keep.mp3", title = "Keep")
+        val extra = song(2, "x/extra.mp3", title = "Extra")
+        val outside = song(3, null, title = "Elsewhere") // outside the destination: never an extra
+        val p = plan(
+            listOf(audio(1, "x/keep.mp3", size = 500, title = "Keep")),
+            existing = mapOf("x/keep.mp3" to 500L, "x/extra.mp3" to 500L),
+            lib = listOf(keep, extra, outside),
+        )
+        assertEquals(listOf(extra), p.extras)
+    }
+
+    @Test fun replacedSongsAndEmptySendersAreNeverExtras() {
+        val old = song(7, "x/t.mp3", size = 400)
+        assertTrue(plan(listOf(audio(1, "x/t.flac")), lib = listOf(old)).extras.isEmpty()) // Replace claims it
+        // A sender without audio must not turn the whole receiver library into "extras".
+        assertTrue(plan(emptyList(), lib = listOf(old)).extras.isEmpty())
+    }
+
+    @Test fun pathTheSenderWritesIsNotAnExtra() {
+        // Same path, different tags and size: the new file lands there, so deleting "the old song" would hit it.
+        val old = song(7, "x/t.mp3", title = "Old", size = 400)
+        val p = plan(listOf(audio(1, "x/t.mp3", size = 1000, title = "New")), existing = mapOf("x/t.mp3" to 400L), lib = listOf(old))
+        assertTrue(p.extras.isEmpty())
+    }
+
     @Test fun mp3ToFlacIsReplace() {
         val s = song(7, "x/t.mp3", size = 400)
         val item = plan(listOf(audio(1, "x/t.flac")), lib = listOf(s)).items.single()

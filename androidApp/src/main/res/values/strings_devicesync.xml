@@ -100,6 +100,7 @@
     <string name="devicesync_progress_speed">%1$s/s · %2$s left</string>
     <string name="devicesync_step_library">Adding the new files to the library…</string>
     <string name="devicesync_step_replacing">Replacing old files…</string>
+    <string name="devicesync_step_removing">Removing songs the other phone doesn\'t have…</string>
     <string name="devicesync_step_data">Applying playlists, favorites, settings and stats…</string>
     <string name="devicesync_cancel_title">Cancel the transfer?</string>
     <string name="devicesync_cancel_body">Files already copied stay on this phone. Next time only the rest is copied.</string>
@@ -117,6 +118,19 @@
     <plurals name="devicesync_result_kept_both">
         <item quantity="one">%1$d file kept next to its new version</item>
         <item quantity="other">%1$d files kept next to their new versions</item>
+    </plurals>
+    <plurals name="devicesync_result_removed">
+        <item quantity="one">%1$d song removed (not on the other phone)</item>
+        <item quantity="other">%1$d songs removed (not on the other phone)</item>
+    </plurals>
+    <plurals name="devicesync_extras_title">
+        <item quantity="one">Remove %1$d song that isn\'t on the other phone</item>
+        <item quantity="other">Remove %1$d songs that aren\'t on the other phone</item>
+    </plurals>
+    <string name="devicesync_extras_body">Deletes them from this phone after the transfer. Android may ask you to confirm. This can\'t be undone.</string>
+    <plurals name="devicesync_extras_more">
+        <item quantity="one">…and %1$d more</item>
+        <item quantity="other">…and %1$d more</item>
     </plurals>
     <plurals name="devicesync_result_failed">
         <item quantity="one">%1$d file couldn\'t be copied</item>

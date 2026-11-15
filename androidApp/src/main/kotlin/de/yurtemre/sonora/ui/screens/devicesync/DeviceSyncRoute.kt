@@ -221,11 +221,12 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         onDispose { if (activity?.isChangingConfigurations != true) controller.onScreenHidden() }
     }
 
-    // The screen-off reset above would throw away a long folder walk, pairing or first plan on a big library, so the
-    // screen stays on while one of those runs (the user is waiting on it anyway).
+    // The screen-off reset above would throw away a folder walk, pairing, the first plan or the sender search, so the
+    // screen stays on through the whole sync, for sender and receiver alike: preparing, sending, discovering (typing
+    // the code), connecting, planning (reviewing the selection), transferring and applying. Only the idle start
+    // screen and the end states (finished, failed) let it time out normally.
     val view = LocalView.current
-    val busy = state is DeviceSyncState.Preparing || state is DeviceSyncState.Connecting ||
-        (state as? DeviceSyncState.Planning)?.computing == true
+    val busy = state !is DeviceSyncState.Idle && state !is DeviceSyncState.Finished && state !is DeviceSyncState.Failed
     DisposableEffect(view, busy) {
         view.keepScreenOn = busy
         onDispose { view.keepScreenOn = false }
@@ -252,8 +253,8 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
             folderError = folderError,
             snackbar = snackbar,
             onPickFolder = ::pickFolder,
-            onStart = { ids ->
-                if (!controller.startTransfer(ids)) showMessage(res.getString(R.string.devicesync_start_refused))
+            onStart = { ids, removeExtras ->
+                if (!controller.startTransfer(ids, removeExtras)) showMessage(res.getString(R.string.devicesync_start_refused))
             },
             onBack = ::handleBack,
         )
