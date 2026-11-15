@@ -81,9 +81,9 @@ class QueueController(
         val t = ++token
         return scope.launch {
             val idx = newState.currentIndex.coerceIn(0, (newState.entries.size - 1).coerceAtLeast(0))
-            var start = (idx - PREPEND).coerceAtLeast(0)
-            var end = (idx + APPEND).coerceAtMost(newState.entries.size)
-            if (newState.repeat == RepeatMode.All) { start = 0; end = newState.entries.size }
+            // Always start from the small window so playback begins at once; repeat-all gets the rest afterwards.
+            val start = (idx - PREPEND).coerceAtLeast(0)
+            val end = (idx + APPEND).coerceAtMost(newState.entries.size)
             val items = buildItems(newState, start, end)
             if (t != token) return@launch // a newer request superseded this one
             _state.value = newState.copy(currentIndex = if (newState.entries.isEmpty()) -1 else idx)
@@ -97,6 +97,34 @@ class QueueController(
             applyReplayGain()
             onCurrentChanged?.invoke(_state.value)
             if (playWhenReady && items.isNotEmpty()) player.play()
+            if (newState.repeat == RepeatMode.All) scope.launch { fillWholeQueue(t) } // not part of the returned job
+        }
+    }
+
+    /**
+     * Repeat-all needs the whole queue in ExoPlayer for a gapless wrap. Loaded in the background after the
+     * window is playing; a concurrent [slideWindow] just moves the edge this continues from.
+     */
+    private suspend fun fillWholeQueue(t: Long) {
+        while (true) {
+            val s = _state.value
+            val from = windowEnd
+            if (from >= s.entries.size) break
+            val items = buildItems(s, from, s.entries.size)
+            if (t != token) return
+            if (windowEnd != from) continue
+            editing = true; player.wrappedPlayer.addMediaItems(items); editing = false
+            windowEnd = s.entries.size
+        }
+        while (true) {
+            val s = _state.value
+            val to = windowStart
+            if (to <= 0) break
+            val items = buildItems(s, 0, to)
+            if (t != token) return
+            if (windowStart != to) continue
+            editing = true; player.wrappedPlayer.addMediaItems(0, items); editing = false
+            windowStart = 0
         }
     }
 
