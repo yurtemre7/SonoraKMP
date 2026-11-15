@@ -25,7 +25,6 @@ import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import java.io.File
-import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -45,24 +44,41 @@ class AndroidSenderSessionFactory(
     override suspend fun start(deviceName: String): SenderSession {
         val (manifest, source) = builder.build(deviceName)
         val server = DeviceSyncServer({ manifest }, source, clock::nowMs)
-        val port = withContext(Dispatchers.IO) { server.start() }
-        val advertisement = try {
-            discovery.advertise(port, manifest.deviceId, deviceName)
-        } catch (_: IOException) {
-            null // mDNS unavailable: the receiver can still enter IP:port by hand
+        var advertisement: AutoCloseable? = null
+        val stopAll = {
+            runCatching { advertisement?.close() }
+            server.stop() // also fine before or during start()
         }
-        val ip = withContext(Dispatchers.IO) { discovery.localIpv4() }
-        return object : SenderSession {
-            override val code: StateFlow<String> = server.code
-            override val codeExpiresAtMs: StateFlow<Long> = server.codeExpiresAtMs
-            override val state: StateFlow<ServerState> = server.state
-            override val address: String? = ip?.let { "$it:$port" }
-            override fun stop() {
-                runCatching { advertisement?.close() }
-                server.stop()
+        // Once start() binds, the server listens with a live code: any failure or cancellation must stop it,
+        // including a cancellation that surfaces when withContext returns.
+        return stopOnFailure(stopAll) {
+            val port = withContext(Dispatchers.IO) { server.start() }
+            advertisement = try {
+                discovery.advertise(port, manifest.deviceId, deviceName)
+            } catch (e: Exception) {
+                null // best effort: without mDNS the receiver can still enter IP:port by hand
+            }
+            val ip = withContext(Dispatchers.IO) { discovery.localIpv4() }
+            object : SenderSession {
+                override val code: StateFlow<String> = server.code
+                override val codeExpiresAtMs: StateFlow<Long> = server.codeExpiresAtMs
+                override val state: StateFlow<ServerState> = server.state
+                override val address: String? = ip?.let { "$it:$port" }
+                override fun stop() = stopAll()
             }
         }
     }
+}
+
+/**
+ * Runs a sender start whose server may already be listening; if it throws or is cancelled, [stop] runs
+ * (server and advertisement) before the failure propagates, so nothing keeps listening unseen.
+ */
+suspend fun <T> stopOnFailure(stop: () -> Unit, block: suspend () -> T): T = try {
+    block()
+} catch (t: Throwable) {
+    stop()
+    throw t
 }
 
 /** [SyncClient] over a fresh [DeviceSyncClient]. */
@@ -124,7 +140,8 @@ class AndroidReceiverLibrary(
 
     override suspend fun songIdByPath(path: String): Long? = library.getSongByPath(path)?.id
 
-    override suspend fun songPath(songId: Long): String? = library.getSong(songId)?.filePath
+    override suspend fun song(songId: Long): LibrarySongInfo? =
+        library.getSong(songId)?.let { LibrarySongInfo(it.filePath, it.title, it.artist, it.album) }
 }
 
 /**
@@ -186,17 +203,25 @@ class AndroidReplacedFileDeleter(
         if (uris.isEmpty()) return emptySet()
         val request = MediaStore.createDeleteRequest(resolver, uris.map { it.second }).intentSender
         if (!confirm(request)) return emptySet()
-        return withContext(Dispatchers.IO) { uris.filter { (p, _) -> mediaStoreUri(p) == null }.mapTo(HashSet()) { it.first } }
+        // Deleted = the row is verifiably gone; a failed query proves nothing, so that file counts as kept.
+        return withContext(Dispatchers.IO) {
+            uris.filter { (p, _) -> runCatching { queryMediaStoreUri(p) }.getOrDefault(Uri.EMPTY) == null }
+                .mapTo(HashSet()) { it.first }
+        }
     }
 
-    private fun mediaStoreUri(path: String): Uri? {
+    private fun mediaStoreUri(path: String): Uri? = try {
+        queryMediaStoreUri(path)
+    } catch (_: Exception) {
+        null
+    }
+
+    /** The MediaStore Uri of [path], null when there is no row; throws when the query fails. */
+    private fun queryMediaStoreUri(path: String): Uri? {
         val base = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        return try {
-            resolver.query(base, arrayOf(MediaStore.Audio.Media._ID), "${MediaStore.Audio.Media.DATA} = ?", arrayOf(path), null)
-                ?.use { c -> if (c.moveToFirst()) Uri.withAppendedPath(base, c.getLong(0).toString()) else null }
-        } catch (_: Exception) {
-            null
-        }
+        val cursor = resolver.query(base, arrayOf(MediaStore.Audio.Media._ID), "${MediaStore.Audio.Media.DATA} = ?", arrayOf(path), null)
+            ?: throw IllegalStateException("MediaStore query failed")
+        return cursor.use { c -> if (c.moveToFirst()) Uri.withAppendedPath(base, c.getLong(0).toString()) else null }
     }
 }
 

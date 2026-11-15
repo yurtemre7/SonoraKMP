@@ -86,8 +86,11 @@ interface ReceiverLibrary {
 
     suspend fun songIdByPath(path: String): Long?
 
-    suspend fun songPath(songId: Long): String?
+    /** The song's current library row, re-read now. */
+    suspend fun song(songId: Long): LibrarySongInfo?
 }
+
+data class LibrarySongInfo(val path: String, val title: String, val artist: String, val album: String)
 
 /** Deletes the old files of Replace items (DSYNC-12). */
 fun interface ReplacedFileDeleter {

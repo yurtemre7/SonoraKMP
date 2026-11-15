@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -143,11 +144,14 @@ class DeviceSyncControllerTest {
         val scanned = mutableListOf<Uri>()
         override suspend fun defaultDestination() = default
         override suspend fun pickerInitialUri(): Uri = dest
-        override fun rootPath(destination: Uri) = "/dest"
+        var root: String? = "/dest"
+        override fun rootPath(destination: Uri) = root
         /** When set, the first scan waits here. */
         var scanGate: CompletableDeferred<Unit>? = null
+        var scanError: Exception? = null
         override suspend fun scan(destination: Uri): ReceiverScan {
             scanned += destination
+            scanError?.let { throw it }
             scanGate?.let { scanGate = null; it.await() }
             return ReceiverScan(index, emptyMap())
         }
@@ -158,17 +162,20 @@ class DeviceSyncControllerTest {
 
     private inner class FakeLibrary(
         val idsByPath: Map<String, Long> = emptyMap(),
-        val pathsById: Map<Long, String> = emptyMap(),
+        val songsById: Map<Long, LibrarySongInfo> = emptyMap(),
     ) : ReceiverLibrary {
         val indexed = mutableListOf<String>()
         override suspend fun indexNewFiles(paths: List<String>) { indexed += paths }
         override suspend fun sync(): SyncOutcome { log += "sync"; return SyncOutcome.Success(1, 1, emptyMap()) }
         override suspend fun songIdByPath(path: String) = idsByPath[path]
-        override suspend fun songPath(songId: Long) = pathsById[songId]
+        override suspend fun song(songId: Long) = songsById[songId]
     }
 
     private inner class FakeData(private val applyError: Exception? = null) : DeviceSyncDataRepository {
         var applied: Pair<SyncBundle, String>? = null
+        val applies = mutableListOf<Pair<SyncBundle, String>>()
+        /** Models the stats baseline: the same bundle from the same sender again adds nothing. */
+        private val baseline = HashMap<String, SyncBundle>()
         val relinks = mutableListOf<Map<Long, Long>>()
         override suspend fun deviceId() = "rx-device"
         override suspend fun exportBundle() = error("receiver never exports")
@@ -176,7 +183,10 @@ class DeviceSyncControllerTest {
             log += "apply"
             applyError?.let { throw it }
             applied = bundle to senderDeviceId
-            return DeviceSyncApplyResult(2, 3, 4, 5, 6, false)
+            applies += bundle to senderDeviceId
+            val repeat = baseline[senderDeviceId] == bundle
+            baseline[senderDeviceId] = bundle
+            return if (repeat) DeviceSyncApplyResult(2, 3, 4, 0, 0, false) else DeviceSyncApplyResult(2, 3, 4, 5, 6, false)
         }
         override suspend fun relinkReplaced(oldToNew: Map<Long, Long>) { log += "relink"; relinks += oldToNew }
     }
@@ -206,6 +216,8 @@ class DeviceSyncControllerTest {
     private fun manifest(vararg files: ManifestFile) = Manifest(1, "tx-device", "Sender phone", bundle, files.toList())
 
     private var serviceStarts = 0
+    /** The controller state at each service start (the service reads it in onStartCommand). */
+    private val stateAtServiceStart = mutableListOf<DeviceSyncState>()
     private val scopes = mutableListOf<CoroutineScope>()
 
     @After fun cancelScopes() = scopes.forEach { it.cancel() }
@@ -219,10 +231,13 @@ class DeviceSyncControllerTest {
         deleter: ReplacedFileDeleter = FakeDeleter(needsConfirm = false),
         discovery: Flow<List<DiscoveredSender>> = flow { },
         session: FakeSession = FakeSession(),
-    ) = DeviceSyncController(
+        senders: SenderSessionFactory = SenderSessionFactory { session },
+    ): DeviceSyncController {
+        lateinit var c: DeviceSyncController
+        c = DeviceSyncController(
         // backgroundScope work is skipped by advanceUntilIdle, so the controller gets its own scope on the scheduler.
         scope = CoroutineScope(StandardTestDispatcher(testScheduler) + SupervisorJob()).also { scopes += it },
-        senders = { session },
+        senders = senders,
         clients = { clientFor().also { createdClients += it } },
         discovery = { discovery },
         storage = storage,
@@ -231,8 +246,13 @@ class DeviceSyncControllerTest {
         deleter = deleter,
         deviceName = { "Receiver phone" },
         clock = { testScheduler.currentTime },
-        service = { serviceStarts++ },
-    )
+        service = { serviceStarts++; stateAtServiceStart += c.state.value },
+        )
+        return c
+    }
+
+    private fun finished(c: DeviceSyncController): DeviceSyncSummary =
+        assertNotNull(assertIs<DeviceSyncState.Finished>(c.state.value).summary)
 
     private val target = SyncTarget("192.168.1.5", 4000, "Sender phone")
 
@@ -245,6 +265,8 @@ class DeviceSyncControllerTest {
         advanceUntilIdle()
         assertEquals(DeviceSyncState.Sending("123456", 300_000L, "192.168.1.5:4000", ServerState.Waiting), c.state.value)
         assertEquals(1, serviceStarts)
+        // The service decides from the state when it starts: it must never see Idle there.
+        assertIs<DeviceSyncState.Sending>(stateAtServiceStart.single())
 
         session.state.value = ServerState.Paired("Receiver phone")
         session.code.value = "654321"
@@ -291,7 +313,7 @@ class DeviceSyncControllerTest {
         advanceUntilIdle()
         assertEquals(listOf(0, 2), first.fetched)
         assertTrue(first.closed)
-        val summary = assertIs<DeviceSyncState.Finished>(c.state.value).summary
+        val summary = finished(c)
         assertEquals(1, summary.filesCopied)
         assertEquals(0, summary.filesReplaced)
         assertEquals(listOf(FailedFile("B/fail.mp3", "checksum_mismatch")), summary.failed)
@@ -329,7 +351,13 @@ class DeviceSyncControllerTest {
         c.startReceiving()
         c.connect(target, "000000")
         advanceUntilIdle()
-        assertEquals(DeviceSyncFailure.VersionMismatch, assertIs<DeviceSyncState.Failed>(c.state.value).reason)
+        val failed = assertIs<DeviceSyncState.Failed>(c.state.value)
+        assertEquals(DeviceSyncFailure.VersionMismatch, failed.reason)
+        assertFalse(failed.canRetry)
+        c.retry()
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Failed>(c.state.value)
+        assertEquals(1, createdClients.size)
     }
 
     @Test fun cancelMidTransferAbortsTheFileAndAppliesNothing() = runTest {
@@ -359,11 +387,13 @@ class DeviceSyncControllerTest {
         assertTrue((createdClients.single() as FakeClient).closed)
     }
 
+    private val oldInfo = LibrarySongInfo("/dest/A/song.mp3", "Song", "Artist", "Album")
+
     private fun replaceSetup(): Triple<Manifest, FakeStorage, FakeLibrary> {
         val m = manifest(audio(0, "A/song.flac", 500, title = "Song"))
         val old = ReceiverSong(5, "A/song.mp3", "Song", "Artist", "Album", 100_000, 120, "mp3")
         val storage = FakeStorage(index = ReceiverIndex(mapOf("A/song.mp3" to 120L), listOf(old)))
-        val library = FakeLibrary(idsByPath = mapOf("/dest/A/song.flac" to 9L), pathsById = mapOf(5L to "/dest/A/song.mp3"))
+        val library = FakeLibrary(idsByPath = mapOf("/dest/A/song.flac" to 9L), songsById = mapOf(5L to oldInfo))
         return Triple(m, storage, library)
     }
 
@@ -384,7 +414,7 @@ class DeviceSyncControllerTest {
         assertEquals(listOf("/dest/A/song.mp3"), deleter.requested)
         // Rescan, relink, delete (then a rescan drops the deleted song), then the data bundle.
         assertEquals(listOf("fetch", "commit:0", "sync", "relink", "delete", "sync", "apply"), log)
-        val summary = assertIs<DeviceSyncState.Finished>(c.state.value).summary
+        val summary = finished(c)
         assertEquals(1, summary.filesReplaced)
         assertEquals(0, summary.filesKeptBoth)
         assertEquals(0, summary.filesCopied)
@@ -399,7 +429,7 @@ class DeviceSyncControllerTest {
         advanceUntilIdle()
         val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
         assertTrue(c.startTransfer(plan.defaultSelection()))
-        advanceUntilIdle()
+        advanceTimeBy(1_000) // well within the confirmation timeout
 
         assertEquals(DeviceSyncState.Applying(ApplyStep.Replacing), c.state.value)
         assertNotNull(c.pendingDeleteRequest.value)
@@ -408,7 +438,7 @@ class DeviceSyncControllerTest {
 
         assertNull(c.pendingDeleteRequest.value)
         assertEquals(listOf(mapOf(5L to 9L)), data.relinks)
-        val summary = assertIs<DeviceSyncState.Finished>(c.state.value).summary
+        val summary = finished(c)
         assertEquals(0, summary.filesReplaced)
         assertEquals(1, summary.filesKeptBoth)
         assertEquals(listOf("fetch", "commit:0", "sync", "relink", "delete", "apply"), log)
@@ -418,7 +448,7 @@ class DeviceSyncControllerTest {
         val (m, storage, _) = replaceSetup()
         val data = FakeData()
         val deleter = FakeDeleter(needsConfirm = false)
-        val c = controller({ FakeClient(m) }, storage, FakeLibrary(pathsById = mapOf(5L to "/dest/A/song.mp3")), data, deleter)
+        val c = controller({ FakeClient(m) }, storage, FakeLibrary(songsById = mapOf(5L to oldInfo)), data, deleter)
         c.startReceiving()
         c.connect(target, "123123")
         advanceUntilIdle()
@@ -428,7 +458,7 @@ class DeviceSyncControllerTest {
 
         assertTrue(deleter.requested.isEmpty())
         assertTrue(data.relinks.isEmpty())
-        assertEquals(1, assertIs<DeviceSyncState.Finished>(c.state.value).summary.filesKeptBoth)
+        assertEquals(1, finished(c).filesKeptBoth)
     }
 
     @Test fun insufficientSpaceBlocksStartTransfer() = runTest {
@@ -537,5 +567,261 @@ class DeviceSyncControllerTest {
         val failed = assertIs<DeviceSyncState.Failed>(c.state.value)
         assertEquals(DeviceSyncFailure.DataApply, failed.reason)
         assertEquals(1, failed.filesKept)
+    }
+
+    // ---- fix round 1 -------------------------------------------------------------------------------------------
+
+    @Test fun cancelDuringSenderStartStopsTheServer() = runTest {
+        val session = FakeSession()
+        val listening = CompletableDeferred<Unit>()
+        // Like AndroidSenderSessionFactory: the server already listens while the rest of the start runs.
+        val c = controller({ error("unused") }, senders = { _ ->
+            stopOnFailure(session::stop) {
+                listening.await()
+                session
+            }
+        })
+        c.startSending()
+        advanceUntilIdle()
+        c.cancel()
+        advanceUntilIdle()
+        assertTrue(session.stopped)
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+
+        // A second startSending replaces (and stops) the running session too.
+        val first = FakeSession()
+        val second = FakeSession()
+        var n = 0
+        val c2 = controller({ error("unused") }, senders = { _ -> if (n++ == 0) first else second })
+        c2.startSending()
+        advanceUntilIdle()
+        c2.startSending()
+        advanceUntilIdle()
+        assertTrue(first.stopped)
+        assertFalse(second.stopped)
+    }
+
+    @Test fun senderStartFailureIsSenderStart() = runTest {
+        val c = controller({ error("unused") }, senders = { _ -> throw java.io.IOException("bind") })
+        c.startSending()
+        advanceUntilIdle()
+        val failed = assertIs<DeviceSyncState.Failed>(c.state.value)
+        assertEquals(DeviceSyncFailure.SenderStart, failed.reason)
+        assertEquals(0, serviceStarts)
+    }
+
+    @Test fun senderFinishesWhenTheReceiverIsDone() = runTest {
+        val session = FakeSession()
+        val c = controller({ error("unused") }, session = session)
+        c.startSending()
+        advanceUntilIdle()
+        session.state.value = ServerState.Sending(0, 10, 20)
+        advanceUntilIdle()
+        session.state.value = ServerState.Done
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Finished(null), c.state.value)
+        assertTrue(session.stopped)
+        assertFalse(DeviceSyncService.isActive(c.state.value))
+    }
+
+    @Test fun replaceSkipsWhenTheOldSongIdNowPointsAtAnotherSong() = runTest {
+        val (m, storage, _) = replaceSetup()
+        val data = FakeData()
+        val deleter = FakeDeleter(needsConfirm = false)
+        // Song id 5 was reused by an unrelated song since planning (another library sync shifted ids).
+        val other = LibrarySongInfo("/dest/B/other.mp3", "Other", "Someone", "Else")
+        val library = FakeLibrary(idsByPath = mapOf("/dest/A/song.flac" to 9L), songsById = mapOf(5L to other))
+        val c = controller({ FakeClient(m) }, storage, library, data, deleter)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertTrue(c.startTransfer(plan.defaultSelection()))
+        advanceUntilIdle()
+
+        assertTrue(data.relinks.isEmpty())
+        assertTrue(deleter.requested.isEmpty())
+        val summary = finished(c)
+        assertEquals(1, summary.filesKeptBoth)
+        assertEquals(0, summary.filesReplaced)
+    }
+
+    @Test fun stillPlannedSongChecksTagsFormatAndPath() {
+        val planned = ReceiverSong(5, "A/song.mp3", "Song", "Artist", "Album", 100_000, 120, "mp3")
+        assertTrue(DeviceSyncController.stillPlannedSong(LibrarySongInfo("/dest/A/song.mp3", " song ", "ARTIST", "album"), planned, "/dest"))
+        assertFalse(DeviceSyncController.stillPlannedSong(LibrarySongInfo("/dest/A/other.mp3", "Song", "Artist", "Album"), planned, "/dest"))
+        assertFalse(DeviceSyncController.stillPlannedSong(LibrarySongInfo("/dest/A/song.mp3", "Song 2", "Artist", "Album"), planned, "/dest"))
+        assertFalse(DeviceSyncController.stillPlannedSong(LibrarySongInfo("/dest/A/song.flac", "Song", "Artist", "Album"), planned, "/dest"))
+        // Outside the destination (relPath null at planning): tags and format decide.
+        val outside = planned.copy(relPath = null)
+        assertTrue(DeviceSyncController.stillPlannedSong(LibrarySongInfo("/x/song.mp3", "Song", "Artist", "Album"), outside, "/dest"))
+    }
+
+    @Test fun unansweredDeleteRequestCountsAsDeclinedAfterTwoMinutes() = runTest {
+        val (m, storage, library) = replaceSetup()
+        val c = controller({ FakeClient(m) }, storage, library, FakeData(), FakeDeleter(needsConfirm = true))
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertTrue(c.startTransfer(plan.defaultSelection()))
+        advanceUntilIdle() // virtual time runs past the timeout
+        assertNull(c.pendingDeleteRequest.value)
+        val summary = finished(c)
+        assertEquals(1, summary.filesKeptBoth)
+        assertTrue(testScheduler.currentTime >= DeviceSyncController.DELETE_CONFIRM_TIMEOUT_MS)
+    }
+
+    @Test fun destinationWithoutPathReportsRescanSkipped() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val storage = FakeStorage().apply { root = null }
+        val c = controller({ FakeClient(m) }, storage)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertTrue(c.startTransfer(plan.defaultSelection()))
+        advanceUntilIdle()
+        assertTrue(finished(c).rescanSkipped)
+        assertFalse("sync" in log)
+    }
+
+    @Test fun protocolErrorIsNotACodeMismatchAndRetryKeepsTheCode() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        var attempt = 0
+        val c = controller({
+            if (attempt++ == 0) FakeClient(m, connectError = DeviceSyncProtocolException("unexpected_frame")) else FakeClient(m)
+        })
+        c.startReceiving()
+        c.connect(target, "777888")
+        advanceUntilIdle()
+        val failed = assertIs<DeviceSyncState.Failed>(c.state.value)
+        assertEquals(DeviceSyncFailure.Protocol, failed.reason)
+        assertTrue(failed.canRetry)
+        c.retry()
+        advanceUntilIdle()
+        assertIs<DeviceSyncState.Planning>(c.state.value)
+        assertEquals("777888", (createdClients[1] as FakeClient).connectedCode)
+    }
+
+    @Test fun exceptionMapping() = runTest {
+        assertEquals(DeviceSyncFailure.Network, DeviceSyncController.failureOf(java.net.SocketTimeoutException()))
+        assertEquals(DeviceSyncFailure.Network, DeviceSyncController.failureOf(java.net.ConnectException()))
+        assertEquals(DeviceSyncFailure.Unknown, DeviceSyncController.failureOf(IllegalStateException()))
+        // A local storage failure while planning is Storage, not Network.
+        val storage = FakeStorage().apply { scanError = IOException("saf") }
+        val c = controller({ FakeClient(manifest(audio(0, "A/x.mp3", 10))) }, storage)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertEquals(DeviceSyncFailure.Storage, assertIs<DeviceSyncState.Failed>(c.state.value).reason)
+    }
+
+    @Test fun cancelDuringPlanningClosesTheConnection() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val storage = FakeStorage().apply { scanGate = CompletableDeferred() }
+        val data = FakeData()
+        val c = controller({ FakeClient(m) }, storage, data = data)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        assertTrue(assertIs<DeviceSyncState.Planning>(c.state.value).computing)
+        c.cancel()
+        advanceUntilIdle()
+        assertEquals(DeviceSyncState.Idle, c.state.value)
+        assertTrue((createdClients.single() as FakeClient).closed)
+        assertNull(data.applied)
+    }
+
+    @Test fun unknownFreeSpaceAllowsTheTransfer() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val c = controller({ FakeClient(m) }, FakeStorage(free = null))
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val planning = assertIs<DeviceSyncState.Planning>(c.state.value)
+        assertNull(planning.freeBytes)
+        assertTrue(c.startTransfer(assertNotNull(planning.plan).defaultSelection()))
+        advanceUntilIdle()
+        assertEquals(1, finished(c).filesCopied)
+    }
+
+    /** Best case A: empty destination, empty library. */
+    @Test fun emptyDestinationCopiesEverything() = runTest {
+        val files = listOf(audio(0, "A/a.mp3", 100), audio(1, "A/b.flac", 200),
+            ManifestFile(2, "A/b.lrc", 5, 0, FileKind.Lyrics), ManifestFile(3, "A/cover.jpg", 50, 0, FileKind.Cover))
+        val m = manifest(*files.toTypedArray())
+        val library = FakeLibrary()
+        val data = FakeData()
+        val deleter = FakeDeleter(needsConfirm = false)
+        val storage = FakeStorage()
+        val c = controller({ FakeClient(m) }, storage, library, data, deleter)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val plan = assertNotNull(assertIs<DeviceSyncState.Planning>(c.state.value).plan)
+        assertTrue(plan.items.all { it.status == Status.New && !it.needsFingerprint })
+        val client = createdClients.single() as FakeClient
+        assertTrue(client.fingerprintRequests.isEmpty())
+        assertEquals(setOf(0, 1, 2, 3), plan.defaultSelection())
+
+        assertTrue(c.startTransfer(plan.defaultSelection()))
+        advanceUntilIdle()
+        assertEquals(listOf(0, 1, 2, 3), client.fetched)
+        assertEquals(setOf(0, 1, 2, 3), storage.sinks.single().committed.keys)
+        assertEquals(listOf("/dest/A/a.mp3", "/dest/A/b.flac", "/dest/A/b.lrc", "/dest/A/cover.jpg"), library.indexed)
+        assertTrue("sync" in log)
+        assertTrue(deleter.requested.isEmpty())
+        assertEquals(bundle to "tx-device", data.applied)
+        val summary = finished(c)
+        assertEquals(4, summary.filesCopied)
+        assertEquals(0, summary.filesReplaced)
+        assertEquals(0, summary.filesKeptBoth)
+        assertTrue(summary.failed.isEmpty())
+        assertEquals(355L, summary.bytes)
+    }
+
+    /** Best case B: everything already on the receiver; the data bundle is still applied, twice idempotently. */
+    @Test fun everythingAlreadySyncedStillAppliesTheDataBundle() = runTest {
+        val m = manifest(audio(0, "A/a.mp3", 100), audio(1, "A/b.mp3", 200))
+        val library = listOf(
+            ReceiverSong(10, "A/a.mp3", "T0", "Artist", "Album", 100_000, 100, "mp3"),
+            ReceiverSong(11, "A/b.mp3", "T1", "Artist", "Album", 100_000, 200, "mp3"),
+        )
+        val storage = FakeStorage(index = ReceiverIndex(mapOf("A/a.mp3" to 100L, "A/b.mp3" to 200L), library))
+        val data = FakeData()
+        val deleter = FakeDeleter(needsConfirm = false)
+        val c = controller({ FakeClient(m) }, storage, FakeLibrary(), data, deleter)
+
+        repeat(2) { run ->
+            log.clear()
+            c.startReceiving()
+            c.connect(target, "12312$run")
+            advanceUntilIdle()
+            val planning = assertIs<DeviceSyncState.Planning>(c.state.value)
+            val plan = assertNotNull(planning.plan)
+            assertTrue(plan.items.all { it.status == Status.Present })
+            assertEquals(0L, plan.bytesNeeded(plan.defaultSelection()))
+            assertTrue(planning.fits(emptySet()))
+            assertTrue(plan.defaultSelection().isEmpty())
+
+            assertTrue(c.startTransfer(emptySet()))
+            advanceUntilIdle()
+            val client = createdClients[run] as FakeClient
+            assertNull(client.fetched, "nothing to fetch")
+            assertTrue(client.closed, "the session ends cleanly (DONE)")
+            assertEquals(listOf("apply"), log, "nothing written, rescanned or deleted")
+            val summary = finished(c)
+            assertEquals(0, summary.filesCopied)
+            assertEquals(0L, summary.bytes)
+            assertEquals(2, summary.playlists)
+            assertEquals(3, summary.favorites)
+            assertEquals(4, summary.settings)
+            // The second run adds no stats: the sender's baseline makes the delta zero.
+            assertEquals(if (run == 0) 5 else 0, summary.statsSongsAdded)
+        }
+        assertEquals(listOf(bundle to "tx-device", bundle to "tx-device"), data.applies)
+        assertTrue(storage.sinks.isEmpty())
+        assertTrue(deleter.requested.isEmpty())
     }
 }

@@ -46,10 +46,12 @@ class DeviceSyncService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var lastNotifyMs = 0L
     private var lastKind: Class<*>? = null
+    private var lastStartId = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        lastStartId = startId
         if (intent?.action == ACTION_CANCEL) controller.cancel()
         val state = controller.state.value
         // Always enter the foreground first: after startForegroundService, stopping without it crashes the app.
@@ -61,11 +63,12 @@ class DeviceSyncService : Service() {
         } catch (_: Exception) {
             // Not allowed from the background (API 31+): the work goes on while the process lives.
         }
-        if (!isActive(state)) {
+        // The observer gets the current state at once and stops the service if nothing needs it.
+        if (observer == null) {
+            observer = scope.launch { controller.state.collect(::onState) }
+        } else if (!isActive(controller.state.value)) {
             stop()
-            return START_NOT_STICKY
         }
-        if (observer == null) observer = scope.launch { controller.state.collect(::onState) }
         return START_NOT_STICKY
     }
 
@@ -99,7 +102,8 @@ class DeviceSyncService : Service() {
     private fun stop() {
         releaseLocks()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        // Only if no newer start is queued: that one still has to call startForeground.
+        stopSelfResult(lastStartId)
     }
 
     @Suppress("DEPRECATION") // WIFI_MODE_FULL_HIGH_PERF: still the documented high-throughput mode for LAN transfers

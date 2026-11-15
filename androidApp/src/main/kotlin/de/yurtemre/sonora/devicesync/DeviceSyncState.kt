@@ -20,7 +20,7 @@ enum class DeviceSyncFailure {
     VersionMismatch,
     /** Connection lost, refused or timed out. */
     Network,
-    /** The peer sent malformed or unexpected data. */
+    /** The peer sent malformed or unexpected data (`DeviceSyncProtocolException` only). */
     Protocol,
     /** The destination could not be read or written. */
     Storage,
@@ -28,6 +28,8 @@ enum class DeviceSyncFailure {
     DataApply,
     /** The sender could not build its file list or open its port. */
     SenderStart,
+    /** Anything else (a bug or an unexpected platform error). */
+    Unknown,
 }
 
 /** One file that was not copied, with the client's reason code (`checksum_mismatch`, `read_failed`, ...). */
@@ -51,6 +53,11 @@ data class DeviceSyncSummary(
     val completeListensAdded: Int,
     /** The app language setting changed: the UI applies it (as after a backup restore). */
     val localeChanged: Boolean,
+    /**
+     * The destination has no filesystem path, so the library was not rescanned and no Replace could be finished
+     * (all Replace items kept both files); a manual library sync picks the new files up.
+     */
+    val rescanSkipped: Boolean = false,
 )
 
 /** Step within [DeviceSyncState.Applying]. */
@@ -109,7 +116,8 @@ sealed interface DeviceSyncState {
 
     data class Applying(val step: ApplyStep) : DeviceSyncState
 
-    data class Finished(val summary: DeviceSyncSummary) : DeviceSyncState
+    /** [summary] is the receiver's result; null on the sender (the receiver finished and sent DONE). */
+    data class Finished(val summary: DeviceSyncSummary?) : DeviceSyncState
 
     /**
      * [filesKept]: verified files already written stay (a retry re-plans them as Present).

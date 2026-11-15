@@ -5,10 +5,14 @@ import android.net.Uri
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncAuthException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncProtocolException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
+import de.yurtemre.sonora.shared.devicesync.FetchResult
 import de.yurtemre.sonora.shared.devicesync.Hello
 import de.yurtemre.sonora.shared.devicesync.Manifest
 import de.yurtemre.sonora.shared.devicesync.PlanItem
+import de.yurtemre.sonora.shared.devicesync.ReceiverSong
+import de.yurtemre.sonora.shared.devicesync.ServerState
 import de.yurtemre.sonora.shared.devicesync.Status
+import de.yurtemre.sonora.shared.devicesync.SyncPaths
 import de.yurtemre.sonora.shared.devicesync.TransferPlan
 import de.yurtemre.sonora.shared.devicesync.TransferPlanner
 import de.yurtemre.sonora.shared.devicesync.TransferProgress
@@ -26,7 +30,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Process-wide device sync state machine (DSYNC-01..13). The UI observes [state] and calls the commands; the
@@ -100,10 +106,15 @@ class DeviceSyncController(
                 throw RunFailure(DeviceSyncFailure.SenderStart, 0, e)
             }
             try {
+                // The service reads the state when it starts: it must already be Sending, never Idle.
+                set(gen, DeviceSyncState.Sending(session.code.value, session.codeExpiresAtMs.value, session.address, session.state.value))
                 service.ensureRunning()
                 combine(session.code, session.codeExpiresAtMs, session.state) { c, exp, s ->
                     DeviceSyncState.Sending(c, exp, session.address, s)
-                }.collect { set(gen, it) }
+                }.takeWhile { it.server != ServerState.Done && it.server != ServerState.Stopped }
+                    .collect { set(gen, it) }
+                // The receiver fetched what it wanted and sent DONE: the sending session is over.
+                set(gen, DeviceSyncState.Finished(null))
             } finally {
                 session.stop()
             }
@@ -146,8 +157,9 @@ class DeviceSyncController(
     suspend fun pickerInitialUri(): Uri = storage.pickerInitialUri()
 
     /**
-     * Starts fetching the selected New/Replace items. Refuses (false) unless a plan for a writable destination is
-     * ready and the selection fits the free space with the 200 MB margin.
+     * Starts fetching the selected New/Replace items, then applies the data bundle. Refuses (false) unless a plan
+     * for a writable destination is ready and the selection fits the free space with the 200 MB margin. An empty
+     * selection fetches nothing but still applies the bundle (data-only device sync).
      */
     fun startTransfer(selectedIds: Set<Int>): Boolean {
         synchronized(lock) {
@@ -156,7 +168,9 @@ class DeviceSyncController(
             val dest = planning.destination ?: return false
             if (planning.computing || planInFlight) return false
             val items = plan.items.filter { it.file.id in selectedIds && it.status != Status.Present }
-            if (items.isEmpty() || !planning.fits(selectedIds)) return false
+            // An empty selection is valid: nothing to fetch (e.g. everything already Present), but the data
+            // bundle (playlists, favorites, settings, stats) is still applied.
+            if (!planning.fits(selectedIds)) return false
             val ids = items.map { it.file.id }
             _state.value = DeviceSyncState.Transferring(
                 TransferProgress(-1, 0, 0, 0, plan.bytesNeeded(selectedIds), 0, ids.size, 0),
@@ -288,17 +302,24 @@ class DeviceSyncController(
     }
 
     private suspend fun receive(gen: Int, plan: TransferPlan, items: List<PlanItem>, dest: Uri) {
-        val (m, c) = synchronized(lock) { Pair(manifest ?: return, client ?: return) }
-        val sink = storageStep { storage.openSink(dest) }
+        val (m, c) = synchronized(lock) {
+            if (gen != generation) return
+            Pair(checkNotNull(manifest) { "no manifest" }, checkNotNull(client) { "no client" })
+        }
+        val sink = if (items.isEmpty()) null else storageStep { storage.openSink(dest) }
         try {
-            val result = c.fetch(items.map { it.file.id }, sink) { set(gen, DeviceSyncState.Transferring(it)) }
+            val result = if (sink == null) {
+                FetchResult(emptyList(), emptyMap())
+            } else {
+                c.fetch(items.map { it.file.id }, sink) { set(gen, DeviceSyncState.Transferring(it)) }
+            }
             // DONE ends the session; the sender then shows a new code.
             c.close()
             synchronized(lock) {
                 if (client === c) client = null
                 codeUsable = false
             }
-            val committed = sink.committed
+            val committed = sink?.committed.orEmpty()
             val summary = afterTransfer(gen, m, plan, items, dest, committed)
             val failed = result.failed.mapNotNull { (id, reason) ->
                 items.firstOrNull { it.file.id == id }?.let { FailedFile(it.file.relPath, reason) }
@@ -307,7 +328,7 @@ class DeviceSyncController(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw RunFailure(failureOf(e), sink.committed.size, e)
+            throw RunFailure(failureOf(e), sink?.committed?.size ?: 0, e)
         }
     }
 
@@ -325,8 +346,10 @@ class DeviceSyncController(
         var idRemap = emptyMap<Long, Long>()
         if (root != null && committed.isNotEmpty()) {
             set(gen, DeviceSyncState.Applying(ApplyStep.LibrarySync))
-            library.indexNewFiles(committed.values.map(::absolute))
-            idRemap = (library.sync() as? SyncOutcome.Success)?.idRemap.orEmpty()
+            idRemap = storageStep {
+                library.indexNewFiles(committed.values.map(::absolute))
+                (library.sync() as? SyncOutcome.Success)?.idRemap.orEmpty()
+            }
         }
 
         val replaceItems = items.filter { it.status == Status.Replace && it.replaces != null && it.file.id in committed }
@@ -334,22 +357,25 @@ class DeviceSyncController(
         val oldPathById = HashMap<Long, String>()
         if (root != null) {
             for (item in replaceItems) {
+                val planned = item.replaces!!
                 val newPath = absolute(committed.getValue(item.file.id))
                 // Never touch the old file unless the new one is committed *and* indexed.
-                val newId = library.songIdByPath(newPath) ?: continue
-                val oldSongId = item.replaces!!.songId.let { idRemap[it] ?: it }
-                val oldPath = library.songPath(oldSongId) ?: continue
-                if (oldPath == newPath || oldSongId == newId) continue
+                val newId = storageStep { library.songIdByPath(newPath) } ?: continue
+                val oldSongId = idRemap[planned.songId] ?: planned.songId
+                // Re-read the old song now: ids can shift between planning and here (another library sync).
+                val old = storageStep { library.song(oldSongId) } ?: continue
+                if (!stillPlannedSong(old, planned, root)) continue
+                if (old.path == newPath || oldSongId == newId) continue
                 oldToNew[oldSongId] = newId
-                oldPathById[oldSongId] = oldPath
+                oldPathById[oldSongId] = old.path
             }
         }
         var deleted = emptySet<String>()
         if (oldToNew.isNotEmpty()) {
             set(gen, DeviceSyncState.Applying(ApplyStep.Replacing))
-            data.relinkReplaced(oldToNew)
-            deleted = deleter.delete(oldPathById.values.toList(), dest, ::confirmDelete)
-            if (deleted.isNotEmpty()) library.sync() // drop the deleted songs from the library
+            dataStep { data.relinkReplaced(oldToNew) }
+            deleted = storageStep { deleter.delete(oldPathById.values.toList(), dest, ::confirmDelete) }
+            if (deleted.isNotEmpty()) storageStep { library.sync() } // drop the deleted songs from the library
         }
         val replaced = oldPathById.values.count { it in deleted }
 
@@ -368,6 +394,7 @@ class DeviceSyncController(
             statsSongsAdded = applied.statsSongsAdded,
             completeListensAdded = applied.completeListensAdded,
             localeChanged = applied.localeChanged,
+            rescanSkipped = root == null && committed.isNotEmpty(),
         )
     }
 
@@ -378,7 +405,8 @@ class DeviceSyncController(
             _pendingDeleteRequest.value = request
         }
         return try {
-            answer.await()
+            // No answer from the UI (screen closed, process UI recreated): count it as declined, keep both files.
+            withTimeoutOrNull(DELETE_CONFIRM_TIMEOUT_MS) { answer.await() } ?: false
         } finally {
             synchronized(lock) {
                 if (deleteAnswer === answer) {
@@ -481,20 +509,49 @@ class DeviceSyncController(
         throw StorageFailure(e)
     }
 
+    private suspend fun <T> dataStep(block: suspend () -> T): T = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: DeviceSyncDataException) {
+        throw e
+    } catch (e: Exception) {
+        throw DataFailure(e)
+    }
+
     private class StorageFailure(cause: Exception) : Exception(cause)
+
+    private class DataFailure(cause: Exception) : Exception(cause)
 
     private class RunFailure(val reason: DeviceSyncFailure, val filesKept: Int, cause: Exception) : Exception(cause)
 
     companion object {
+        const val DELETE_CONFIRM_TIMEOUT_MS = 2 * 60_000L
+
+        /** The planned old song is still the same file: same tags and format, and the same path when known. */
+        internal fun stillPlannedSong(current: LibrarySongInfo, planned: ReceiverSong, root: String): Boolean {
+            fun norm(v: String) = v.trim().lowercase() // as SongMatcher's tag key
+            if (norm(current.title) != norm(planned.title) || norm(current.artist) != norm(planned.artist) ||
+                norm(current.album) != norm(planned.album)
+            ) return false
+            if (SyncPaths.extension(current.path) != planned.extension) return false
+            return planned.relPath == null || ReceiverIndexBuilder.relativeTo(root, current.path) == planned.relPath
+        }
+
+        /**
+         * Client calls are not wrapped, so a plain IOException there is the connection; local storage and data
+         * steps are wrapped ([StorageFailure], [DataFailure]) before they reach this.
+         */
         fun failureOf(e: Throwable): DeviceSyncFailure = when (e) {
             is StorageFailure, is SecurityException -> DeviceSyncFailure.Storage
+            is DataFailure -> DeviceSyncFailure.DataApply
             is DeviceSyncAuthException -> DeviceSyncFailure.CodeMismatch
             is DeviceSyncProtocolException ->
                 if (e.message == DeviceSyncServer.ERROR_VERSION_MISMATCH) DeviceSyncFailure.VersionMismatch
                 else DeviceSyncFailure.Protocol
             is DeviceSyncDataException -> DeviceSyncFailure.DataApply
-            is IOException -> DeviceSyncFailure.Network
-            else -> DeviceSyncFailure.Protocol
+            is IOException -> DeviceSyncFailure.Network // SocketException, SocketTimeoutException, ConnectException, ...
+            else -> DeviceSyncFailure.Unknown
         }
     }
 }

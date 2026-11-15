@@ -185,6 +185,18 @@ class DeviceSyncSessionTest {
     }
 
     @Test
+    fun sessionWithoutAnyFetchEndsWithDone() = test {
+        // Device sync of data only (every file already Present): connect, then DONE without FETCH.
+        val (server, port) = server()
+        val firstCode = server.code.value
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, firstCode, hello)
+        client.close()
+        server.state.first { it == ServerState.Done }
+        assertNotEquals(firstCode, server.code.value)
+    }
+
+    @Test
     fun fingerprintsFollowTheSharedFormulaForManifestIdsOnly() = test {
         val (server, port) = server()
         val client = DeviceSyncClient()
