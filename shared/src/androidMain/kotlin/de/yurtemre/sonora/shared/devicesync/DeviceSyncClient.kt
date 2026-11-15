@@ -319,7 +319,8 @@ class DeviceSyncClient(
     ) {
         private val samples = ArrayDeque<Pair<Long, Long>>() // (time ms, total bytes)
         private var totalBytes = 0L
-        private var lastEmitMs = Long.MIN_VALUE
+        private var lastEmitMs = 0L
+        private var emitted = false // a Long.MIN_VALUE sentinel overflows `now - lastEmitMs`; nanoTime may be negative
         private var last: TransferProgress? = null
 
         init {
@@ -335,7 +336,8 @@ class DeviceSyncClient(
             val rate = if (now > startMs) (totalBytes - startBytes) * 1000 / (now - startMs) else 0L
             val progress = TransferProgress(fileId, fileBytes, fileSize, totalBytes, totalSize, filesDone, filesTotal, rate)
             last = progress
-            if (now - lastEmitMs >= MIN_INTERVAL_MS) {
+            if (!emitted || now - lastEmitMs >= MIN_INTERVAL_MS) {
+                emitted = true
                 lastEmitMs = now
                 onProgress(progress)
             }
