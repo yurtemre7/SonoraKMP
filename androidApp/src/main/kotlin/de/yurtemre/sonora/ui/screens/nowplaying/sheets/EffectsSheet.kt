@@ -51,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -75,11 +76,14 @@ import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.ui.format.currentLocale
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.absoluteValue
 
 /** Effects sheet (UI-20, PLAY-12..16): presets, EQ controls, and custom speed/pitch at the bottom. */
+private const val PENDING_PRESET_MS = 3_000L
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EffectsSheet(
@@ -89,7 +93,15 @@ fun EffectsSheet(
     val remote by connection.mfx.collectAsState()
     // Optimistic copy: updated immediately on tap, reconciled whenever the player state changes.
     var mfx by remember { mutableStateOf(remote) }
-    LaunchedEffect(remote) { mfx = remote }
+    // A just-picked preset wins over updates that still carry the previous one (settings write in flight),
+    // so the carousel isn't yanked back and the pick re-sent as the old preset.
+    var pendingPreset by remember { mutableStateOf<Pair<MfxPreset, Long>?>(null) }
+    LaunchedEffect(remote) {
+        val pending = pendingPreset
+        mfx = if (pending != null && pending.first != remote.preset &&
+            android.os.SystemClock.uptimeMillis() - pending.second < PENDING_PRESET_MS
+        ) remote.copy(preset = pending.first) else remote.also { pendingPreset = null }
+    }
     val haptics = LocalHapticFeedback.current
     val hasActiveEffects = !mfx.preset.isNormal ||
         mfx.customSpeed != 1f ||
@@ -113,6 +125,7 @@ fun EffectsSheet(
                 canReset = hasActiveEffects,
                 onReset = {
                     haptics.performHapticFeedback(HapticFeedbackType.Reject)
+                    pendingPreset = null
                     connection.resetAllEffects()
                 },
             )
@@ -121,6 +134,7 @@ fun EffectsSheet(
                 mfx = mfx,
                 onSelectPreset = { p ->
                     haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    pendingPreset = p to android.os.SystemClock.uptimeMillis()
                     mfx = mfx.copy(preset = p)
                     connection.setMfxPreset(p)
                 },
@@ -148,7 +162,8 @@ fun EffectsSheet(
                         }
                     },
                     onCustomEqToggle = { enabled ->
-                        mfx = mfx.copy(customEqEnabled = enabled)
+                        mfx = if (enabled) mfx.copy(customEqEnabled = true, bassBoost = false, warmth = false, loFi = false)
+                        else mfx.copy(customEqEnabled = false)
                         connection.setCustomEqEnabled(enabled)
                     },
                     onEqPreset = { preset ->
@@ -157,7 +172,7 @@ fun EffectsSheet(
                     },
                     onBandChange = { band, gain ->
                         mfx = mfx.copy(
-                            customEqEnabled = true,
+                            customEqEnabled = true, bassBoost = false, warmth = false, loFi = false, // service does the same
                             customEqGains = mfx.customEqGains.toMutableList().also { it[band] = gain },
                         )
                         connection.setCustomEqBandGain(band, gain)
@@ -265,18 +280,22 @@ private fun PresetsSection(mfx: MfxUiState, onSelectPreset: (MfxPreset) -> Unit)
     val selectedIndex = presets.indexOf(mfx.preset).coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = selectedIndex) { presets.size }
     val scope = rememberCoroutineScope()
+    // The collector below outlives recompositions: read the current values, not the first composition's.
+    val currentPreset by rememberUpdatedState(mfx.preset)
+    val select by rememberUpdatedState(onSelectPreset)
 
+    // Follow outside changes (reset, other device) only while the user isn't scrolling/tapping the carousel,
+    // otherwise a late update would cancel the user's scroll and land on the old preset.
     LaunchedEffect(selectedIndex) {
-        if (pagerState.currentPage != selectedIndex) {
-            pagerState.animateScrollToPage(selectedIndex)
-        }
+        snapshotFlow { pagerState.isScrollInProgress }.first { !it }
+        if (pagerState.currentPage != selectedIndex) pagerState.animateScrollToPage(selectedIndex)
     }
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }
             .distinctUntilChanged()
             .collect { page ->
                 val p = presets[page]
-                if (p != mfx.preset) onSelectPreset(p)
+                if (p != currentPreset) select(p)
             }
     }
 

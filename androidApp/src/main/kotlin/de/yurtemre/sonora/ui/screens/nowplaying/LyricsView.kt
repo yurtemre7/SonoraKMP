@@ -3,7 +3,9 @@ package de.yurtemre.sonora.ui.screens.nowplaying
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +45,7 @@ import de.yurtemre.sonora.shared.scan.LyricsLocator
 import de.yurtemre.sonora.ui.components.EmptyState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 private sealed interface LyricsLoad {
@@ -54,7 +57,7 @@ private sealed interface LyricsLoad {
 private const val MANUAL_SCROLL_PAUSE_MS = 4_000L
 
 /**
- * Lyrics (UI-31, LIB-24): synced .lrc auto-scrolls with the active line centred (Cobalt, emphasized),
+ * Lyrics (UI-31, LIB-24): synced .lrc auto-scrolls with the active line centred vertically (Cobalt, emphasized),
  * tap a line to seek, a manual scroll pauses auto-scroll for 4 s; plain .txt scrolls freely.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -95,20 +98,33 @@ private fun SyncedLyrics(lyrics: Lyrics, positionMs: Long, onSeek: (Long) -> Uni
     LaunchedEffect(active, pausedUntil) {
         val wait = pausedUntil - System.currentTimeMillis()
         if (wait > 0) delay(wait)
-        val info = listState.layoutInfo
-        val viewport = info.viewportEndOffset - info.viewportStartOffset
-        val itemSize = info.visibleItemsInfo.firstOrNull { it.index == active }?.size ?: 0
+        // Wait for the first layout (opening the view) before measuring.
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
         autoScrolling = true
         try {
-            listState.animateScrollToItem(active, -(viewport / 2 - itemSize / 2))
+            // Far away: jump near it first so the line is laid out and can be measured.
+            if (listState.layoutInfo.visibleItemsInfo.none { it.index == active }) {
+                listState.scrollToItem(active)
+                snapshotFlow { listState.layoutInfo.visibleItemsInfo.any { it.index == active } }.first { it } // next layout
+            }
+            // Centre the line's middle on the viewport's middle (works for wrapped multi-line entries too).
+            val info = listState.layoutInfo
+            val item = info.visibleItemsInfo.firstOrNull { it.index == active }
+            if (item != null) {
+                val viewportCenter = (info.viewportStartOffset + info.viewportEndOffset) / 2f
+                val delta = item.offset + item.size / 2f - viewportCenter
+                if (kotlin.math.abs(delta) > 1f) listState.animateScrollBy(delta)
+            }
         } finally {
             autoScrolling = false
         }
     }
+    // Half the height above and below, so the first and last lines can also reach the centre.
+    BoxWithConstraints(modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 160.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = maxHeight / 2),
     ) {
         itemsIndexed(lines, key = { i, line -> "$i-${line.timeMs}" }) { i, line ->
             val isActive = i == active
@@ -136,6 +152,7 @@ private fun SyncedLyrics(lyrics: Lyrics, positionMs: Long, onSeek: (Long) -> Uni
                     .padding(vertical = 10.dp),
             )
         }
+    }
     }
 }
 
