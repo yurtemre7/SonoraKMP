@@ -222,9 +222,12 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
     }
 
     // The screen-off reset above would throw away a long folder walk, pairing or first plan on a big library, so the
-    // screen stays on while one of those runs (the user is waiting on it anyway).
+    // screen stays on while one of those runs (the user is waiting on it anyway). It also stays on while sending
+    // (showing the code, waiting for the other phone, serving files) and while receiving, so the auto-lock timeout
+    // doesn't blank the screen mid-sync.
     val view = LocalView.current
     val busy = state is DeviceSyncState.Preparing || state is DeviceSyncState.Connecting ||
+        state is DeviceSyncState.Sending || state is DeviceSyncState.Transferring || state is DeviceSyncState.Applying ||
         (state as? DeviceSyncState.Planning)?.computing == true
     DisposableEffect(view, busy) {
         view.keepScreenOn = busy
