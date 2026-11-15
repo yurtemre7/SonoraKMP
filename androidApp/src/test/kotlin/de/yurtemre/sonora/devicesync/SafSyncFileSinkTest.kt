@@ -18,15 +18,14 @@ class SafSyncFileSinkTest {
     }
 
     @Test fun longNamesTruncateTheBaseNameAndKeepSuffixAndExtension() {
-        val base = "é".repeat(120) // 240 bytes
-        val rel = "D/$base.mp3" // 244 bytes, valid
+        val rel = "D/" + "\u00e9".repeat(125) + ".mp3" // 250 + 4 = 254 bytes: valid, but " (2)" would overflow
         assertEquals(rel, SyncNames.candidate(rel, 1))
+        assertTrue(SyncPaths.collisionName(rel, 2).let { SyncPaths.sanitize(it) == null })
         val c = SyncNames.candidate(rel, 2)!!
         assertEquals(c, SyncPaths.sanitize(c))
         val name = SyncPaths.baseName(c)
         assertTrue(name.encodeToByteArray().size <= 255)
-        assertTrue(name.endsWith(" (2).mp3"))
-        assertTrue(name.startsWith("é"))
+        assertEquals("\u00e9".repeat(123) + " (2).mp3", name)
     }
 
     @Test fun truncationNeverSplitsSurrogatePairs() {

@@ -6,7 +6,9 @@ import de.yurtemre.sonora.shared.devicesync.DeviceSyncClient
 import de.yurtemre.sonora.shared.devicesync.Fingerprint
 import de.yurtemre.sonora.shared.devicesync.PlanItem
 import de.yurtemre.sonora.shared.devicesync.Status
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -73,21 +75,26 @@ suspend fun receiverFingerprints(
 ): Map<String, String> = withContext(Dispatchers.IO) {
     val out = LinkedHashMap<String, String>()
     for ((rel, f) in files) {
+        ensureActive()
         try {
             out[rel] = cache.getOrCompute(rel, f.size, f.lastModifiedMs) {
                 Fingerprint.of(f.size) { resolver.openInputStream(f.uri) ?: throw FileNotFoundException(rel) }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             // Unreadable or shorter than listed: it simply cannot match.
         }
     }
+    cache.prune(files.keys)
     cache.save()
     out
 }
 
 /**
  * `files/device_sync/fingerprints.json`: fingerprint cache keyed by `path|size|mtime` (DSYNC-08). Holds at most
- * [maxEntries] (oldest inserted dropped first); [prune] drops entries of paths that no longer exist.
+ * [maxEntries] (oldest inserted dropped first); [prune] drops entries of paths that no longer exist
+ * ([receiverFingerprints] prunes to the files it was given before saving).
  * A missing or corrupt file starts empty. Thread-safe.
  */
 class FingerprintCache(private val file: File, private val maxEntries: Int = DEFAULT_MAX_ENTRIES) {
@@ -119,8 +126,11 @@ class FingerprintCache(private val file: File, private val maxEntries: Int = DEF
         while (entries.size > maxEntries) entries.remove(entries.keys.first())
     }
 
-    fun getOrCompute(path: String, size: Long, mtime: Long, compute: () -> String): String =
-        get(path, size, mtime) ?: compute().also { put(path, size, mtime, it) }
+    /** A zero [mtime] means the provider reported none, so the entry could go stale unnoticed: not cached. */
+    fun getOrCompute(path: String, size: Long, mtime: Long, compute: () -> String): String {
+        if (mtime == 0L) return compute()
+        return get(path, size, mtime) ?: compute().also { put(path, size, mtime, it) }
+    }
 
     /** Keeps only entries whose path is in [livePaths]. */
     @Synchronized fun prune(livePaths: Set<String>) {

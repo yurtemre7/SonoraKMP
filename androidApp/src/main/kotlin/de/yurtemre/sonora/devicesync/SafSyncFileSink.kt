@@ -68,17 +68,24 @@ object SyncNames {
 class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri) : SyncFileSink {
     private val resolver: ContentResolver = context.contentResolver
     private val rootDocUri: Uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
-    private val dirs = HashMap<String, Uri>().apply { put("", rootDocUri) }
+
+    /** [actualRel] is the directory's real path below the root (real display names, which can differ from the sender's spelling). */
+    private class Dir(val uri: Uri, val actualRel: String)
+
+    private val dirs = HashMap<String, Dir>().apply { put("", Dir(rootDocUri, "")) }
     private val open = HashMap<Int, Part>()
     private val done = LinkedHashMap<Int, String>()
     private var cleaned = false
 
-    private class Part(val relPath: String, val parentUri: Uri, val partUri: Uri)
+    private class Part(val relPath: String, val parent: Dir, val partUri: Uri)
 
-    /** Snapshot of file id -> actual final relPath of every committed file. */
+    /** Snapshot of file id -> actual final relPath (real directory and file names) of every committed file. */
     val committed: Map<Int, String> @Synchronized get() = LinkedHashMap(done)
 
-    /** Deletes every `*.sonora-part` under the tree (left over from an interrupted run). Runs automatically before the first [begin]. */
+    /**
+     * Deletes every `*.sonora-part` under the tree (left over from an interrupted run). Runs automatically before
+     * the first [begin]. It matches by suffix only, as DSYNC-11 specifies the part-file name.
+     */
     @Synchronized fun cleanupLeftovers() {
         cleaned = true
         TreeWalker.walk(resolver, treeUri) { f ->
@@ -90,9 +97,11 @@ class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri
         if (!cleaned) cleanupLeftovers()
         val rel = SyncPaths.sanitize(file.relPath)
         if (rel == null || rel != file.relPath) throw IOException("unsafe_path")
+        if (SyncPaths.kindOf(rel) == null) throw IOException("type_not_allowed")
+        abort(file) // a repeated begin must not leak the previous part file
         val parent = ensureDir(SyncPaths.parent(rel))
         val partUri = DocumentsContract.createDocument(
-            resolver, parent, "application/octet-stream", SyncNames.partName(SyncPaths.baseName(rel)),
+            resolver, parent.uri, "application/octet-stream", SyncNames.partName(SyncPaths.baseName(rel)),
         ) ?: throw IOException("create_failed")
         try {
             // The provider may have auto-renamed the part file; the Uri we got back is what counts from here on.
@@ -105,19 +114,34 @@ class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri
         }
     }
 
+    /**
+     * Picks the first free name among [SyncNames.candidate] 1..99 and renames the part file to it. The directory is
+     * listed once; the existence probe is the main guard against overwriting. `renameDocument` is not atomic with
+     * the probe, so we also rely on providers refusing (null/throw) a rename onto an existing name, as
+     * ExternalStorageProvider does; when it does, the next candidate is tried. Provider semantics for renaming
+     * onto an existing name are otherwise undefined, which is a residual risk we accept.
+     */
     @Synchronized override fun commit(file: ManifestFile, sha256Hex: String) {
         val part = open[file.id] ?: throw IOException("not_begun")
-        val intended = (1..MAX_ATTEMPTS).firstNotNullOfOrNull { attempt ->
-            val cand = SyncNames.candidate(part.relPath, attempt) ?: return@firstNotNullOfOrNull null
-            cand.takeIf { findChild(part.parentUri, SyncPaths.baseName(it)) == null }
-        } ?: throw IOException("no_free_name")
-        val intendedName = SyncPaths.baseName(intended)
-        val renamed = DocumentsContract.renameDocument(resolver, part.partUri, intendedName) ?: throw IOException("rename_failed")
-        // A provider may suffix the name on its own; accept that but record what the file is really called.
-        val actualName = displayName(renamed) ?: intendedName
-        val parentRel = SyncPaths.parent(part.relPath)
-        done[file.id] = if (parentRel.isEmpty()) actualName else "$parentRel/$actualName"
-        open.remove(file.id)
+        val taken = listNames(part.parent.uri)
+        for (attempt in 1..MAX_ATTEMPTS) {
+            val cand = SyncNames.candidate(part.relPath, attempt) ?: continue
+            val name = SyncPaths.baseName(cand)
+            if (name.lowercase() in taken) continue
+            val renamed = try {
+                DocumentsContract.renameDocument(resolver, part.partUri, name)
+            } catch (_: Exception) {
+                null
+            }
+            if (renamed == null) { taken += name.lowercase(); continue } // lost a race or refused: next candidate
+            // A provider may suffix the name on its own; accept that but record what the file is really called.
+            val actualName = displayName(renamed) ?: name
+            val dir = part.parent.actualRel
+            done[file.id] = if (dir.isEmpty()) actualName else "$dir/$actualName"
+            open.remove(file.id)
+            return
+        }
+        throw IOException("no_free_name")
     }
 
     @Synchronized override fun abort(file: ManifestFile) {
@@ -125,43 +149,67 @@ class SafSyncFileSink(context: android.content.Context, private val treeUri: Uri
         runCatching { DocumentsContract.deleteDocument(resolver, part.partUri) }
     }
 
-    /** Document Uri of the directory [relDir] below the root, creating missing levels (cached per relDir). */
-    private fun ensureDir(relDir: String): Uri {
+    /** The directory [relDir] below the root, creating missing levels (cached per relDir). */
+    private fun ensureDir(relDir: String): Dir {
         dirs[relDir]?.let { return it }
-        val parentUri = ensureDir(SyncPaths.parent(relDir))
+        val parent = ensureDir(SyncPaths.parent(relDir))
         val name = SyncPaths.baseName(relDir)
-        val existing = findChild(parentUri, name)
-        val uri = if (existing != null && existing.isDir) {
-            existing.uri
+        val existing = findChild(parent.uri, name)
+        val dir = if (existing != null && existing.isDir) {
+            Dir(existing.uri, join(parent.actualRel, existing.name))
         } else {
-            DocumentsContract.createDocument(resolver, parentUri, DocumentsContract.Document.MIME_TYPE_DIR, name)
+            // Absent, or a plain file holds the name: create a directory and use whatever name the provider gave it.
+            val created = DocumentsContract.createDocument(resolver, parent.uri, DocumentsContract.Document.MIME_TYPE_DIR, name)
                 ?: throw IOException("mkdir_failed")
+            Dir(created, join(parent.actualRel, displayName(created) ?: name))
         }
-        dirs[relDir] = uri
-        return uri
+        dirs[relDir] = dir
+        return dir
     }
 
-    private class Child(val uri: Uri, val isDir: Boolean)
+    private fun join(dir: String, name: String) = if (dir.isEmpty()) name else "$dir/$name"
 
-    /** The child of [parent] called [name] (case-insensitive, as FUSE storage is), or null. */
-    private fun findChild(parent: Uri, name: String): Child? {
+    private class Child(val uri: Uri, val isDir: Boolean, val name: String)
+
+    private val childProjection = arrayOf(
+        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        DocumentsContract.Document.COLUMN_MIME_TYPE,
+    )
+
+    private inline fun forEachChild(parent: Uri, action: (Child) -> Boolean) {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, DocumentsContract.getDocumentId(parent))
-        val proj = arrayOf(
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            DocumentsContract.Document.COLUMN_MIME_TYPE,
-        )
-        resolver.query(children, proj, null, null, null)?.use { c ->
+        resolver.query(children, childProjection, null, null, null)?.use { c ->
             while (c.moveToNext()) {
-                if (c.getString(1).equals(name, ignoreCase = true)) {
-                    return Child(
-                        DocumentsContract.buildDocumentUriUsingTree(treeUri, c.getString(0)),
-                        c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
-                    )
-                }
+                val name = c.getString(1) ?: continue
+                val child = Child(
+                    DocumentsContract.buildDocumentUriUsingTree(treeUri, c.getString(0)),
+                    c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
+                    name,
+                )
+                if (!action(child)) return
             }
         }
-        return null
+    }
+
+    /** A child of [parent] called [name] (case-insensitive, as FUSE storage is), preferring a directory, or null. */
+    private fun findChild(parent: Uri, name: String): Child? {
+        var found: Child? = null
+        forEachChild(parent) { c ->
+            if (c.name.equals(name, ignoreCase = true)) {
+                if (c.isDir) { found = c; false } else { if (found == null) found = c; true }
+            } else {
+                true
+            }
+        }
+        return found
+    }
+
+    /** Lowercase names of all children of [parent] (one listing). */
+    private fun listNames(parent: Uri): MutableSet<String> {
+        val out = HashSet<String>()
+        forEachChild(parent) { out += it.name.lowercase(); true }
+        return out
     }
 
     private fun displayName(doc: Uri): String? = try {
