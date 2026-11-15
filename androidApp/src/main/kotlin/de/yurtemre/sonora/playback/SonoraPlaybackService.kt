@@ -59,7 +59,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -71,6 +76,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private val library: LibraryRepository by inject()
     private val stats: StatsRepository by inject()
     private val stateStore: PlaybackStateStore by inject()
+    private val queueBus: QueueStateBus by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var exo: ExoPlayer
@@ -127,9 +133,13 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         MediaVolume.ensureAudible(this) // PLAY-28
         exo = PlayerFactory.create(this, handleAudioFocus = true) // AudioFocusController switches per pause_on_duck
         player = SonoraForwardingPlayer(exo, scope)
+        // Hot id → song index: a queue load must not re-read the whole song table (cold Room flow) per tap.
+        val songIndex = library.songs.map { l -> l.associateBy { it.id } }
+            .flowOn(Dispatchers.Default)
+            .stateIn(scope, SharingStarted.Eagerly, null)
         queue = QueueController(player, scope, songs = { ids ->
-            val wanted = ids.toSet()
-            library.songs.first().filter { it.id in wanted }.associateBy { it.id }
+            val index = songIndex.filterNotNull().first()
+            buildMap { ids.forEach { id -> index[id]?.let { put(id, it) } } }
         }, displayTitle = { // LIB-14: notification, lock screen and Auto show the filtered title
             TitleFormatter.displayTitle(
                 it.title,
@@ -189,7 +199,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             }
             settingsRepo.settings.collect { settings = it; queue.replayGainMode = it.replayGainMode }
         }
-        scope.launch { queue.state.collect { publishExtras() } }
+        scope.launch { queue.state.collect { queueBus.state.value = it } }
         scope.launch { sleepTimer.uiState.collect { publishExtras() } }
         scope.launch { effects.eqInfo.collect { publishExtras() } }
         scope.launch { effects.isEqualizerSupported.collect { publishExtras() } }
@@ -412,7 +422,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         s.setSessionExtras(
             C.toBundle(
                 C.Extras(
-                    queue.state.value, sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value,
+                    sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value,
                     lastError,
                 ),
             ),

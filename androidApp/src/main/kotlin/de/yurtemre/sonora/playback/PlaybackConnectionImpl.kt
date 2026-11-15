@@ -23,6 +23,7 @@ import de.yurtemre.sonora.shared.audio.displayDurationMs
 import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
+import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
@@ -47,6 +48,7 @@ class PlaybackConnectionImpl(
     context: Context,
     library: LibraryRepository,
     settingsRepo: SettingsRepository,
+    queueBus: QueueStateBus,
 ) : PlaybackConnection {
     private val app = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -58,6 +60,10 @@ class PlaybackConnectionImpl(
     private var songs: Map<Long, Song> = emptyMap()
     private var settings = AppSettings()
     private var extras = C.Extras()
+    private var queueState = QueueState()
+    /** [QueueUiState.items] for the last (entries, songs) pair: rebuilt only when either list changes. */
+    private var itemsFor: Pair<List<QueueEntry>, Map<Long, Song>>? = null
+    private var items: List<QueueItemUi> = emptyList()
     private var lastClosed: Pair<QueueState, Long>? = null
 
     /**
@@ -67,6 +73,8 @@ class PlaybackConnectionImpl(
     private class Pending<T>(val value: T, val atMs: Long = android.os.SystemClock.uptimeMillis())
     private var pendingPlaying: Pending<Boolean>? = null
     private var pendingUid: Pending<Long>? = null
+    /** Song id of a just-tapped [playSong]: shown as current until the service has loaded the new queue. */
+    private var pendingSong: Pending<Long>? = null
     private var pendingShuffle: Pending<Boolean>? = null
     private var pendingRepeat: Pending<RepeatMode>? = null
 
@@ -103,6 +111,7 @@ class PlaybackConnectionImpl(
 
     init {
         scope.launch { library.songs.collect { list -> songs = list.associateBy { it.id }; recompute() } }
+        scope.launch { queueBus.state.collect { queueState = it; recompute() } }
         scope.launch { settingsRepo.settings.collect { settings = it; recomputeMfx() } }
         scope.launch {
             ProcessLifecycleOwner.get().lifecycle.addObserver(
@@ -153,12 +162,13 @@ class PlaybackConnectionImpl(
 
     private fun recompute() {
         val c = controller
-        val qs = extras.queue
+        val qs = queueState
         val actualCur = qs.currentEntry
         val curUid = resolve(pendingUid, actualCur?.uid ?: -1L) { pendingUid = null }
-        val cur = qs.entries.firstOrNull { it.uid == curUid } ?: actualCur
-        val curIndex = qs.entries.indexOf(cur).takeIf { it >= 0 } ?: qs.currentIndex
-        val song = cur?.let { songs[it.songId] }
+        val cur = if (curUid == actualCur?.uid) actualCur else qs.entries.firstOrNull { it.uid == curUid } ?: actualCur
+        val curIndex = if (cur === actualCur) qs.currentIndex else qs.entries.indexOf(cur)
+        val tappedId = resolve(pendingSong, actualCur?.songId ?: -1L) { pendingSong = null }
+        val song = (if (pendingSong != null) songs[tappedId] else null) ?: cur?.let { songs[it.songId] }
         // Media time for both total and position (PositionTicker): never scale by speed.
         val playerMs = c?.duration?.takeIf { it > 0 && it != M3.TIME_UNSET }
         val duration = displayDurationMs(playerMs, song?.durationMs, c?.currentPosition ?: 0L)
@@ -182,17 +192,26 @@ class PlaybackConnectionImpl(
             userVolume = c?.volume ?: settings.volume.toFloat(),
             playlistContext = qs.playlistContext,
         )
-        val items = qs.entries.mapNotNull { e -> songs[e.songId]?.let { QueueItemUi(e.uid, it) } }
+        if (itemsFor?.first !== qs.entries || itemsFor?.second !== songs) {
+            items = qs.entries.mapNotNull { e -> songs[e.songId]?.let { QueueItemUi(e.uid, it) } }
+            itemsFor = qs.entries to songs
+        }
+        val items = items
+        val uiIndex = when {
+            cur == null -> -1
+            items.getOrNull(curIndex)?.entryUid == cur.uid -> curIndex // usual case: no song missing from the library
+            else -> items.indexOfFirst { it.entryUid == cur.uid }
+        }
         _queue.value = QueueUiState(
             items = items,
-            currentIndex = cur?.let { e -> items.indexOfFirst { it.entryUid == e.uid } } ?: -1,
+            currentIndex = uiIndex,
             isShuffled = shuffled,
             playlistContext = qs.playlistContext,
         )
     }
 
     private fun optimisticSkip(offset: Int) {
-        val qs = extras.queue
+        val qs = queueState
         val base = pendingUid?.value?.let { u -> qs.entries.indexOfFirst { it.uid == u } }?.takeIf { it >= 0 } ?: qs.currentIndex
         if (base !in qs.entries.indices || qs.repeat == RepeatMode.One) return
         var target = base + offset
@@ -201,6 +220,7 @@ class PlaybackConnectionImpl(
             target = (target + qs.entries.size) % qs.entries.size
         }
         pendingUid = Pending(qs.entries[target].uid)
+        pendingSong = null
         recompute()
     }
 
@@ -229,13 +249,19 @@ class PlaybackConnectionImpl(
 
     // ---- commands ----
 
-    override fun playSong(song: Song, list: List<Song>, playlistId: String?) = send(
-        C.SET_QUEUE,
-        Bundle().apply {
-            putLongArray(C.ARG_IDS, ids(list.ifEmpty { listOf(song) })); putLong(C.ARG_START_SONG, song.id)
-            putString(C.ARG_PLAYLIST, playlistId)
-        },
-    )
+    override fun playSong(song: Song, list: List<Song>, playlistId: String?) {
+        pendingUid = null
+        pendingSong = Pending(song.id)
+        pendingPlaying = Pending(true)
+        recompute() // highlight + mini player switch on the tap frame, before the service round trip
+        send(
+            C.SET_QUEUE,
+            Bundle().apply {
+                putLongArray(C.ARG_IDS, ids(list.ifEmpty { listOf(song) })); putLong(C.ARG_START_SONG, song.id)
+                putString(C.ARG_PLAYLIST, playlistId)
+            },
+        )
+    }
 
     override fun playShuffled(list: List<Song>, playlistId: String?) = send(
         C.SET_QUEUE,
@@ -270,6 +296,7 @@ class PlaybackConnectionImpl(
         send(C.INSERT_AT, Bundle().apply { putLong(C.ARG_SONG, songId); putInt(C.ARG_TO, logicalIndex) })
     override fun skipToQueueItem(entryUid: Long) {
         pendingUid = Pending(entryUid)
+        pendingSong = null
         recompute()
         send(C.SKIP_TO, Bundle().apply { putLong(C.ARG_UID, entryUid) })
     }
@@ -311,7 +338,7 @@ class PlaybackConnectionImpl(
 
     override fun closePlayer() {
         scope.launch {
-            if (extras.queue.entries.isNotEmpty()) lastClosed = extras.queue to (controller?.currentPosition ?: 0L)
+            if (queueState.entries.isNotEmpty()) lastClosed = queueState to (controller?.currentPosition ?: 0L)
             send(C.CLOSE_PLAYER)
         }
     }

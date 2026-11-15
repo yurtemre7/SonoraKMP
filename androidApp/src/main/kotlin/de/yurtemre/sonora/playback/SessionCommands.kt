@@ -70,7 +70,6 @@ object SessionCommands {
     const val ARG_POSITION = "position"
 
     // Session extras keys
-    private const val X_QUEUE = "x.queue"
     private const val X_SLEEP_KIND = "x.sleep.kind"
     private const val X_SLEEP_REMAINING = "x.sleep.remaining"
     private const val X_SLEEP_TOTAL = "x.sleep.total"
@@ -92,8 +91,8 @@ object SessionCommands {
     fun decodeQueue(s: String?): QueueState? =
         s?.let { runCatching { json.decodeFromString(QueueState.serializer(), it) }.getOrNull() }
 
+    /** Small session state only; the queue goes through [QueueStateBus]. */
     data class Extras(
-        val queue: QueueState = QueueState(),
         val sleep: SleepTimerUiState = SleepTimerUiState.Inactive,
         val eqSupported: Boolean = false,
         val eq: AudioEffects.EqInfo? = null,
@@ -112,7 +111,6 @@ object SessionCommands {
             putLong(X_ERR_ID, err.id); err.songId?.let { putLong(X_ERR_SONG, it) }
             putInt(X_ERR_CODE, err.errorCode); putBoolean(X_ERR_STOPPED, err.stopped)
         }
-        putString(X_QUEUE, encodeQueue(e.queue))
         when (val s = e.sleep) {
             SleepTimerUiState.Inactive -> putInt(X_SLEEP_KIND, 0)
             is SleepTimerUiState.Countdown -> {
@@ -145,6 +143,6 @@ object SessionCommands {
             b.getLong(X_ERR_ID), if (b.containsKey(X_ERR_SONG)) b.getLong(X_ERR_SONG) else null,
             b.getInt(X_ERR_CODE), b.getBoolean(X_ERR_STOPPED),
         ) else null
-        return Extras(decodeQueue(b.getString(X_QUEUE)) ?: QueueState(), sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err)
+        return Extras(sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err)
     }
 }
