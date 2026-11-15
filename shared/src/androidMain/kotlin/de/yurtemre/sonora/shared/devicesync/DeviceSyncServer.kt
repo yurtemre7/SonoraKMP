@@ -35,22 +35,27 @@ sealed interface ServerState {
     data object Done : ServerState
 
     /**
-     * Only for a wrong code ([reason] = [DeviceSyncServer.ERROR_CODE_MISMATCH]); the server keeps listening.
-     * Other session failures return to [Waiting].
+     * Only for a wrong code: [reason] = [DeviceSyncServer.ERROR_CODE_MISMATCH], or
+     * [DeviceSyncServer.ERROR_TOO_MANY_ATTEMPTS] after the 3rd wrong code, when pairing is refused until
+     * [lockedUntilMs] (clock time). The server keeps listening. Other session failures return to [Waiting].
      */
-    data class Failed(val reason: String) : ServerState
+    data class Failed(val reason: String, val lockedUntilMs: Long = 0L) : ServerState
 
     /** [DeviceSyncServer.stop] was called; final. */
     data object Stopped : ServerState
 }
 
 /**
- * The sending phone's TCP endpoint (DSYNC-01..04): pairs with the code, answers HELLO with the [Manifest], serves
+ * The sending phone's TCP endpoint (DSYNC-01..04): pairs with the code, answers HELLO with the [Manifest] (deflated,
+ * in MANIFEST_PART frames: [ManifestTransfer]), serves
  * fingerprints and files from that manifest only.
  *
  * - **Code (D-73):** a new 6-digit code after 5 minutes (also while nobody connects: checked on every accept and
  *   once a second against [clock]) or after the 3rd handshake that failed a check ([DeviceSyncAuthException]).
  *   Disconnects, timeouts and malformed handshake data do not count. A completed session (DONE) also gets a new code.
+ * - **Cool-down (I7):** a rotation caused by wrong codes also refuses pairing for [coolDownMs] (30 s, doubling per
+ *   further lockout up to 10 min; reset by a successful pairing). A receiver that connects meanwhile reads a
+ *   "locked" handshake message and fails with `too_many_attempts`; that never counts as an attempt.
  * - **One receiver at a time:** while a connection is being served, further connections are closed before any
  *   handshake.
  * - **After a session** the server keeps listening, so another phone can pair: [state] stays [ServerState.Done] /
@@ -73,6 +78,9 @@ class DeviceSyncServer(
 ) {
     private val codeLock = Any()
     private var failedAttempts = 0
+    /** Rotations caused by wrong codes since the last successful pairing (guarded by [codeLock]). */
+    private var lockouts = 0
+    private var lockedUntilMs = 0L
     private val _code = MutableStateFlow(PairingCode.generate())
     private val _codeExpiresAtMs = MutableStateFlow(clock() + CODE_LIFETIME_MS)
     private val _state = MutableStateFlow<ServerState>(ServerState.Waiting)
@@ -149,12 +157,16 @@ class DeviceSyncServer(
             socket.soTimeout = pairingTimeoutMs
             val input = DataInputStream(socket.getInputStream().buffered())
             val output = DataOutputStream(socket.getOutputStream().buffered())
+            if (isLockedOut()) {
+                JpakeHandshake.refuseLocked(input, output)
+                return null
+            }
             val keyingMaterial = try {
                 JpakeHandshake.run(input, output, code, Role.Sender, "sender")
             } catch (e: DeviceSyncAuthException) {
-                recordFailedAttempt(code)
-                return ServerState.Failed(ERROR_CODE_MISMATCH)
+                return recordFailedAttempt(code)
             }
+            synchronized(codeLock) { lockouts = 0 }
             val channel = SecureChannel(input, output, keyingMaterial, Role.Sender)
             val hello = (channel.receive() as? Frame.Hello)?.value
                 ?: throw DeviceSyncProtocolException("Expected HELLO")
@@ -166,7 +178,13 @@ class DeviceSyncServer(
             setState(ServerState.Paired(hello.deviceName))
             socket.soTimeout = requestTimeoutMs
             val manifest = manifestProvider()
-            channel.send(Frame.ManifestFrame(manifest))
+            val parts = try {
+                ManifestTransfer.split(manifest)
+            } catch (e: ManifestTooLargeException) {
+                channel.send(Frame.Error(ErrorFrame(ERROR_LIBRARY_TOO_LARGE, "The library is too large for device sync")))
+                return ServerState.Waiting
+            }
+            parts.forEach(channel::send)
             serve(socket, channel, manifest)
             rotateCode()
             return ServerState.Done
@@ -274,11 +292,20 @@ class DeviceSyncServer(
         if (clock() >= _codeExpiresAtMs.value) rotateCode()
     }
 
-    /** Counts a failed check against [code], unless the code has been replaced meanwhile. */
-    private fun recordFailedAttempt(code: String) = synchronized(codeLock) {
-        if (code != _code.value) return@synchronized
+    private fun isLockedOut() = synchronized(codeLock) { clock() < lockedUntilMs }
+
+    /**
+     * Counts a failed check against [code], unless the code has been replaced meanwhile; the 3rd rotates the code
+     * and starts a cool-down. Returns the state to show.
+     */
+    private fun recordFailedAttempt(code: String): ServerState = synchronized(codeLock) {
+        if (code != _code.value) return ServerState.Failed(ERROR_CODE_MISMATCH)
         failedAttempts++
-        if (failedAttempts >= MAX_FAILED_ATTEMPTS) rotateCode()
+        if (failedAttempts < MAX_FAILED_ATTEMPTS) return ServerState.Failed(ERROR_CODE_MISMATCH)
+        rotateCode()
+        lockouts++
+        lockedUntilMs = clock() + coolDownMs(lockouts)
+        ServerState.Failed(ERROR_TOO_MANY_ATTEMPTS, lockedUntilMs)
     }
 
     private fun rotateCode() = synchronized(codeLock) {
@@ -300,11 +327,24 @@ class DeviceSyncServer(
         const val IDLE_TIMEOUT_MS = 15 * 60_000
 
         const val ERROR_CODE_MISMATCH = "code_mismatch"
+        /** Pairing refused during the cool-down after 3 wrong codes (I7). */
+        const val ERROR_TOO_MANY_ATTEMPTS = "too_many_attempts"
         const val ERROR_VERSION_MISMATCH = "version_mismatch"
         const val ERROR_UNKNOWN_FILE = "unknown_file"
         const val ERROR_READ_FAILED = "read_failed"
         const val ERROR_UNEXPECTED_FRAME = "unexpected_frame"
+        /** The manifest exceeds the wire caps ([ManifestTransfer]). */
+        const val ERROR_LIBRARY_TOO_LARGE = "library_too_large"
 
         private const val CODE_CHECK_INTERVAL_MS = 1_000L
+        private const val COOL_DOWN_BASE_MS = 30_000L
+        private const val COOL_DOWN_MAX_MS = 10 * 60_000L
+
+        /** Cool-down after the [lockout]-th code rotation caused by wrong codes: 30 s, 60 s, 120 s, … at most 10 min. */
+        fun coolDownMs(lockout: Int): Long {
+            var ms = COOL_DOWN_BASE_MS
+            repeat(lockout - 1) { ms = minOf(ms * 2, COOL_DOWN_MAX_MS) }
+            return ms
+        }
     }
 }

@@ -49,7 +49,8 @@ object JpakeHandshake {
      * Outcomes, so callers can count failed attempts correctly (DSYNC-01: only [DeviceSyncAuthException] counts):
      * - [DeviceSyncAuthException] (`code_mismatch`): a check failed. A round-1/2 proof or the peer's round-3 MAC
      *   did not validate here, or the peer sent a reject because ours did not validate there. [output] is closed.
-     * - [DeviceSyncProtocolException]: the peer sent bytes that are not a well-formed handshake message.
+     * - [DeviceSyncProtocolException]: the peer sent bytes that are not a well-formed handshake message, or (message
+     *   `too_many_attempts`) the sender refuses pairing during its cool-down ([refuseLocked]).
      * - [IOException] (EOF, reset, timeout): the connection failed before a mismatch was established. This is not
      *   a wrong code: a network blip or a port scan must not burn an attempt.
      */
@@ -91,6 +92,24 @@ object JpakeHandshake {
         }
     }
 
+    /**
+     * Sender during its cool-down (too many wrong codes): reads the receiver's round 1 (so closing does not reset
+     * the connection before the receiver has read the answer), answers with a "locked" message and closes. Errors
+     * are ignored: the connection ends either way.
+     */
+    fun refuseLocked(input: DataInputStream, output: DataOutputStream) {
+        runCatching {
+            readRound(input, 6)
+            output.writeInt(4)
+            output.writeInt(LOCKED)
+            output.flush()
+        }
+        runCatching { output.close() }
+    }
+
+    /** Round value count of the "locked" message ([refuseLocked]). */
+    private const val LOCKED = -1
+
     /** The peer sent a reject message. */
     private class PeerRejected : Exception()
 
@@ -112,6 +131,7 @@ object JpakeHandshake {
         val payload = ByteBuffer.wrap(ByteArray(length).also(input::readFully))
         val received = payload.int
         if (received == 0 && length == 4) throw PeerRejected()
+        if (received == LOCKED && length == 4) throw DeviceSyncProtocolException(DeviceSyncServer.ERROR_TOO_MANY_ATTEMPTS)
         if (received != count) throw DeviceSyncProtocolException("Bad handshake value count $received")
         val values = List(count) {
             if (payload.remaining() < 4) throw DeviceSyncProtocolException("Truncated handshake payload")

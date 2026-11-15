@@ -184,6 +184,49 @@ class DeviceSyncSessionTest {
         assertNotEquals(firstCode, server.code.value, "a completed session leaves a fresh code for the next phone")
     }
 
+    /** A big library: 20 000 files and stats for every song, far over one 4 MiB control frame as plain JSON. */
+    private fun largeManifest(): Manifest {
+        val random = Random(42)
+        val files = (1..20_000).map { i ->
+            val title = "Song " + random.nextBytes(12).joinToString("") { "%02x".format(it) } // real titles vary too
+            ManifestFile(
+                i, "Artist ${i % 500}/Album ${i % 2_000}/${i % 20} - $title.flac",
+                30_000_000L + i, 1_700_000_000_000L + i, FileKind.Audio,
+                AudioMeta(title, "Artist ${i % 500}", "Album ${i % 2_000}", 200_000L + i),
+            )
+        }
+        val stats = SyncStats(
+            songs = files.associate {
+                "/storage/emulated/0/Music/${it.relPath}" to SongCounters(it.id % 50, it.id % 7, it.id % 3, 1_700_000_000_000L + it.id)
+            },
+            weekday = (1..7).associateWith { it * 100 },
+            completeListens = 12_345,
+            recentlyPlayed = files.take(5_000).associate { "/storage/emulated/0/Music/${it.relPath}" to 1_700_000_000_000L + it.id },
+        )
+        val backup = buildString {
+            append("{\"playlists\":[")
+            files.take(10_000).joinTo(this) { "\"/storage/emulated/0/Music/${it.relPath}\"" }
+            append("]}")
+        }
+        return Manifest(1, "sender-id", "Sender phone", SyncBundle(backup, stats), files)
+    }
+
+    @Test
+    fun largeManifestRoundTripsThroughServerAndClient() = runBlocking {
+        val manifest = largeManifest()
+        assertTrue(FrameCodec.encodeManifest(manifest).size > 2 * FrameCodec.MAX_CONTROL, "plain JSON exceeds one control frame")
+        assertTrue(ManifestTransfer.split(manifest).size > 1, "sent as several parts")
+        val (server, port) = server(manifest = manifest)
+        withTimeout(60_000) {
+            val client = DeviceSyncClient()
+            val received = client.connect(loopback, port, server.code.value, hello)
+            assertEquals(manifest, received)
+            client.close()
+            server.state.first { it == ServerState.Done }
+        }
+        Unit
+    }
+
     @Test
     fun sessionWithoutAnyFetchEndsWithDone() = test {
         // Device sync of data only (every file already Present): connect, then DONE without FETCH.
@@ -194,6 +237,23 @@ class DeviceSyncSessionTest {
         client.close()
         server.state.first { it == ServerState.Done }
         assertNotEquals(firstCode, server.code.value)
+    }
+
+    @Test
+    fun abortLeavesWithoutDoneSoTheSenderKeepsWaitingWithTheSameCode() = test {
+        val (server, port) = server()
+        val code = server.code.value
+        val client = DeviceSyncClient()
+        client.connect(loopback, port, code, hello)
+        server.state.first { it is ServerState.Paired }
+
+        client.abort()
+
+        server.state.first { it == ServerState.Waiting }
+        assertEquals(code, server.code.value, "the receiver left: the code stays valid")
+        assertFailsWith<IllegalStateException> { client.fingerprints(listOf(1)) }
+        connectWith(port, code).close() // the same code pairs again
+        server.state.first { it == ServerState.Done }
     }
 
     @Test
@@ -231,10 +291,68 @@ class DeviceSyncSessionTest {
         assertNotEquals(original, server.code.value)
         assertEquals(clock.now + 5 * 60_000, server.codeExpiresAtMs.value)
 
-        // The new code works.
+        // The new code works once the cool-down is over.
+        clock.now += 30_000
         val client = DeviceSyncClient()
         client.connect(loopback, port, server.code.value, hello)
         client.close()
+    }
+
+    /** A connection with [code]; retries while the server still holds the previous connection. */
+    private suspend fun connectWith(port: Int, code: String): DeviceSyncClient {
+        while (true) {
+            val client = DeviceSyncClient()
+            try {
+                client.connect(loopback, port, code, hello)
+                return client
+            } catch (e: IOException) {
+                delay(20)
+            }
+        }
+    }
+
+    private suspend fun assertLockedOut(port: Int, code: String) {
+        val e = assertFailsWith<DeviceSyncProtocolException> { connectWith(port, code) }
+        assertEquals("too_many_attempts", e.message)
+    }
+
+    @Test
+    fun rotationAfterWrongCodesStartsAnExponentialCoolDown() = test {
+        val clock = FakeClock()
+        val (server, port) = server(clock = clock)
+
+        repeat(3) { attemptWrongCode(server, port) }
+        server.state.first { it is ServerState.Failed && it.reason == "too_many_attempts" }
+        assertEquals(ServerState.Failed("too_many_attempts", lockedUntilMs = clock.now + 30_000), server.state.value)
+        // Even the right (new) code is refused during the cool-down, and that does not count as an attempt.
+        assertLockedOut(port, server.code.value)
+        clock.now += 29_999
+        assertLockedOut(port, server.code.value)
+
+        // The second lockout doubles the wait.
+        clock.now += 1
+        repeat(3) { attemptWrongCode(server, port) }
+        val code = server.code.value
+        clock.now += 59_999
+        assertLockedOut(port, code)
+        clock.now += 1
+        connectWith(port, code).close()
+        server.state.first { it == ServerState.Done }
+
+        // A successful pairing resets the backoff to 30 s.
+        repeat(3) { attemptWrongCode(server, port) }
+        clock.now += 30_000
+        connectWith(port, server.code.value).close()
+    }
+
+    @Test
+    fun coolDownIsCappedAtTenMinutes() {
+        assertEquals(30_000L, DeviceSyncServer.coolDownMs(1))
+        assertEquals(60_000L, DeviceSyncServer.coolDownMs(2))
+        assertEquals(120_000L, DeviceSyncServer.coolDownMs(3))
+        assertEquals(480_000L, DeviceSyncServer.coolDownMs(5))
+        assertEquals(600_000L, DeviceSyncServer.coolDownMs(6))
+        assertEquals(600_000L, DeviceSyncServer.coolDownMs(100))
     }
 
     @Test
@@ -511,7 +629,7 @@ class DeviceSyncSessionTest {
                     val key = JpakeHandshake.run(input, output, FAKE_CODE, Role.Sender, "fake")
                     val channel = SecureChannel(input, output, key, Role.Sender)
                     channel.receive() as Frame.Hello
-                    channel.send(Frame.ManifestFrame(manifest()))
+                    ManifestTransfer.split(manifest()).forEach(channel::send)
                     script(channel)
                 }
             }

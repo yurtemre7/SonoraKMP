@@ -5,7 +5,15 @@ import kotlinx.serialization.json.Json
 
 sealed interface Frame {
     data class Hello(val value: de.yurtemre.sonora.shared.devicesync.Hello) : Frame
-    data class ManifestFrame(val value: Manifest) : Frame
+    /**
+     * One piece of the deflated manifest JSON (see `ManifestTransfer`): part [index] of [total], each at most
+     * [FrameCodec.MANIFEST_PART] bytes, sent in order right after pairing.
+     */
+    class ManifestPart(val index: Int, val total: Int, val bytes: ByteArray) : Frame {
+        override fun equals(other: Any?) =
+            other is ManifestPart && index == other.index && total == other.total && bytes.contentEquals(other.bytes)
+        override fun hashCode() = 31 * (31 * index + total) + bytes.contentHashCode()
+    }
     data class FetchFrame(val value: Fetch) : Frame
     data class FileStartFrame(val value: FileStart) : Frame
     class Chunk(val bytes: ByteArray) : Frame {
@@ -19,11 +27,19 @@ sealed interface Frame {
     data class FingerprintsFrame(val value: Fingerprints) : Frame
 }
 
-/** Frame layout: type (1 byte) + length (4 bytes, big-endian, >= 0) + payload. */
+/**
+ * Frame layout: type (1 byte) + length (4 bytes, big-endian, >= 0) + payload. A MANIFEST_PART payload is
+ * index (4 bytes) + total (4 bytes) + at most [MANIFEST_PART] bytes of the deflated manifest JSON.
+ */
 object FrameCodec {
     const val MAX_CONTROL = 4 * 1024 * 1024
     const val CHUNK = 64 * 1024
     const val HEADER_SIZE = 5
+    /** Largest piece of the deflated manifest in one MANIFEST_PART frame. */
+    const val MANIFEST_PART = 1024 * 1024
+    /** At most this many parts: the deflated manifest is capped at 64 MiB. */
+    const val MAX_MANIFEST_PARTS = 64
+    private const val PART_HEADER = 8
 
     private const val T_HELLO = 1
     private const val T_MANIFEST = 2
@@ -41,7 +57,7 @@ object FrameCodec {
     fun encode(frame: Frame): ByteArray {
         val (type, payload) = when (frame) {
             is Frame.Hello -> T_HELLO to json.encodeToString(Hello.serializer(), frame.value).encodeToByteArray()
-            is Frame.ManifestFrame -> T_MANIFEST to json.encodeToString(Manifest.serializer(), frame.value).encodeToByteArray()
+            is Frame.ManifestPart -> T_MANIFEST to encodePart(frame)
             is Frame.FetchFrame -> T_FETCH to json.encodeToString(Fetch.serializer(), frame.value).encodeToByteArray()
             is Frame.FileStartFrame -> T_FILE_START to json.encodeToString(FileStart.serializer(), frame.value).encodeToByteArray()
             is Frame.Chunk -> T_CHUNK to frame.bytes
@@ -77,7 +93,7 @@ object FrameCodec {
         try {
             return when (type) {
                 T_HELLO -> Frame.Hello(json.decodeFromString(Hello.serializer(), payload.decodeToString()))
-                T_MANIFEST -> Frame.ManifestFrame(json.decodeFromString(Manifest.serializer(), payload.decodeToString()))
+                T_MANIFEST -> decodePart(payload)
                 T_FETCH -> Frame.FetchFrame(json.decodeFromString(Fetch.serializer(), payload.decodeToString()))
                 T_FILE_START -> Frame.FileStartFrame(json.decodeFromString(FileStart.serializer(), payload.decodeToString()))
                 T_CHUNK -> Frame.Chunk(payload)
@@ -96,13 +112,52 @@ object FrameCodec {
         }
     }
 
+    /** The manifest as UTF-8 JSON (what `ManifestTransfer` deflates and splits). */
+    fun encodeManifest(manifest: Manifest): ByteArray =
+        json.encodeToString(Manifest.serializer(), manifest).encodeToByteArray()
+
+    fun decodeManifest(bytes: ByteArray): Manifest = try {
+        json.decodeFromString(Manifest.serializer(), bytes.decodeToString())
+    } catch (e: SerializationException) {
+        throw DeviceSyncProtocolException("Malformed manifest: ${e.message}")
+    } catch (e: IllegalArgumentException) {
+        throw DeviceSyncProtocolException("Malformed manifest: ${e.message}")
+    }
+
+    private fun encodePart(part: Frame.ManifestPart): ByteArray {
+        checkPart(part.index, part.total, part.bytes.size)
+        val out = ByteArray(PART_HEADER + part.bytes.size)
+        writeIntBE(out, 0, part.index)
+        writeIntBE(out, 4, part.total)
+        part.bytes.copyInto(out, PART_HEADER)
+        return out
+    }
+
+    private fun decodePart(payload: ByteArray): Frame.ManifestPart {
+        if (payload.size < PART_HEADER) throw DeviceSyncProtocolException("Short manifest part")
+        val index = readIntBE(payload, 0)
+        val total = readIntBE(payload, 4)
+        checkPart(index, total, payload.size - PART_HEADER)
+        return Frame.ManifestPart(index, total, payload.copyOfRange(PART_HEADER, payload.size))
+    }
+
+    private fun checkPart(index: Int, total: Int, size: Int) {
+        if (total !in 1..MAX_MANIFEST_PARTS) throw DeviceSyncProtocolException("Bad manifest part count $total")
+        if (index !in 0 until total) throw DeviceSyncProtocolException("Bad manifest part index $index of $total")
+        if (size > MANIFEST_PART) throw DeviceSyncProtocolException("Manifest part too large: $size")
+    }
+
     private fun checkType(type: Int) {
         if (type !in T_HELLO..T_FINGERPRINTS) throw DeviceSyncProtocolException("Unknown frame type $type")
     }
 
     private fun checkLength(type: Int, length: Int) {
         if (length < 0) throw DeviceSyncProtocolException("Negative frame length")
-        val max = if (type == T_CHUNK) CHUNK else MAX_CONTROL
+        val max = when (type) {
+            T_CHUNK -> CHUNK
+            T_MANIFEST -> PART_HEADER + MANIFEST_PART
+            else -> MAX_CONTROL
+        }
         if (length > max) throw DeviceSyncProtocolException("Frame type $type too large: $length > $max")
     }
 

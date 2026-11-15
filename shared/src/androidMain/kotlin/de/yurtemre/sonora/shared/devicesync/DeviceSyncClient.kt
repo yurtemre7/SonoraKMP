@@ -39,7 +39,8 @@ data class FetchResult(val committed: List<Int>, val failed: Map<Int, String>)
 
 /**
  * The receiving phone's side of a device sync session (DSYNC-02..04, DSYNC-11). One instance per connection:
- * [connect], then any number of [fingerprints] / [fetch] calls (one at a time), then [close].
+ * [connect], then any number of [fingerprints] / [fetch] calls (one at a time), then [close] (success, sends DONE)
+ * or [abort] (no DONE).
  *
  * Blocking IO runs on [Dispatchers.IO]; every read has the [readTimeoutMs] timeout. Cancelling a call closes the
  * socket so a blocked read ends at once. After any failed call (or cancellation) or [close] the session is over:
@@ -57,8 +58,9 @@ class DeviceSyncClient(
 
     /**
      * Connects (10 s timeout), pairs with [code] (wrong code → [DeviceSyncAuthException]), sends [hello] and
-     * returns the sender's manifest. Either side on another protocol version →
-     * [DeviceSyncProtocolException] with message `version_mismatch`.
+     * returns the sender's manifest (reassembled from its MANIFEST_PART frames: [ManifestTransfer]). Either side on
+     * another protocol version → [DeviceSyncProtocolException] with message `version_mismatch`; a sender whose
+     * manifest exceeds the caps → message `library_too_large`.
      */
     suspend fun connect(host: String, port: Int, code: String, hello: Hello): Manifest {
         check(socket == null) { "DeviceSyncClient is single-use" }
@@ -71,15 +73,22 @@ class DeviceSyncClient(
             val keyingMaterial = JpakeHandshake.run(input, output, code, Role.Receiver, hello.deviceId)
             val channel = SecureChannel(input, output, keyingMaterial, Role.Receiver)
             channel.send(Frame.Hello(hello))
-            val manifest = when (val frame = channel.receive()) {
-                is Frame.ManifestFrame -> frame.value
-                is Frame.Error -> throw DeviceSyncProtocolException(frame.value.code)
-                else -> throw DeviceSyncProtocolException("Expected MANIFEST")
-            }
+            val manifest = receiveManifest(channel)
             if (manifest.protocol != PROTOCOL_VERSION) throw DeviceSyncProtocolException(ERROR_VERSION_MISMATCH)
             files = manifest.files.associateBy { it.id }
             this.channel = channel
             manifest
+        }
+    }
+
+    private fun receiveManifest(channel: SecureChannel): Manifest {
+        val assembler = ManifestTransfer.Assembler()
+        while (true) {
+            when (val frame = channel.receive()) {
+                is Frame.ManifestPart -> assembler.add(frame)?.let { return it }
+                is Frame.Error -> throw DeviceSyncProtocolException(frame.value.code)
+                else -> throw DeviceSyncProtocolException("Expected MANIFEST_PART")
+            }
         }
     }
 
@@ -107,7 +116,11 @@ class DeviceSyncClient(
         return blocking(socket!!) { receiveFiles(channel, ids, sink, onProgress) }
     }
 
-    /** Sends DONE (best effort, also from a cancelled coroutine) and closes the connection. */
+    /**
+     * Sends DONE (best effort, also from a cancelled coroutine) and closes the connection. Only after a successful
+     * transfer (or data-only device sync): the sender then reports "sent" and shows a new code. To leave without
+     * that (cancel, failure) use [abort].
+     */
     suspend fun close() {
         val channel = channel
         this.channel = null
@@ -116,6 +129,16 @@ class DeviceSyncClient(
             if (channel != null) runCatching { channel.send(Frame.Done) }
             runCatching { socket?.close() }
         }
+    }
+
+    /**
+     * Closes the connection without DONE: the receiver backed out or failed. The sender sees a disconnect, goes
+     * back to waiting and keeps its code.
+     */
+    suspend fun abort() {
+        channel = null
+        if (ended == null) ended = "closed"
+        withContext(NonCancellable + Dispatchers.IO) { runCatching { socket?.close() } }
     }
 
     private fun connectedChannel(): SecureChannel {

@@ -30,15 +30,7 @@ class FrameCodecTest {
     @Test fun controlFramesRoundTrip() {
         val frames = listOf<Frame>(
             Frame.Hello(Hello(1, "id", "Phone")),
-            Frame.ManifestFrame(
-                Manifest(
-                    1, "id", "Phone", bundle,
-                    listOf(
-                        ManifestFile(1, "a/b.mp3", 10L, 20L, FileKind.Audio, AudioMeta("t", "ar", "al", 99L)),
-                        ManifestFile(2, "a/b.lrc", 1L, 2L, FileKind.Lyrics),
-                    ),
-                ),
-            ),
+            Frame.ManifestPart(1, 3, byteArrayOf(1, 2, 3)),
             Frame.FetchFrame(Fetch(listOf(1, 2))),
             Frame.FileStartFrame(FileStart(3, 123456789012L)),
             Frame.FileEndFrame(FileEnd(3, "abcd")),
@@ -73,11 +65,40 @@ class FrameCodecTest {
 
     @Test fun rejectsOversizedControl() {
         val n = FrameCodec.MAX_CONTROL + 1
-        val h = byteArrayOf(2, (n ushr 24).toByte(), (n ushr 16).toByte(), (n ushr 8).toByte(), n.toByte())
+        val h = byteArrayOf(1, (n ushr 24).toByte(), (n ushr 16).toByte(), (n ushr 8).toByte(), n.toByte())
         assertFailsWith<DeviceSyncProtocolException> { FrameCodec.decodeHeader(h) }
         val ok = FrameCodec.MAX_CONTROL
-        val h2 = byteArrayOf(2, (ok ushr 24).toByte(), (ok ushr 16).toByte(), (ok ushr 8).toByte(), ok.toByte())
-        assertEquals(2 to ok, FrameCodec.decodeHeader(h2))
+        val h2 = byteArrayOf(1, (ok ushr 24).toByte(), (ok ushr 16).toByte(), (ok ushr 8).toByte(), ok.toByte())
+        assertEquals(1 to ok, FrameCodec.decodeHeader(h2))
+    }
+
+    @Test fun manifestPartLimits() {
+        val full = Frame.ManifestPart(0, FrameCodec.MAX_MANIFEST_PARTS, ByteArray(FrameCodec.MANIFEST_PART))
+        assertEquals(full, roundTrip(full))
+        // At most 1 MiB of data per part, 1..64 parts, index within total.
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.encode(Frame.ManifestPart(0, 1, ByteArray(FrameCodec.MANIFEST_PART + 1))) }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.encode(Frame.ManifestPart(0, 0, ByteArray(1))) }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.encode(Frame.ManifestPart(0, FrameCodec.MAX_MANIFEST_PARTS + 1, ByteArray(1))) }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.encode(Frame.ManifestPart(2, 2, ByteArray(1))) }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.encode(Frame.ManifestPart(-1, 2, ByteArray(1))) }
+        val n = 8 + FrameCodec.MANIFEST_PART + 1
+        assertFailsWith<DeviceSyncProtocolException> {
+            FrameCodec.decodeHeader(byteArrayOf(2, (n ushr 24).toByte(), (n ushr 16).toByte(), (n ushr 8).toByte(), n.toByte()))
+        }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.decodeBody(2, ByteArray(7)) }
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.decodeBody(2, byteArrayOf(0, 0, 0, 3, 0, 0, 0, 2)) }
+    }
+
+    @Test fun manifestJsonRoundTrips() {
+        val manifest = Manifest(
+            1, "id", "Phone", bundle,
+            listOf(
+                ManifestFile(1, "a/b.mp3", 10L, 20L, FileKind.Audio, AudioMeta("t", "ar", "al", 99L)),
+                ManifestFile(2, "a/b.lrc", 1L, 2L, FileKind.Lyrics),
+            ),
+        )
+        assertEquals(manifest, FrameCodec.decodeManifest(FrameCodec.encodeManifest(manifest)))
+        assertFailsWith<DeviceSyncProtocolException> { FrameCodec.decodeManifest("{".encodeToByteArray()) }
     }
 
     @Test fun chunkBoundary() {
