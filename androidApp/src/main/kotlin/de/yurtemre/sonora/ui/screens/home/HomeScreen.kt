@@ -134,12 +134,13 @@ fun PlaceholderTabContent(tab: LibraryTab, state: HomeTabState) {
 private fun TabContentSwitcher(tab: LibraryTab, content: @Composable () -> Unit) {
     val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     val reduceMotion = de.yurtemre.sonora.ui.theme.LocalReduceMotion.current
-    val alpha = remember { androidx.compose.animation.core.Animatable(1f) }
-    var initial by remember { mutableStateOf(true) }
+    // The fade starts from 0 in the same composition that shows the new tab. It used to be set to 0 from a
+    // LaunchedEffect, i.e. one frame late: the new tab flashed at full alpha, vanished, then faded in.
+    val seen = remember { object { var composed = false } }
+    val alpha = remember(tab) { androidx.compose.animation.core.Animatable(if (!seen.composed || reduceMotion) 1f else 0f) }
+    androidx.compose.runtime.SideEffect { seen.composed = true }
     androidx.compose.runtime.LaunchedEffect(tab) {
-        if (initial || reduceMotion) { initial = false; alpha.snapTo(1f); return@LaunchedEffect }
-        alpha.snapTo(0f)
-        alpha.animateTo(1f, androidx.compose.animation.core.tween(160))
+        if (alpha.value < 1f) alpha.animateTo(1f, androidx.compose.animation.core.tween(160))
     }
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value }) {
         holder.SaveableStateProvider(tab.name) { content() }
