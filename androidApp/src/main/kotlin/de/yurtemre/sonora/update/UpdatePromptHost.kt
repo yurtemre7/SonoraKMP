@@ -14,7 +14,10 @@ import de.yurtemre.sonora.ui.screens.update.UpdateSheet
  * download/install progress; re-checks the unknown-sources permission on resume.
  */
 @Composable
-fun UpdatePromptHost(viewModel: UpdateViewModel = rememberUpdateViewModel()) {
+fun UpdatePromptHost() {
+    // No parameters: the host always skips when the app shell recomposes (playback state changes), so the sheet
+    // only recomposes for its own state.
+    val viewModel = rememberUpdateViewModel()
     LaunchedEffect(Unit) { viewModel.autoCheckIfDue() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val prompt by viewModel.prompt.collectAsStateWithLifecycle()
