@@ -57,11 +57,11 @@ fun SleeveMarkdown(state: State, modifier: Modifier = Modifier) {
     MarkdownBody(state, rememberSleeveMarkdownConfig(), modifier)
 }
 
-/** Parses [content] off the main thread; null until done. */
+/** Parses [content] off the main thread; null until done, and for blank [content] (nothing to parse, nothing loaded). */
 @Composable
 fun rememberParsedMarkdown(content: String): androidx.compose.runtime.State<State?> =
     produceState<State?>(null, content) {
-        value = withContext(Dispatchers.Default) { parseMarkdown(content) }
+        value = if (content.isBlank()) null else withContext(Dispatchers.Default) { parseMarkdown(content) }
     }
 
 /** Renderer settings held for as long as the theme doesn't change. */
