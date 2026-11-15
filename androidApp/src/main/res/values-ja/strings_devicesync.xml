@@ -131,8 +131,8 @@
     </plurals>
     <string name="devicesync_join">%1$s · %2$s</string>
     <string name="devicesync_address">%1$s:%2$d</string>
-    <string name="devicesync_expanded">展開</string>
-    <string name="devicesync_collapsed">折りたたみ</string>
+    <string name="devicesync_expanded">展開済み</string>
+    <string name="devicesync_collapsed">折りたたみ済み</string>
     <string name="devicesync_applying_wait">まもなく完了します。受信したデータを反映するまでお待ちください。</string>
     <string name="devicesync_start_refused">まだ開始できません。確認が終わるまで待ってから、もう一度お試しください。</string>
     <string name="devicesync_result_rescan_skipped">ライブラリは自動で更新されませんでした。新しい曲を表示するには、設定でライブラリを同期してください。</string>

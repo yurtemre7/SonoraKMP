@@ -123,12 +123,21 @@ private val byPath = compareBy<PlanItem, String>(String.CASE_INSENSITIVE_ORDER) 
 private fun selectableIds(items: Iterable<PlanItem>): Set<Int> =
     items.filter { it.status != Status.Present }.mapTo(LinkedHashSet()) { it.file.id }
 
-/**
- * The selection for [plan]: the defaults on the first plan for a sender ([previous] null), otherwise the user's
- * [previous] selection limited to what is still selectable (a re-plan never re-checks what the user cleared).
+/*
+ * Selection across re-plans: the screen stores only the ids the user deselected. Everything else follows the
+ * plan's defaults, so a re-plan (same or another folder) keeps the user's edits and still selects files that
+ * became New or Replace.
  */
-fun reconcileSelection(previous: Set<Int>?, plan: TransferPlan): Set<Int> =
-    previous?.intersect(selectableIds(plan.items)) ?: plan.defaultSelection()
+
+/** The selection for [plan]: its defaults minus what the user deselected. */
+fun selectionOf(plan: TransferPlan, deselected: Set<Int>): Set<Int> = plan.defaultSelection() - deselected
+
+/** Deselected ids after the user changed [plan]'s selection to [newSelected] (a toggle, group, chip or Select all). */
+fun deselectedAfter(plan: TransferPlan, deselected: Set<Int>, newSelected: Set<Int>): Set<Int> =
+    (deselected - newSelected) + (selectableIds(plan.items) - newSelected)
+
+/** Select none: every file of [plan], so files that turn New in a later re-plan stay unselected too. */
+fun selectNone(plan: TransferPlan, deselected: Set<Int>): Set<Int> = deselected + plan.items.map { it.file.id }
 
 /** Select all = every New and Replace item (the default selection). */
 fun selectAll(plan: TransferPlan): Set<Int> = plan.defaultSelection()

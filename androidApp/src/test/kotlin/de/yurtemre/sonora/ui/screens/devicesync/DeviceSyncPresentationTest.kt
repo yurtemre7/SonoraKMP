@@ -152,13 +152,53 @@ class DeviceSyncPresentationTest {
         assertEquals(3, folders.sumOf { it.items.size }, "no file disappears")
     }
 
-    @Test fun reconcileKeepsTheEditedSelectionAcrossReplans() {
-        assertEquals(mixed.defaultSelection(), reconcileSelection(null, mixed), "first plan: defaults")
-        assertEquals(setOf(0, 3), reconcileSelection(setOf(0, 3), mixed))
-        // ids that became Present (or vanished) drop out; nothing new is added.
-        val replanned = TransferPlan(listOf(item(0, "B/two.mp3", Status.Present), item(3, "A/one.lrc", kind = FileKind.Lyrics), item(5, "top.mp3")))
-        assertEquals(setOf(3), reconcileSelection(setOf(0, 3, 4), replanned))
-        assertEquals(emptySet(), reconcileSelection(emptySet(), mixed), "select none stays none")
+    // Re-plan of `mixed` for another folder: 2 (was Present) is New now, 6 is Present now.
+    private val replanned = TransferPlan(
+        listOf(
+            item(0, "B/two.mp3"), item(1, "A/one.flac", Status.Replace), item(2, "A/old.mp3"),
+            item(3, "A/one.lrc", kind = FileKind.Lyrics), item(4, "A/cover.jpg", kind = FileKind.Cover),
+            item(5, "top.mp3"), item(6, "A/b.flac", Status.Present),
+        ),
+    )
+
+    @Test fun firstPlanUsesTheDefaults() {
+        assertEquals(mixed.defaultSelection(), selectionOf(mixed, emptySet()))
+    }
+
+    @Test fun editThenReplanSelectsFilesThatBecameNew() {
+        val deselected = deselectedAfter(mixed, emptySet(), toggle(selectionOf(mixed, emptySet()), mixed.items[0]))
+        val after = selectionOf(replanned, deselected)
+        assertTrue(2 in after, "Present → New is selected by default")
+        assertFalse(0 in after, "the user's deselection survives")
+        assertEquals(setOf(1, 2, 3, 4, 5), after)
+    }
+
+    @Test fun deselectedFileStaysDeselectedAcrossReplans() {
+        val deselected = deselectedAfter(mixed, emptySet(), selectAll(mixed) - 5)
+        assertEquals(setOf(5), deselected)
+        assertFalse(5 in selectionOf(replanned, deselected))
+        assertFalse(5 in selectionOf(mixed, deselected), "same folder picked again")
+    }
+
+    @Test fun selectNoneThenReplanStaysEmpty() {
+        val deselected = selectNone(mixed, emptySet())
+        assertEquals(emptySet(), selectionOf(mixed, deselected))
+        assertEquals(emptySet(), selectionOf(replanned, deselected), "even files that became New stay unselected")
+    }
+
+    @Test fun selectAllClearsDeselections() {
+        val deselected = selectNone(mixed, emptySet())
+        val all = deselectedAfter(mixed, deselected, selectAll(mixed))
+        assertEquals(mixed.defaultSelection(), selectionOf(mixed, all))
+        assertEquals(replanned.defaultSelection(), selectionOf(replanned, emptySet()))
+    }
+
+    @Test fun formatToggleUpdatesDeselections() {
+        val sel = selectionOf(mixed, emptySet())
+        val withoutMp3 = deselectedAfter(mixed, emptySet(), toggleFormat(mixed, sel, "mp3"))
+        assertEquals(setOf(0, 5), withoutMp3)
+        val back = deselectedAfter(mixed, withoutMp3, toggleFormat(mixed, selectionOf(mixed, withoutMp3), "mp3"))
+        assertEquals(emptySet(), back)
     }
 
     @Test fun defaultSelectionIsEverythingNewAndReplace() {

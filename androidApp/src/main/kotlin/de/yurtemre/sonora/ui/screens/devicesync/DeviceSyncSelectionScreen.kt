@@ -59,8 +59,8 @@ import de.yurtemre.sonora.ui.format.FolderDisplay
 import de.yurtemre.sonora.ui.screens.settings.SettingsNote
 import de.yurtemre.sonora.ui.screens.settings.SettingsScaffold
 
-/** Selected file ids survive configuration changes (thousands of ids fit an IntArray); null = no edit yet. */
-private val IdSetSaver = Saver<Set<Int>?, IntArray>(save = { it?.toIntArray() }, restore = { it.toSet() })
+/** Deselected file ids survive configuration changes (thousands of ids fit an IntArray). */
+private val IdSetSaver = Saver<Set<Int>, IntArray>(save = { it.toIntArray() }, restore = { it.toSet() })
 
 /**
  * DSYNC-09/10: destination folder, summary chips, Audio (format chips) / Lyrics / Covers grouped by folder with
@@ -76,9 +76,9 @@ internal fun DeviceSyncSelectionScreen(
     onBack: () -> Unit,
 ) {
     val plan = planning.plan
-    // Kept per sender: a re-plan (same or another folder) keeps the user's edits, limited to what is still selectable.
-    var edited by rememberSaveable(planning.senderName, stateSaver = IdSetSaver) { mutableStateOf<Set<Int>?>(null) }
-    val selected = remember(plan, edited) { plan?.let { reconcileSelection(edited, it) }.orEmpty() }
+    // Kept per sender: a re-plan (same or another folder) keeps what the user deselected; the rest follows the plan.
+    var deselected by rememberSaveable(planning.senderName, stateSaver = IdSetSaver) { mutableStateOf(emptySet<Int>()) }
+    val selected = remember(plan, deselected) { plan?.let { selectionOf(it, deselected) }.orEmpty() }
     val sections = remember(plan) { plan?.let(::sections).orEmpty() }
     SettingsScaffold(
         stringResource(R.string.settings_devicesync_title),
@@ -112,17 +112,17 @@ internal fun DeviceSyncSelectionScreen(
         } else {
             item(key = "select_all") {
                 ActionsRow {
-                    TextButton(onClick = { edited = selectAll(plan) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(onClick = { deselected = emptySet() }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.devicesync_select_all))
                     }
-                    TextButton(onClick = { edited = emptySet() }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(onClick = { deselected = selectNone(plan, deselected) }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.devicesync_select_none))
                     }
                 }
             }
         }
         sections.forEach { section ->
-            sectionItems(section, plan, selected) { edited = it }
+            sectionItems(section, plan, selected) { deselected = deselectedAfter(plan, deselected, it) }
         }
     }
 }
