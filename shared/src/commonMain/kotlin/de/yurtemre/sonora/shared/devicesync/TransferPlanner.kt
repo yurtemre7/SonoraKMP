@@ -70,7 +70,16 @@ data class TransferPlan(val items: List<PlanItem>, val rejected: List<ManifestFi
     }
 }
 
-/** Decides New / Replace / Present per sender file (DSYNC-08, D-72). */
+/**
+ * Decides New / Replace / Present per sender file (DSYNC-08, D-72).
+ *
+ * - Paths are compared ignoring case: the destination (FUSE or SAF) is case-insensitive, so `artist/cover.jpg`
+ *   from the sender is the receiver's `Artist/cover.jpg`.
+ * - A New file of any kind is fingerprinted when a file of the same size exists in the destination.
+ * - A lyrics or cover file whose audio files (for lyrics the one with the same base name, for covers all in its
+ *   folder) are all Present by tags in *another* folder (or outside the destination) is Present as well: the
+ *   receiver keeps those songs elsewhere, so a copy would be an orphan next to no audio.
+ */
 object TransferPlanner {
     fun plan(files: List<ManifestFile>, index: ReceiverIndex): TransferPlan {
         val rejected = ArrayList<ManifestFile>()
@@ -80,14 +89,20 @@ object TransferPlanner {
             if (path == null || SyncPaths.kindOf(path) != f.kind) rejected += f else accepted += f to path
         }
         val claimed = HashSet<Long>()
-        val songByPath = index.library.filter { it.relPath != null }.sortedBy { it.songId }.groupBy { it.relPath!! }
+        val songByPath = index.library.filter { it.relPath != null }.sortedBy { it.songId }.groupBy { it.relPath!!.lowercase() }
+        val sizesByPath = HashMap<String, MutableSet<Long>>()
+        for ((p, size) in index.existing) sizesByPath.getOrPut(p.lowercase()) { HashSet() } += size
         val results = HashMap<Int, PlanItem>()
+        /** Audio items Present by tags: the receiver song's folder (null = outside the destination). */
+        val presentElsewhere = HashMap<Int, String?>()
 
-        // Pass 1: same path and size.
+        // Pass 1: same path (ignoring case) and size.
         for ((f, path) in accepted) {
-            if (index.existing[path] != f.size) continue
+            if (sizesByPath[path.lowercase()]?.contains(f.size) != true) continue
             results[f.id] = PlanItem(f, Status.Present)
-            if (f.kind == FileKind.Audio) songByPath[path]?.firstOrNull { it.songId !in claimed }?.let { claimed += it.songId }
+            if (f.kind == FileKind.Audio) {
+                songByPath[path.lowercase()]?.firstOrNull { it.songId !in claimed }?.let { claimed += it.songId }
+            }
         }
 
         // Pass 2: tag matching for the remaining audio, lowest sender id first.
@@ -99,14 +114,36 @@ object TransferPlanner {
             val meta = f.audio.takeIf { f.kind == FileKind.Audio }
             val match = meta?.let { closest(byTags[SongMatcher.tagKey(it.title, it.artist, it.album)], it.durationMs, claimed) }
             results[f.id] = when {
-                match == null -> PlanItem(f, Status.New, needsFingerprint = f.kind == FileKind.Audio && f.size in sizes)
-                match.extension == SyncPaths.extension(path) -> PlanItem(f, Status.Present)
+                match == null -> PlanItem(f, Status.New, needsFingerprint = f.size in sizes)
+                match.extension == SyncPaths.extension(path) -> {
+                    presentElsewhere[f.id] = match.relPath?.let(SyncPaths::parent)
+                    PlanItem(f, Status.Present)
+                }
                 else -> PlanItem(f, Status.Replace, replaces = match)
             }
             if (match != null) claimed += match.songId
         }
+
+        // Pass 3: sidecars of songs the receiver keeps in another folder.
+        val audioByDir = accepted.filter { it.first.kind == FileKind.Audio }.groupBy { SyncPaths.parent(it.second).lowercase() }
+        for ((f, path) in accepted) {
+            if (f.kind == FileKind.Audio || results.getValue(f.id).status == Status.Present) continue
+            val dir = SyncPaths.parent(path)
+            val inDir = audioByDir[dir.lowercase()].orEmpty()
+            val owners = if (f.kind == FileKind.Lyrics) {
+                inDir.filter { stem(it.second).equals(stem(path), ignoreCase = true) }
+            } else {
+                inDir
+            }
+            val elsewhere = owners.isNotEmpty() && owners.all { (audio, _) ->
+                audio.id in presentElsewhere && presentElsewhere[audio.id]?.equals(dir, ignoreCase = true) != true
+            }
+            if (elsewhere) results[f.id] = PlanItem(f, Status.Present)
+        }
         return TransferPlan(accepted.map { results.getValue(it.first.id) }, rejected)
     }
+
+    private fun stem(path: String) = SyncPaths.baseName(path).substringBeforeLast('.')
 
     private fun closest(candidates: List<ReceiverSong>?, durationMs: Long, claimed: Set<Long>): ReceiverSong? {
         var best: ReceiverSong? = null

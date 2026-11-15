@@ -55,6 +55,73 @@ class TransferPlannerTest {
         assertEquals(listOf(Status.Present, Status.Present, Status.New), p.items.map { it.status })
     }
 
+    @Test fun pathLookupIgnoresCase() {
+        // Receiver has Artist/…, sender artist/…: same files, nothing to copy (the destination is case-insensitive).
+        val files = listOf(
+            audio(1, "artist/Album/t.mp3", size = 1000, title = "Unmatched"),
+            ManifestFile(2, "artist/cover.jpg", 20, 0, FileKind.Cover),
+            ManifestFile(3, "artist/Album/T.LRC", 10, 0, FileKind.Lyrics),
+        )
+        val existing = mapOf("Artist/Album/t.mp3" to 1000L, "Artist/cover.jpg" to 20L, "Artist/Album/t.lrc" to 10L)
+        val p = plan(files, existing = existing, lib = listOf(song(7, "Artist/Album/t.mp3", title = "Other")))
+        assertEquals(listOf(Status.Present, Status.Present, Status.Present), p.items.map { it.status })
+        assertTrue(p.defaultSelection().isEmpty())
+    }
+
+    @Test fun caseOnlyPathMatchClaimsTheSong() {
+        // The song found by path is claimed, so tag matching cannot plan replacing it with another sender file.
+        val files = listOf(audio(1, "artist/t.mp3", size = 1000, title = "Tags differ"), audio(2, "other/t.flac", size = 3000))
+        val p = plan(files, existing = mapOf("Artist/t.mp3" to 1000L), lib = listOf(song(7, "Artist/t.mp3")))
+        assertEquals(listOf(Status.Present, Status.New), p.items.map { it.status })
+    }
+
+    @Test fun sameSizeSidecarsAreFingerprinted() {
+        val files = listOf(
+            ManifestFile(1, "b/cover.jpg", 20, 0, FileKind.Cover),
+            ManifestFile(2, "b/t.lrc", 10, 0, FileKind.Lyrics),
+            ManifestFile(3, "b/u.lrc", 11, 0, FileKind.Lyrics),
+        )
+        val p = plan(files + audio(4, "b/t.mp3", size = 999, title = "New song"), existing = mapOf("a/folder.jpg" to 20L, "a/x.lrc" to 10L))
+        assertEquals(listOf(true, true, false, false), p.items.map { it.needsFingerprint })
+    }
+
+    @Test fun sidecarsOfSongsPresentElsewhereAreNotCopied() {
+        // The sender's layout differs: both songs are already here by tags, in another folder (or outside the
+        // destination). Their lyrics and cover would only be orphans next to no audio.
+        val files = listOf(
+            audio(1, "Music/Album/t.mp3", title = "T"),
+            audio(2, "Music/Album/u.mp3", title = "U"),
+            ManifestFile(3, "Music/Album/t.lrc", 10, 0, FileKind.Lyrics),
+            ManifestFile(4, "Music/Album/cover.jpg", 20, 0, FileKind.Cover),
+        )
+        val lib = listOf(song(7, "Album/t.mp3", title = "T"), song(8, null, title = "U"))
+        val p = plan(files, lib = lib)
+        assertEquals(listOf(Status.Present, Status.Present, Status.Present, Status.Present), p.items.map { it.status })
+    }
+
+    @Test fun sidecarsStayNewWhenTheirAudioIsCopiedOrInTheSameFolder() {
+        val files = listOf(
+            audio(1, "A/t.mp3", title = "T"),          // Present by tags in the same folder (another name)
+            ManifestFile(2, "A/t.lrc", 10, 0, FileKind.Lyrics),
+            audio(3, "B/u.flac", title = "U"),         // Replace: the new file lands in B/
+            ManifestFile(4, "B/u.lrc", 10, 0, FileKind.Lyrics),
+            audio(5, "C/v.mp3", title = "V"),          // Present elsewhere
+            audio(6, "C/w.mp3", title = "W"),          // New
+            ManifestFile(7, "C/cover.jpg", 20, 0, FileKind.Cover),
+            ManifestFile(8, "C/v.lrc", 10, 0, FileKind.Lyrics),
+        )
+        val lib = listOf(
+            song(10, "a/T song.mp3", title = "T"),
+            song(11, "elsewhere/u.mp3", title = "U"),
+            song(12, "elsewhere/v.mp3", title = "V"),
+        )
+        val p = plan(files, lib = lib)
+        assertEquals(
+            listOf(Status.Present, Status.New, Status.Replace, Status.New, Status.Present, Status.New, Status.New, Status.Present),
+            p.items.map { it.status },
+        )
+    }
+
     @Test fun unsafeAndMismatchedRejected() {
         val bad = ManifestFile(1, "../evil.mp3", 1, 0, FileKind.Audio)
         val badType = ManifestFile(2, "a/run.exe", 1, 0, FileKind.Audio)
