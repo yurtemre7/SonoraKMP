@@ -7,6 +7,8 @@ import de.yurtemre.sonora.devicesync.DeviceSyncDiscovery
 import de.yurtemre.sonora.devicesync.DeviceSyncFailure
 import de.yurtemre.sonora.devicesync.DiscoveredSender
 import de.yurtemre.sonora.devicesync.SyncTarget
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncClient
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import de.yurtemre.sonora.shared.devicesync.FileKind
 import de.yurtemre.sonora.shared.devicesync.PlanItem
 import de.yurtemre.sonora.shared.devicesync.Status
@@ -50,6 +52,13 @@ sealed interface ConnectAction {
     data object NeedSender : ConnectAction
 }
 
+/**
+ * Whether the manual `IP:port` field is open: always once the user typed an address (it is then used), else the
+ * user's toggle, else [manualExpandedByDefault].
+ */
+fun isManualOpen(toggled: Boolean?, manualText: String, discoveryFailed: Boolean, senderCount: Int, searchTimedOut: Boolean): Boolean =
+    manualText.isNotBlank() || (toggled ?: manualExpandedByDefault(discoveryFailed, senderCount, searchTimedOut))
+
 /** A typed address (when the manual field is open and not blank) wins over the selected sender. */
 fun connectAction(manualExpanded: Boolean, manualText: String, sender: DiscoveredSender?): ConnectAction {
     if (manualExpanded && manualText.isNotBlank()) {
@@ -71,12 +80,12 @@ fun failureMessage(reason: DeviceSyncFailure): Int = when (reason) {
     DeviceSyncFailure.Unknown -> R.string.devicesync_failure_unknown
 }
 
-/** Per-file failure codes from the client, sink and sender error frames. */
+/** Per-file failure codes: the client's checks and write failures, and the sender's error frames. */
 @StringRes
 fun failedFileReason(reason: String): Int = when (reason) {
-    "size_mismatch", "checksum_mismatch" -> R.string.devicesync_file_failed_damaged
-    "write_failed", "open_failed", "create_failed", "mkdir_failed" -> R.string.devicesync_file_failed_write
-    "read_failed", "unknown_file" -> R.string.devicesync_file_failed_read
+    DeviceSyncClient.FAILURE_SIZE, DeviceSyncClient.FAILURE_CHECKSUM -> R.string.devicesync_file_failed_damaged
+    DeviceSyncClient.FAILURE_WRITE -> R.string.devicesync_file_failed_write
+    DeviceSyncServer.ERROR_READ_FAILED, DeviceSyncServer.ERROR_UNKNOWN_FILE -> R.string.devicesync_file_failed_read
     else -> R.string.devicesync_file_failed_other
 }
 
@@ -101,14 +110,25 @@ fun sections(plan: TransferPlan): List<KindSection> {
     val byKind = plan.groupsByKind()
     return FileKind.entries.mapNotNull { kind ->
         val items = byKind[kind].orEmpty().ifEmpty { return@mapNotNull null }
-        val folders = items.groupBy { SyncPaths.parent(it.file.relPath) }.toSortedMap(String.CASE_INSENSITIVE_ORDER)
-            .map { (folder, list) -> FolderGroup(folder, list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.file.relPath })) }
+        // Grouped by exact path (folders differing only by case stay separate), sorted ignoring case.
+        val folders = items.groupBy { SyncPaths.parent(it.file.relPath) }.entries
+            .sortedWith(compareBy<Map.Entry<String, *>, String>(String.CASE_INSENSITIVE_ORDER) { it.key }.thenBy { it.key })
+            .map { (folder, list) -> FolderGroup(folder, list.sortedWith(byPath)) }
         KindSection(kind, folders)
     }
 }
 
+private val byPath = compareBy<PlanItem, String>(String.CASE_INSENSITIVE_ORDER) { it.file.relPath }.thenBy { it.file.relPath }
+
 private fun selectableIds(items: Iterable<PlanItem>): Set<Int> =
     items.filter { it.status != Status.Present }.mapTo(LinkedHashSet()) { it.file.id }
+
+/**
+ * The selection for [plan]: the defaults on the first plan for a sender ([previous] null), otherwise the user's
+ * [previous] selection limited to what is still selectable (a re-plan never re-checks what the user cleared).
+ */
+fun reconcileSelection(previous: Set<Int>?, plan: TransferPlan): Set<Int> =
+    previous?.intersect(selectableIds(plan.items)) ?: plan.defaultSelection()
 
 /** Select all = every New and Replace item (the default selection). */
 fun selectAll(plan: TransferPlan): Set<Int> = plan.defaultSelection()

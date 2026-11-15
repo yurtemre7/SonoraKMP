@@ -7,14 +7,17 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
@@ -50,6 +53,15 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
     var localeApplied by rememberSaveable { mutableStateOf(false) }
     var launchedDelete by rememberSaveable { mutableStateOf<IntentSender?>(null) }
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val res = LocalResources.current
+
+    fun showMessage(message: String) {
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(message)
+        }
+    }
 
     fun start(role: SyncRole) = when (role) {
         SyncRole.Send -> controller.startSending()
@@ -134,8 +146,13 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
             autoPicked = false
             localeApplied = false
             folderError = false
-            confirmCancel = false
         }
+    }
+
+    // The cancel dialog belongs to one transfer: drop a pending request once it is over (failed, applying, …).
+    val transferring = state is DeviceSyncState.Transferring
+    LaunchedEffect(transferring) {
+        if (!transferring) confirmCancel = false
     }
 
     fun finish() {
@@ -146,7 +163,9 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
     fun handleBack() {
         when (state) {
             DeviceSyncState.Idle -> onBack()
-            is DeviceSyncState.Transferring, is DeviceSyncState.Applying -> confirmCancel = true
+            is DeviceSyncState.Transferring -> confirmCancel = true
+            // Applying (library update, replace, data) is short and must not be cut off: back waits for it.
+            is DeviceSyncState.Applying -> showMessage(res.getString(R.string.devicesync_applying_wait))
             is DeviceSyncState.Finished -> finish()
             // Sending (stops the sender), discovery, connecting, planning, failed: back to the start screen.
             else -> controller.cancel()
@@ -172,12 +191,15 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         is DeviceSyncState.Planning -> DeviceSyncSelectionScreen(
             s,
             folderError = folderError,
+            snackbar = snackbar,
             onPickFolder = ::pickFolder,
-            onStart = { controller.startTransfer(it) },
+            onStart = { ids ->
+                if (!controller.startTransfer(ids)) showMessage(res.getString(R.string.devicesync_start_refused))
+            },
             onBack = ::handleBack,
         )
         is DeviceSyncState.Transferring, is DeviceSyncState.Applying ->
-            DeviceSyncProgressScreen(s, onCancel = { confirmCancel = true }, onBack = ::handleBack)
+            DeviceSyncProgressScreen(s, snackbar, onCancel = { confirmCancel = true }, onBack = ::handleBack)
         is DeviceSyncState.Finished -> {
             val result = s.summary
             if (result == null) DeviceSyncSentScreen(onDone = ::finish, onBack = ::handleBack)
@@ -186,8 +208,7 @@ fun DeviceSyncRoute(onBack: () -> Unit) {
         is DeviceSyncState.Failed -> DeviceSyncFailedScreen(s, onRetry = controller::retry, onBack = ::handleBack)
     }
 
-    val running = state is DeviceSyncState.Transferring || state is DeviceSyncState.Applying
-    if (confirmCancel && running) {
+    if (confirmCancel && transferring) {
         ConfirmDialog(
             title = stringResource(R.string.devicesync_cancel_title),
             message = stringResource(R.string.devicesync_cancel_body),

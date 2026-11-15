@@ -135,10 +135,20 @@
         <item quantity="one">%1$d setting</item>
         <item quantity="other">%1$d settings</item>
     </plurals>
-    <plurals name="devicesync_result_stats">
-        <item quantity="one">Stats for %1$d song · %2$d full listens added</item>
-        <item quantity="other">Stats for %1$d songs · %2$d full listens added</item>
+    <plurals name="devicesync_result_stats_songs">
+        <item quantity="one">Stats for %1$d song</item>
+        <item quantity="other">Stats for %1$d songs</item>
     </plurals>
+    <plurals name="devicesync_result_listens">
+        <item quantity="one">%1$d full listen added</item>
+        <item quantity="other">%1$d full listens added</item>
+    </plurals>
+    <string name="devicesync_join">%1$s · %2$s</string>
+    <string name="devicesync_address">%1$s:%2$d</string>
+    <string name="devicesync_expanded">Expanded</string>
+    <string name="devicesync_collapsed">Collapsed</string>
+    <string name="devicesync_applying_wait">Almost done. Please wait while the received data is applied.</string>
+    <string name="devicesync_start_refused">Couldn\'t start yet. Wait until the check is finished, then try again.</string>
     <string name="devicesync_result_rescan_skipped">The library wasn\'t updated automatically. Run a library sync in Settings to see the new songs.</string>
     <string name="devicesync_show_failed">Show files</string>
     <string name="devicesync_hide_failed">Hide files</string>

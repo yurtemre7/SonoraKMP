@@ -25,6 +25,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,8 +59,8 @@ import de.yurtemre.sonora.ui.format.FolderDisplay
 import de.yurtemre.sonora.ui.screens.settings.SettingsNote
 import de.yurtemre.sonora.ui.screens.settings.SettingsScaffold
 
-/** Selected file ids survive configuration changes (thousands of ids fit an IntArray). */
-private val IdSetSaver = Saver<Set<Int>, IntArray>(save = { it.toIntArray() }, restore = { it.toSet() })
+/** Selected file ids survive configuration changes (thousands of ids fit an IntArray); null = no edit yet. */
+private val IdSetSaver = Saver<Set<Int>?, IntArray>(save = { it?.toIntArray() }, restore = { it.toSet() })
 
 /**
  * DSYNC-09/10: destination folder, summary chips, Audio (format chips) / Lyrics / Covers grouped by folder with
@@ -69,16 +70,20 @@ private val IdSetSaver = Saver<Set<Int>, IntArray>(save = { it.toIntArray() }, r
 internal fun DeviceSyncSelectionScreen(
     planning: DeviceSyncState.Planning,
     folderError: Boolean,
+    snackbar: SnackbarHostState,
     onPickFolder: () -> Unit,
     onStart: (Set<Int>) -> Unit,
     onBack: () -> Unit,
 ) {
     val plan = planning.plan
-    var selected by rememberSaveable(plan, stateSaver = IdSetSaver) { mutableStateOf(plan?.defaultSelection().orEmpty()) }
+    // Kept per sender: a re-plan (same or another folder) keeps the user's edits, limited to what is still selectable.
+    var edited by rememberSaveable(planning.senderName, stateSaver = IdSetSaver) { mutableStateOf<Set<Int>?>(null) }
+    val selected = remember(plan, edited) { plan?.let { reconcileSelection(edited, it) }.orEmpty() }
     val sections = remember(plan) { plan?.let(::sections).orEmpty() }
     SettingsScaffold(
         stringResource(R.string.settings_devicesync_title),
         onBack,
+        snackbar = snackbar,
         bottomBar = {
             if (plan != null && !planning.computing) {
                 StartBar(plan, selected, planning.freeBytes) { onStart(selected) }
@@ -107,17 +112,17 @@ internal fun DeviceSyncSelectionScreen(
         } else {
             item(key = "select_all") {
                 ActionsRow {
-                    TextButton(onClick = { selected = selectAll(plan) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(onClick = { edited = selectAll(plan) }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.devicesync_select_all))
                     }
-                    TextButton(onClick = { selected = emptySet() }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(onClick = { edited = emptySet() }, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.devicesync_select_none))
                     }
                 }
             }
         }
         sections.forEach { section ->
-            sectionItems(section, plan, selected) { selected = it }
+            sectionItems(section, plan, selected) { edited = it }
         }
     }
 }
@@ -261,7 +266,7 @@ private fun FileRow(item: PlanItem, checked: Boolean, onToggle: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(SyncPaths.baseName(item.file.relPath), style = MaterialTheme.typography.bodyLarge, color = cs.onSurface)
             Text(
-                status + " · " + formatBytes(context, item.file.size),
+                stringResource(R.string.devicesync_join, status, formatBytes(context, item.file.size)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (item.status == Status.Replace) cs.tertiary else cs.onSurfaceVariant,
             )

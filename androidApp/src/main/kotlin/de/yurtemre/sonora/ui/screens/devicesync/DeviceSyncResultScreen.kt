@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.devicesync.DeviceSyncState
@@ -57,19 +59,23 @@ internal fun DeviceSyncResultScreen(summary: DeviceSyncSummary, onDone: () -> Un
                     pluralStringResource(R.plurals.devicesync_result_playlists, summary.playlists, summary.playlists),
                     pluralStringResource(R.plurals.devicesync_result_favorites, summary.favorites, summary.favorites),
                     pluralStringResource(R.plurals.devicesync_result_settings, summary.settings, summary.settings),
-                    pluralStringResource(
-                        R.plurals.devicesync_result_stats, summary.statsSongsAdded, summary.statsSongsAdded, summary.completeListensAdded,
+                    stringResource(
+                        R.string.devicesync_join,
+                        pluralStringResource(R.plurals.devicesync_result_stats_songs, summary.statsSongsAdded, summary.statsSongsAdded),
+                        pluralStringResource(R.plurals.devicesync_result_listens, summary.completeListensAdded, summary.completeListensAdded),
                     ),
                 ).joinToString("\n"),
             )
         }
         if (summary.failed.isNotEmpty()) {
             item(key = "failed") {
+                val expandState = stringResource(if (showFailed) R.string.devicesync_expanded else R.string.devicesync_collapsed)
                 SettingsRow(
                     pluralStringResource(R.plurals.devicesync_result_failed, summary.failed.size, summary.failed.size),
                     icon = Icons.Rounded.ErrorOutline,
                     subtitle = stringResource(if (showFailed) R.string.devicesync_hide_failed else R.string.devicesync_show_failed),
                     onClick = { showFailed = !showFailed },
+                    modifier = Modifier.semantics { stateDescription = expandState },
                     trailing = { Icon(if (showFailed) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null) },
                 )
             }

@@ -1,10 +1,12 @@
 package de.yurtemre.sonora.ui.screens.devicesync
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -72,7 +74,7 @@ internal fun DeviceSyncConnectScreen(
         delay(SEARCH_TIMEOUT_MS)
         timedOut = true
     }
-    val manualOpen = manualToggled ?: manualExpandedByDefault(discoveryFailed, senders.size, timedOut)
+    val manualOpen = isManualOpen(manualToggled, manualText, discoveryFailed, senders.size, timedOut)
     val sender = effectiveSender(senders, selectedName)
     val busy = connecting != null
 
@@ -97,20 +99,32 @@ internal fun DeviceSyncConnectScreen(
                     }
                 }
             }
-            senders.forEach { s ->
-                item(key = "s_${s.serviceName}") {
-                    SenderRow(s, selected = s == sender && !manualOpen) {
-                        selectedName = s.serviceName
-                        manualToggled = false
-                        error = null
+            if (senders.isNotEmpty()) {
+                item(key = "senders") {
+                    Column(Modifier.selectableGroup()) {
+                        senders.forEach { s ->
+                            // A typed address is used instead of any sender (see connectAction).
+                            SenderRow(s, selected = s == sender && manualText.isBlank()) {
+                                selectedName = s.serviceName
+                                manualText = ""
+                                manualToggled = false
+                                error = null
+                            }
+                        }
                     }
                 }
             }
             item(key = "manual_toggle") {
+                val expandState = stringResource(if (manualOpen) R.string.devicesync_expanded else R.string.devicesync_collapsed)
                 SettingsRow(
                     stringResource(R.string.devicesync_manual_title),
+                    Modifier.semantics { stateDescription = expandState },
                     icon = Icons.Rounded.Lan,
-                    onClick = { manualToggled = !manualOpen },
+                    onClick = {
+                        // Collapsing is an explicit choice to stop using the typed address.
+                        if (manualOpen) manualText = ""
+                        manualToggled = !manualOpen
+                    },
                     trailing = { Icon(if (manualOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null) },
                 )
             }
@@ -158,7 +172,7 @@ internal fun DeviceSyncConnectScreen(
         }
         item(key = "connect") {
             if (connecting != null) {
-                StatusProgress(stringResource(R.string.devicesync_connecting, connecting.name ?: "${connecting.host}:${connecting.port}"), null)
+                StatusProgress(stringResource(R.string.devicesync_connecting, connecting.name ?: stringResource(R.string.devicesync_address, connecting.host, connecting.port)), null)
             } else {
                 ActionsRow {
                     Button(onClick = { submit() }, enabled = code.length == CODE_LENGTH, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -176,7 +190,7 @@ private fun SenderRow(sender: DiscoveredSender, selected: Boolean, onSelect: () 
         sender.name,
         Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onSelect),
         icon = Icons.Rounded.Smartphone,
-        subtitle = "${sender.host}:${sender.port}",
+        subtitle = stringResource(R.string.devicesync_address, sender.host, sender.port),
         trailing = { RadioButton(selected = selected, onClick = null) },
     )
 }

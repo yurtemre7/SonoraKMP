@@ -8,6 +8,8 @@ import de.yurtemre.sonora.devicesync.DeviceSyncFailure
 import de.yurtemre.sonora.devicesync.DiscoveredSender
 import de.yurtemre.sonora.devicesync.SyncTarget
 import de.yurtemre.sonora.shared.devicesync.AudioMeta
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncClient
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import de.yurtemre.sonora.shared.devicesync.FileKind
 import de.yurtemre.sonora.shared.devicesync.ManifestFile
 import de.yurtemre.sonora.shared.devicesync.PlanItem
@@ -108,9 +110,21 @@ class DeviceSyncPresentationTest {
     }
 
     @Test fun failedFileReasonsAreLocalized() {
-        assertEquals(failedFileReason("checksum_mismatch"), failedFileReason("size_mismatch"))
-        assertEquals(failedFileReason("write_failed"), failedFileReason("open_failed"))
+        assertEquals(R.string.devicesync_file_failed_damaged, failedFileReason(DeviceSyncClient.FAILURE_CHECKSUM))
+        assertEquals(R.string.devicesync_file_failed_damaged, failedFileReason(DeviceSyncClient.FAILURE_SIZE))
+        assertEquals(R.string.devicesync_file_failed_write, failedFileReason(DeviceSyncClient.FAILURE_WRITE))
+        assertEquals(R.string.devicesync_file_failed_read, failedFileReason(DeviceSyncServer.ERROR_READ_FAILED))
+        assertEquals(R.string.devicesync_file_failed_read, failedFileReason(DeviceSyncServer.ERROR_UNKNOWN_FILE))
         assertEquals(R.string.devicesync_file_failed_other, failedFileReason("something_new"))
+    }
+
+    @Test fun typedManualAddressKeepsTheFieldOpen() {
+        // A sender showing up after the timeout must not collapse an address the user typed.
+        assertTrue(isManualOpen(toggled = null, manualText = "10.0.0.5:4", discoveryFailed = false, senderCount = 1, searchTimedOut = true))
+        assertTrue(isManualOpen(toggled = false, manualText = "10.0.0.5:4", discoveryFailed = false, senderCount = 1, searchTimedOut = true))
+        assertFalse(isManualOpen(toggled = null, manualText = "", discoveryFailed = false, senderCount = 1, searchTimedOut = true))
+        assertTrue(isManualOpen(toggled = true, manualText = "", discoveryFailed = false, senderCount = 1, searchTimedOut = false))
+        assertFalse(isManualOpen(toggled = false, manualText = " ", discoveryFailed = true, senderCount = 0, searchTimedOut = true))
     }
 
     // ---- selection ---------------------------------------------------------------------------------------------
@@ -129,6 +143,22 @@ class DeviceSyncPresentationTest {
         assertEquals(listOf("", "A", "B"), audio.folders.map { it.folder })
         assertEquals(listOf("A/b.flac", "A/old.mp3", "A/one.flac"), audio.folders[1].items.map { it.file.relPath })
         assertEquals(listOf(FileKind.Audio), sections(TransferPlan(listOf(item(0, "a.mp3")))).map { it.kind })
+    }
+
+    @Test fun foldersDifferingOnlyByCaseStaySeparate() {
+        val plan = TransferPlan(listOf(item(0, "music/a/x.mp3"), item(1, "Music/A/y.mp3"), item(2, "Music/B/z.mp3")))
+        val folders = sections(plan).single().folders
+        assertEquals(listOf("Music/A", "music/a", "Music/B"), folders.map { it.folder })
+        assertEquals(3, folders.sumOf { it.items.size }, "no file disappears")
+    }
+
+    @Test fun reconcileKeepsTheEditedSelectionAcrossReplans() {
+        assertEquals(mixed.defaultSelection(), reconcileSelection(null, mixed), "first plan: defaults")
+        assertEquals(setOf(0, 3), reconcileSelection(setOf(0, 3), mixed))
+        // ids that became Present (or vanished) drop out; nothing new is added.
+        val replanned = TransferPlan(listOf(item(0, "B/two.mp3", Status.Present), item(3, "A/one.lrc", kind = FileKind.Lyrics), item(5, "top.mp3")))
+        assertEquals(setOf(3), reconcileSelection(setOf(0, 3, 4), replanned))
+        assertEquals(emptySet(), reconcileSelection(emptySet(), mixed), "select none stays none")
     }
 
     @Test fun defaultSelectionIsEverythingNewAndReplace() {

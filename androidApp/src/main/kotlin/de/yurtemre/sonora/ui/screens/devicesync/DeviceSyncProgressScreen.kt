@@ -2,6 +2,7 @@ package de.yurtemre.sonora.ui.screens.devicesync
 
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,9 +19,9 @@ import de.yurtemre.sonora.ui.screens.settings.SettingsScaffold
 
 /** DSYNC-13: files, bytes, speed and ETA with Cancel; then the apply step text. */
 @Composable
-internal fun DeviceSyncProgressScreen(state: DeviceSyncState, onCancel: () -> Unit, onBack: () -> Unit) {
+internal fun DeviceSyncProgressScreen(state: DeviceSyncState, snackbar: SnackbarHostState, onCancel: () -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
-    SettingsScaffold(stringResource(R.string.settings_devicesync_title), onBack) {
+    SettingsScaffold(stringResource(R.string.settings_devicesync_title), onBack, snackbar) {
         item(key = "title") { SettingsNote(stringResource(R.string.devicesync_receiving)) }
         when (state) {
             is DeviceSyncState.Transferring -> {
