@@ -124,7 +124,7 @@
     <string name="settings_tab_playlists">プレイリスト</string>
 
     <string name="settings_privacy_data_title">データは端末の中だけに保存されます</string>
-    <string name="settings_privacy_data_body">SonoraKMPにはアカウントも分析ツールも広告もありません。ライブラリ、プレイリスト、お気に入り、再生統計が端末の外に出ることはありません。通信するのは、GitHubで新しいバージョンを確認するときだけです。</string>
+    <string name="settings_privacy_data_body">SonoraKMPにはアカウントも分析ツールも広告もありません。ライブラリ、プレイリスト、お気に入り、再生統計は、デバイス同期で別のスマートフォンにコピーしない限り端末の外に出ることはありません。インターネットに接続するのは、GitHubで新しいバージョンを確認するときだけです。</string>
     <string name="settings_section_permissions">権限について</string>
     <string name="settings_perm_audio_title">音楽とオーディオ</string>
     <string name="settings_perm_audio_body">選んだフォルダ内の音声ファイルと、その横にある cover.jpg などのジャケット画像を読み込みます。写真や動画へのアクセスは求めません。</string>
@@ -133,7 +133,7 @@
     <string name="settings_perm_wake_title">スリープの防止</string>
     <string name="settings_perm_wake_body">曲の途中で端末がスリープしないようにします。</string>
     <string name="settings_perm_internet_title">インターネット</string>
-    <string name="settings_perm_internet_body">GitHubからリリース情報と更新履歴を取得するためだけに使います。音楽やデータがアップロードされることはありません。</string>
+    <string name="settings_perm_internet_body">GitHubからリリース情報と更新履歴を取得するとき、またデバイス同期で同じWi-Fiの別のスマートフォンに直接つなぐときに使います。音楽やデータがインターネットにアップロードされることはありません。</string>
     <string name="settings_perm_install_title">アップデートのインストール</string>
     <string name="settings_perm_install_body">ダウンロードしたアップデートをAndroidのインストーラーに渡します。あなたの確認なしにインストールされることはありません。</string>
     <string name="settings_privacy_delete_title">すべてを削除</string>

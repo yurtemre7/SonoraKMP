@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.InstallMobile
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -44,6 +45,8 @@ private val PermissionCards = listOf(
     PrivacyCard("wake", Icons.Rounded.BatteryChargingFull, R.string.settings_perm_wake_title, R.string.settings_perm_wake_body),
     // INTERNET, ACCESS_NETWORK_STATE
     PrivacyCard("internet", Icons.Rounded.Public, R.string.settings_perm_internet_title, R.string.settings_perm_internet_body),
+    // FOREGROUND_SERVICE_DATA_SYNC, ACCESS_WIFI_STATE, CHANGE_WIFI_MULTICAST_STATE (device sync, DSYNC-02/13)
+    PrivacyCard("device_sync", Icons.Rounded.Devices, R.string.settings_perm_devicesync_title, R.string.settings_perm_devicesync_body),
     // REQUEST_INSTALL_PACKAGES
     PrivacyCard("install", Icons.Rounded.InstallMobile, R.string.settings_perm_install_title, R.string.settings_perm_install_body),
 )

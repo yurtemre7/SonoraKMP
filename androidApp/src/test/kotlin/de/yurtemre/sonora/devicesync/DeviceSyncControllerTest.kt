@@ -461,6 +461,23 @@ class DeviceSyncControllerTest {
         assertEquals(1, finished(c).filesKeptBoth)
     }
 
+    @Test fun emptySelectionStartsEvenWithoutFreeSpace() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 50))
+        val storage = FakeStorage(free = 10L)
+        var client: FakeClient? = null
+        val c = controller({ FakeClient(m).also { client = it } }, storage)
+        c.startReceiving()
+        c.connect(target, "123123")
+        advanceUntilIdle()
+        val planning = assertIs<DeviceSyncState.Planning>(c.state.value)
+        assertTrue(planning.fits(emptySet()), "nothing is written: the space margin does not apply")
+
+        assertTrue(c.startTransfer(emptySet()))
+        advanceUntilIdle()
+        assertNull(client!!.fetched)
+        finished(c)
+    }
+
     @Test fun insufficientSpaceBlocksStartTransfer() = runTest {
         val m = manifest(audio(0, "A/x.mp3", 50))
         val storage = FakeStorage(free = 100L)

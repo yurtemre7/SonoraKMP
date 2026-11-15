@@ -125,4 +125,12 @@ class TransferPlannerTest {
         assertEquals(AudioFormatStat(1, 1000), p.audioFormats()["flac"])
         assertNull(p.audioFormats()["ogg"])
     }
+
+    @Test fun emptySelectionFitsWithoutTheMargin() {
+        // Nothing is written (data-only device sync), so the 200 MB margin does not apply.
+        val p = plan(listOf(audio(1, "a.mp3", size = 1000), audio(2, "p.mp3", size = 50, title = "P")), existing = mapOf("p.mp3" to 50L))
+        assertTrue(p.fits(emptySet(), 0))
+        assertTrue(p.fits(setOf(2), 0), "only Present items selected: nothing to write")
+        assertFalse(p.fits(setOf(1), 0))
+    }
 }

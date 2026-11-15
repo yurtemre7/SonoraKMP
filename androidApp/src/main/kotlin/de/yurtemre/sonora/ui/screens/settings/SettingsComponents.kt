@@ -70,6 +70,7 @@ fun SettingsScaffold(
     onBack: () -> Unit,
     snackbar: SnackbarHostState? = null,
     topBarBottom: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -89,6 +90,7 @@ fun SettingsScaffold(
                 topBarBottom()
             }
         },
+        bottomBar = bottomBar,
         snackbarHost = { if (snackbar != null) SnackbarHost(snackbar) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {

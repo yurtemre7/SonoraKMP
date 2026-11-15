@@ -45,8 +45,11 @@ data class TransferPlan(val items: List<PlanItem>, val rejected: List<ManifestFi
     fun bytesFreedAfter(selectedIds: Set<Int>): Long =
         selected(selectedIds).filter { it.status == Status.Replace }.sumOf { it.replaces?.size ?: 0L }
 
-    fun fits(selectedIds: Set<Int>, freeBytes: Long): Boolean =
-        bytesNeeded(selectedIds) + SAFETY_MARGIN_BYTES <= freeBytes
+    /** Needed bytes + [SAFETY_MARGIN_BYTES] within [freeBytes]; a selection that writes nothing always fits. */
+    fun fits(selectedIds: Set<Int>, freeBytes: Long): Boolean {
+        val items = selected(selectedIds)
+        return items.isEmpty() || items.sumOf { it.file.size } + SAFETY_MARGIN_BYTES <= freeBytes
+    }
 
     fun groupsByKind(): Map<FileKind, List<PlanItem>> = items.groupBy { it.file.kind }
 

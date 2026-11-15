@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.SettingsBackupRestore
 import androidx.compose.material.icons.rounded.SystemUpdate
@@ -38,6 +39,7 @@ import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.navigation.DebugCaches
 import de.yurtemre.sonora.ui.navigation.SettingsAppearance
 import de.yurtemre.sonora.ui.navigation.SettingsBackup
+import de.yurtemre.sonora.ui.navigation.SettingsDeviceSync
 import de.yurtemre.sonora.ui.navigation.SettingsFormatting
 import de.yurtemre.sonora.ui.navigation.SettingsInfo
 import de.yurtemre.sonora.ui.navigation.SettingsPlayback
@@ -171,6 +173,13 @@ fun SettingsRoute(
                 stringResource(R.string.settings_backup_title), icon = Icons.Rounded.SettingsBackupRestore,
                 subtitle = stringResource(R.string.settings_backup_subtitle), chevron = true,
                 onClick = { onNavigate(SettingsBackup) },
+            )
+        }
+        item(key = "device_sync") {
+            SettingsRow(
+                stringResource(R.string.settings_devicesync_title), icon = Icons.Rounded.Devices,
+                subtitle = stringResource(R.string.settings_devicesync_subtitle), chevron = true,
+                onClick = { onNavigate(SettingsDeviceSync) },
             )
         }
 
