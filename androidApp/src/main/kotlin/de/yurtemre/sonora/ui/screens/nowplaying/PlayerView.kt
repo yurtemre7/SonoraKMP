@@ -59,6 +59,7 @@ import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.shared.model.TitleStyle
 import de.yurtemre.sonora.ui.components.PulseButton
 
 /** Which pane the overlay shows (UI-17). */
@@ -97,6 +98,7 @@ fun PlayerView(
     queue: QueueUiState? = null,
     onSkipTo: (Long) -> Unit = {},
     style: NowPlayingStyle = NowPlayingStyle.Modern,
+    titleStyle: TitleStyle = TitleStyle.Hybrid,
     visualizer: (@Composable () -> Unit)? = null,
     elapsed: @Composable () -> Unit = {},
     sleepTimerActive: Boolean = false,
@@ -107,23 +109,29 @@ fun PlayerView(
         else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
     }
     if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
-        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive, mfxActive)
+        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive, mfxActive, titleStyle)
         return
     }
+    val ts = titleStyle.resolved()
+    val spineFits = rememberSpineFits(song.displayTitle())
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
     if (maxWidth > maxHeight && view == NowPlayingView.Player) {
         // Landscape: the sleeve takes the full safe height on the left, controls on the right, so nothing overflows
         // the safe area (the portrait column would push the square sleeve past the bottom edge).
         Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 72.dp))
-            Spacer(Modifier.width(8.dp))
+            if (ts.usesSpine) {
+                Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = ts.spineWidth), style = ts)
+                Spacer(Modifier.width(8.dp))
+            }
             art(Modifier.fillMaxHeight().padding(bottom = 16.dp).aspectRatio(1f, matchHeightConstraintsFirst = true))
             Spacer(Modifier.width(24.dp))
             Column(
                 Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Center,
             ) {
+                // The plain title style has no Spine: the title leads the controls instead.
+                if (!ts.usesSpine) Spine(song.displayTitle(), Modifier.padding(bottom = 8.dp), horizontal = true, style = ts)
                 if (!immersive) MetaChips(song, actions, horizontal = true)
                 visualizer?.invoke()
         seekBar()
@@ -147,11 +155,14 @@ fun PlayerView(
                     NowPlayingView.Player -> Unit
                 }
             }
-        } else if (horizontalSpine) {
+        } else if (horizontalSpine || !ts.usesSpine) {
+            // Large fonts put the title above the sleeve; the plain title style puts it under it, like a classic player.
+            val titleBelow = !ts.usesSpine && !horizontalSpine
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Spine(song.displayTitle())
+                if (!titleBelow) Spine(song.displayTitle(), horizontal = true, style = ts)
                 // Square, but never taller than the slot left after Spine + chips, so it can't overlap them.
                 art(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true))
+                if (titleBelow) Spine(song.displayTitle(), horizontal = true, style = ts)
                 if (!immersive) MetaChips(song, actions)
             }
         } else {
@@ -159,20 +170,37 @@ fun PlayerView(
             // (capped by the slot height minus the chips). Spare height goes mostly above the block so the cover and chips
             // sit near the controls on tall panes instead of floating mid-pane.
             androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val spineSlot = ts.spineWidth + 8.dp
                 val chips = if (immersive) 0.dp else 124.dp
-                val artSide = minOf(maxWidth - 80.dp, maxHeight - chips).coerceAtLeast(0.dp)
+                val plainSide = minOf(maxWidth - spineSlot, maxHeight - chips).coerceAtLeast(0.dp)
+                // Hybrid: a title that does not fit the Spine also shows in full under the cover. Decided here, before
+                // layout, so the cover is sized once and nothing jumps when the caption appears.
+                val caption = ts == TitleStyle.Hybrid && !immersive && !spineFits(plainSide)
+                val artSide = if (caption) minOf(maxWidth - spineSlot, maxHeight - chips - CAPTION_HEIGHT).coerceAtLeast(0.dp) else plainSide
                 Column(Modifier.fillMaxSize()) {
                     Spacer(Modifier.weight(1f))
                     Row(Modifier.fillMaxWidth().height(artSide)) {
-                        Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 72.dp))
+                        Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = ts.spineWidth), style = ts)
                         Spacer(Modifier.width(8.dp))
                         art(Modifier.size(artSide))
                     }
                     if (!immersive) {
                         Spacer(Modifier.height(12.dp))
                         Row {
-                            Spacer(Modifier.width(80.dp))
-                            MetaChips(song, actions)
+                            Spacer(Modifier.width(spineSlot))
+                            Column {
+                                if (caption) {
+                                    Text(
+                                        song.displayTitle(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                    )
+                                }
+                                MetaChips(song, actions)
+                            }
                         }
                     }
                     Spacer(Modifier.weight(0.3f))
@@ -191,6 +219,9 @@ fun PlayerView(
     }
     }
 }
+
+/** Room the Hybrid caption (two lines of titleMedium plus spacing) takes under the cover. */
+private val CAPTION_HEIGHT = 56.dp
 
 @Composable
 private fun MetaChips(song: Song, actions: PlayerActions, horizontal: Boolean = false) {

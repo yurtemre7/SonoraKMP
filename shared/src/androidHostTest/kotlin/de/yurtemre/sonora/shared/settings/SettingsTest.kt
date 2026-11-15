@@ -37,6 +37,7 @@ class SettingsTest {
             check("amoledDark", true, ::setAmoledDark) { it.amoledDark }
             check("blurredBackgrounds", true, ::setBlurredBackgrounds) { it.blurredBackgrounds }
             check("nowPlayingStyle", NowPlayingStyle.entries.last(), ::setNowPlayingStyle) { it.nowPlayingStyle }
+            check("titleStyle", TitleStyle.entries.last(), ::setTitleStyle) { it.titleStyle }
             check("preferLocalArtistImages", false, ::setPreferLocalArtistImages) { it.preferLocalArtistImages }
             check("showVisualizer", true, ::setShowVisualizer) { it.showVisualizer }
             check("immersiveMode", true, ::setImmersiveMode) { it.immersiveMode }

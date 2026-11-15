@@ -69,6 +69,7 @@ fun NowPlayingOverlay(
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
+    val titleStyle by vm.titleStyle.collectAsStateWithLifecycle()
     val blurred by vm.blurredBackgrounds.collectAsStateWithLifecycle()
     val showVisualizer by vm.showVisualizer.collectAsStateWithLifecycle()
     var view by rememberSaveable { mutableStateOf(NowPlayingView.Player) }
@@ -138,6 +139,7 @@ fun NowPlayingOverlay(
                 queue = queue,
                 onSkipTo = vm::skipTo,
                 style = style,
+                titleStyle = titleStyle,
                 visualizer = if (showVisualizer) {
                     { Visualizer(state.isPlaying, Modifier.padding(bottom = 8.dp)) }
                 } else null,

@@ -204,7 +204,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.materialkolor)
     implementation(libs.reorderable)
-    implementation(libs.markdown.renderer.m3)
     implementation(libs.aboutlibraries.compose.m3)
 
     testImplementation(libs.junit)

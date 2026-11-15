@@ -6,33 +6,29 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import de.yurtemre.sonora.ui.screens.update.UpdateSheet
+import de.yurtemre.sonora.ui.screens.update.UpdateDialog
 
 /**
  * Place once in the app shell after the gate is Ready (UPD-05): runs the throttled automatic check on cold start and
- * shows the update sheet at most once per version per process. Also hosts the sheet opened from the Info tile and the
+ * shows the update dialog at most once per version per process. Also hosts the dialog opened from the Info tile and the
  * download/install progress; re-checks the unknown-sources permission on resume.
  */
 @Composable
 fun UpdatePromptHost() {
-    // No parameters: the host always skips when the app shell recomposes (playback state changes), so the sheet
+    // No parameters: the host always skips when the app shell recomposes (playback state changes), so the dialog
     // only recomposes for its own state.
     val viewModel = rememberUpdateViewModel()
     LaunchedEffect(Unit) { viewModel.autoCheckIfDue() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val prompt by viewModel.prompt.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // Parse the notes before the sheet opens: showing it first and filling in the text afterwards made the sheet
-    // open small and then jump to its final height.
-    val notes by de.yurtemre.sonora.ui.screens.changelog.rememberParsedMarkdown(prompt?.notesMarkdown.orEmpty())
-    prompt?.takeIf { it.notesMarkdown.isBlank() || notes != null }?.let { update ->
-        UpdateSheet(
+    prompt?.let { update ->
+        UpdateDialog(
             update = update,
-            notes = notes,
             state = state,
             installSupported = viewModel.installSupported,
             onDismiss = viewModel::dismissPrompt,
-            onDownload = { viewModel.downloadAndInstall(update) },
+            onInstall = { viewModel.downloadAndInstall(update) },
             onCancel = viewModel::cancelDownload,
             onRetry = viewModel::retry,
             onOpenPermissionSettings = viewModel::openPermissionSettings,

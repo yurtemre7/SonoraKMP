@@ -122,6 +122,14 @@ The one bold element. Everything around it stays quiet.
   Now Playing.
 * Accessibility: the rotated text is decorative for TalkBack; the same title is
   exposed once as a heading.
+* **Title style** (Settings → Appearance → Now Playing, applies to Modern, Vinyl and
+  Minimalist; each option has a live preview): *Marquee* (a title that is too long
+  scrolls once to its end, then rests at the start; off with reduce motion or font
+  scale ≥ 1.3), *Fit* (type shrinks to fit, floor 28 sp), *Two columns* (a long title
+  wraps into a second column), *Spine + caption* (default: the Spine as before, and a
+  title that is cut also shows in full under the cover, decided before layout so the
+  cover is sized once) and *Classic* (a plain title under the artwork). Key
+  `title_style`, KMP only, not in backups.
 
 ## 6. Other components
 

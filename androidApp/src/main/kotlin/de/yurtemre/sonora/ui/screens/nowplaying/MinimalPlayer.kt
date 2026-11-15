@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.shared.model.TitleStyle
 import de.yurtemre.sonora.ui.format.DurationFormat
 import de.yurtemre.sonora.ui.theme.tabular
 
@@ -53,7 +54,9 @@ internal fun MinimalPlayer(
     modifier: Modifier = Modifier,
     sleepTimerActive: Boolean = false,
     mfxActive: Boolean = false,
+    titleStyle: TitleStyle = TitleStyle.Hybrid,
 ) {
+    val ts = titleStyle.resolved()
     val haptics = LocalHapticFeedback.current
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
     val latest by rememberUpdatedState(actions)
@@ -77,7 +80,7 @@ internal fun MinimalPlayer(
             Modifier.fillMaxSize().padding(horizontal = 16.dp).then(swipe)
                 .verticalScroll(androidx.compose.foundation.rememberScrollState()),
         ) {
-            Spine(song.displayTitle(), horizontal = true)
+            Spine(song.displayTitle(), horizontal = true, style = ts)
             elapsed()
             Text(
                 song.artist,
@@ -98,18 +101,19 @@ internal fun MinimalPlayer(
         }
         return@BoxWithConstraints
     }
-    val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
+    // The plain title style has no Spine, so it takes the horizontal path like large fonts do.
+    val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale) || !ts.usesSpine
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).then(swipe)) {
         Row(Modifier.weight(1f).fillMaxWidth()) {
             if (!horizontalSpine) {
-                Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 96.dp).padding(bottom = 16.dp))
+                Spine(song.displayTitle(), Modifier.fillMaxHeight().widthIn(max = 96.dp).padding(bottom = 16.dp), style = ts)
                 Spacer(Modifier.width(16.dp))
             }
             Column(
                 Modifier.weight(1f).fillMaxHeight(),
                 verticalArrangement = Arrangement.Bottom,
             ) {
-                if (horizontalSpine) Spine(song.displayTitle())
+                if (horizontalSpine) Spine(song.displayTitle(), horizontal = true, style = ts)
                 elapsed()
                 Text(
                     song.artist,
