@@ -1,6 +1,25 @@
 package de.yurtemre.sonora.ui.screens.playlist
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import de.yurtemre.sonora.ui.theme.PillShape
 import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +34,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,6 +60,7 @@ internal fun AddSongsSheet(existing: Set<Long>, onAdd: (List<Long>) -> Unit, onD
     var query by rememberSaveable { mutableStateOf("") }
     var picked by remember { mutableStateOf(linkedSetOf<Long>()) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val focus = LocalFocusManager.current
     val visible = remember(songs, query, existing) {
         val q = query.trim().lowercase()
         songs.filter { it.id !in existing && (q.isEmpty() || q in it.titleLower || q in it.artistLower || q in it.albumLower) }
@@ -53,14 +72,33 @@ internal fun AddSongsSheet(existing: Set<Long>, onAdd: (List<Long>) -> Unit, onD
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
-            OutlinedTextField(
+            // Pill search field like the Home search; the clear button empties it and closes the keyboard.
+            TextField(
                 value = query,
                 onValueChange = { query = it },
                 leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                trailingIcon = {
+                    AnimatedVisibility(visible = query.isNotEmpty(), enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut()) {
+                        IconButton(onClick = { query = ""; focus.clearFocus() }) {
+                            Icon(Icons.Rounded.Close, stringResource(R.string.home_search_clear))
+                        }
+                    }
+                },
                 placeholder = { Text(stringResource(R.string.playlist_add_search)) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                shape = PillShape,
+                textStyle = MaterialTheme.typography.bodyLarge,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp),
             )
+            Spacer(Modifier.height(12.dp)) // breathing room between the search field and the list
             Box(Modifier.weight(1f, fill = false)) {
                 if (visible.isEmpty()) {
                     Text(
@@ -69,7 +107,7 @@ internal fun AddSongsSheet(existing: Set<Long>, onAdd: (List<Long>) -> Unit, onD
                         modifier = Modifier.padding(24.dp),
                     )
                 }
-                LazyColumn {
+                LazyColumn(contentPadding = PaddingValues(bottom = 8.dp)) {
                     items(visible, key = { it.id }) { s ->
                         SongRow(
                             title = s.displayTitle(), artist = s.artist, durationMs = s.durationMs,

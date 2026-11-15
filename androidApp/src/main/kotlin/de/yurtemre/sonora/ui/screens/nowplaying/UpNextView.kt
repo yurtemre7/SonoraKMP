@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -74,8 +75,17 @@ fun UpNextView(
     // It is held still during a drag so rows don't shift under the finger.
     var offset by remember { mutableIntStateOf(0) }
     var dragging by remember { mutableStateOf(false) }
+    // Entry the user tapped: once it is current, the list returns to the top so it shows as the 2nd row.
+    var scrollToTappedUid by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(items, currentUid, dragging) {
-        if (!dragging) offset = (items.indexOfFirst { it.entryUid == currentUid } - 1).coerceAtLeast(0)
+        if (dragging) return@LaunchedEffect
+        offset = (items.indexOfFirst { it.entryUid == currentUid } - 1).coerceAtLeast(0)
+        if (scrollToTappedUid != null && scrollToTappedUid == currentUid) {
+            scrollToTappedUid = null
+            // Rows keep their scroll anchor by key, so dropping the played rows alone leaves the list where it was.
+            withFrameNanos { } // let the new offset lay out first
+            listState.animateScrollToItem(0)
+        }
     }
     val shown = items.drop(offset)
 
@@ -167,7 +177,12 @@ fun UpNextView(
                                 title = item.song.displayTitle(),
                                 artist = item.song.artist,
                                 durationMs = item.song.durationMs,
-                                onClick = { connection.skipToQueueItem(item.entryUid) },
+                                onClick = {
+                                    // Already current: nothing changes upstream, so scroll right away.
+                                    if (isCurrent) scope.launch { listState.animateScrollToItem((row - 1).coerceAtLeast(0)) }
+                                    else scrollToTappedUid = item.entryUid
+                                    connection.skipToQueueItem(item.entryUid)
+                                },
                                 modifier = Modifier.weight(1f),
                                 artwork = item.song.artworkPath,
                                 showArtwork = true,
