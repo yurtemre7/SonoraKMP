@@ -17,8 +17,8 @@ import org.bouncycastle.crypto.params.KeyParameter
  * and sealed as one AES-256-GCM record `[len:int][ciphertext ‖ 16-byte tag]`. Keys and 4-byte nonce prefixes come
  * from HKDF-SHA256 over the J-PAKE keying material, one pair per direction (`c2s` receiver → sender, `s2c`
  * sender → receiver); the nonce is prefix ‖ 64-bit big-endian record counter from 0, so a replayed, reordered,
- * reflected or altered record fails its tag check → [DeviceSyncAuthException]. After such a failure the channel
- * refuses further records.
+ * reflected or altered record fails its tag check → [DeviceSyncAuthException]. After any send or receive failure
+ * the channel is broken: both directions then throw [DeviceSyncProtocolException].
  *
  * GCM is BouncyCastle's lightweight [GCMBlockCipher] (same as the rest of the crypto; behaves identically on every
  * Android version, no JCA provider involved). [send] and [receive] block; [send] may be called from another thread
@@ -64,39 +64,56 @@ class SecureChannel(
     private val incoming = if (role == Role.Sender) c2s else s2c
     private val sendLock = Any()
     private val receiveLock = Any()
-    private var broken = false
+    @Volatile private var broken = false
 
     fun send(frame: Frame) {
         val plain = FrameCodec.encode(frame)
         synchronized(sendLock) {
-            val cipher = outgoing.next(encrypt = true)
-            val sealed = ByteArray(cipher.getOutputSize(plain.size))
-            val n = cipher.processBytes(plain, 0, plain.size, sealed, 0)
-            cipher.doFinal(sealed, n)
-            output.writeInt(sealed.size)
-            output.write(sealed)
-            output.flush()
+            checkUsable()
+            breakOnFailure {
+                val cipher = outgoing.next(encrypt = true)
+                val sealed = ByteArray(cipher.getOutputSize(plain.size))
+                val n = cipher.processBytes(plain, 0, plain.size, sealed, 0)
+                cipher.doFinal(sealed, n)
+                output.writeInt(sealed.size)
+                output.write(sealed)
+                output.flush()
+            }
         }
     }
 
     fun receive(): Frame = synchronized(receiveLock) {
-        if (broken) throw DeviceSyncAuthException("channel_broken")
-        val length = input.readInt()
-        if (length !in TAG_SIZE..MAX_RECORD) throw DeviceSyncProtocolException("Bad record length $length")
-        val sealed = ByteArray(length).also(input::readFully)
-        val cipher = incoming.next(encrypt = false)
-        val plain = ByteArray(cipher.getOutputSize(length))
-        try {
-            val n = cipher.processBytes(sealed, 0, length, plain, 0)
-            cipher.doFinal(plain, n)
-        } catch (e: InvalidCipherTextException) {
-            broken = true
-            throw DeviceSyncAuthException("record_auth_failed")
+        checkUsable()
+        breakOnFailure {
+            val length = input.readInt()
+            if (length !in TAG_SIZE..MAX_RECORD) throw DeviceSyncProtocolException("Bad record length $length")
+            val sealed = ByteArray(length).also(input::readFully)
+            val cipher = incoming.next(encrypt = false)
+            val plain = ByteArray(cipher.getOutputSize(length))
+            try {
+                val n = cipher.processBytes(sealed, 0, length, plain, 0)
+                cipher.doFinal(plain, n)
+            } catch (e: InvalidCipherTextException) {
+                throw DeviceSyncAuthException("record_auth_failed")
+            }
+            val (type, payloadLength) = FrameCodec.decodeHeader(plain)
+            if (payloadLength != plain.size - FrameCodec.HEADER_SIZE) throw DeviceSyncProtocolException("Record/frame length mismatch")
+            FrameCodec.decodeBody(type, plain.copyOfRange(FrameCodec.HEADER_SIZE, plain.size))
         }
-        val (type, payloadLength) = FrameCodec.decodeHeader(plain)
-        if (payloadLength != plain.size - FrameCodec.HEADER_SIZE) throw DeviceSyncProtocolException("Record/frame length mismatch")
-        FrameCodec.decodeBody(type, plain.copyOfRange(FrameCodec.HEADER_SIZE, plain.size))
     }
+
+    private fun checkUsable() {
+        if (broken) throw DeviceSyncProtocolException("Channel broken by an earlier failure")
+    }
+
+    /** Any failure leaves the stream position or the counters out of step with the peer: refuse further use. */
+    private inline fun <T> breakOnFailure(block: () -> T): T =
+        try {
+            block()
+        } catch (e: Throwable) {
+            broken = true
+            throw e
+        }
 
     private companion object {
         const val KEY_SIZE = 32

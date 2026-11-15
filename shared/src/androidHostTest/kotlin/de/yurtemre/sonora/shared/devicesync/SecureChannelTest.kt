@@ -4,13 +4,21 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.IOException
+import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.security.SecureRandom
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import org.bouncycastle.crypto.agreement.jpake.JPAKEParticipant
+import org.bouncycastle.crypto.agreement.jpake.JPAKEPrimeOrderGroups
+import org.bouncycastle.crypto.agreement.jpake.JPAKERound1Payload
+import org.bouncycastle.crypto.agreement.jpake.JPAKERound2Payload
+import org.bouncycastle.crypto.digests.SHA256Digest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -20,30 +28,88 @@ import kotlin.test.assertTrue
 
 class SecureChannelTest {
 
+    /** One end of a loopback connection; [written] records every byte this side sent. */
     private class Side(val socket: Socket) {
+        val written = ByteArrayOutputStream()
         val input = DataInputStream(socket.getInputStream().buffered())
-        val output = DataOutputStream(socket.getOutputStream().buffered())
+        val output = DataOutputStream(TeeOutputStream(socket.getOutputStream(), written).buffered())
+
+        /** Value counts of the handshake rounds this side wrote (0 = reject). */
+        fun roundCounts(): List<Int> {
+            val data = DataInputStream(ByteArrayInputStream(written.toByteArray()))
+            val counts = mutableListOf<Int>()
+            while (data.available() > 0) {
+                val len = data.readInt()
+                counts += data.readInt()
+                data.skipBytes(len - 4)
+            }
+            return counts
+        }
     }
 
-    /** Runs [sender] and [receiver] concurrently over a loopback TCP connection. */
-    private fun <S, R> overLoopback(sender: (Side) -> S, receiver: (Side) -> R): Pair<Result<S>, Result<R>> =
+    private class TeeOutputStream(private val out: OutputStream, private val copy: OutputStream) : OutputStream() {
+        override fun write(b: Int) { out.write(b); copy.write(b) }
+        override fun write(b: ByteArray, off: Int, len: Int) { out.write(b, off, len); copy.write(b, off, len) }
+        override fun flush() = out.flush()
+        override fun close() = out.close()
+    }
+
+    /**
+     * Runs [sender] (the server side) and [receiver] concurrently over a loopback TCP connection.
+     * Each callback gets its [Side]; the results come back with both sides for inspection.
+     */
+    private fun <S, R> overLoopback(
+        sender: (Side) -> S,
+        receiver: (Side) -> R,
+        senderTimeoutMs: Int = 20_000,
+    ): Triple<Result<S>, Result<R>, Pair<Side, Side>> =
         ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { server ->
             runBlocking {
                 val s = async(Dispatchers.IO) {
                     server.accept().use { socket ->
-                        socket.soTimeout = 20_000
-                        runCatching { sender(Side(socket)) }
+                        socket.soTimeout = senderTimeoutMs
+                        val side = Side(socket)
+                        runCatching { sender(side) } to side
                     }
                 }
                 val r = async(Dispatchers.IO) {
                     Socket(server.inetAddress, server.localPort).use { socket ->
                         socket.soTimeout = 20_000
-                        runCatching { receiver(Side(socket)) }
+                        val side = Side(socket)
+                        runCatching { receiver(side) } to side
                     }
                 }
-                s.await() to r.await()
+                val (sr, ss) = s.await()
+                val (rr, rs) = r.await()
+                Triple(sr, rr, ss to rs)
             }
         }
+
+    /** A scripted receiver that completes J-PAKE rounds 1 and 2 honestly with [code], then stops. */
+    private fun receiverRounds1And2(side: Side, code: String) {
+        val me = JPAKEParticipant("receiver", code.toCharArray(), JPAKEPrimeOrderGroups.NIST_3072, SHA256Digest(), SecureRandom())
+        val r1 = me.createRound1PayloadToSend()
+        JpakeHandshake.writeRound(side.output, r1.gx1, r1.gx2, *r1.knowledgeProofForX1, *r1.knowledgeProofForX2)
+        val p1 = JpakeHandshake.readRound(side.input, 6)
+        me.validateRound1PayloadReceived(JPAKERound1Payload("sender", p1[0], p1[1], arrayOf(p1[2], p1[3]), arrayOf(p1[4], p1[5])))
+        val r2 = me.createRound2PayloadToSend()
+        JpakeHandshake.writeRound(side.output, r2.a, *r2.knowledgeProofForX2s)
+        val p2 = JpakeHandshake.readRound(side.input, 3)
+        me.validateRound2PayloadReceived(JPAKERound2Payload("sender", p2[0], arrayOf(p2[1], p2[2])))
+    }
+
+    /** Hangs up either cleanly (FIN → EOF on the peer) or abortively (RST → connection reset on the peer). */
+    private fun hangUp(side: Side, reset: Boolean) {
+        if (reset) side.socket.setSoLinger(true, 0)
+        side.socket.close()
+    }
+
+    private fun senderHandshake(side: Side) = JpakeHandshake.run(side.input, side.output, "123456", Role.Sender, "tx")
+
+    private fun assertConnectionFailure(result: Result<*>) {
+        val e = result.exceptionOrNull()
+        assertIs<IOException>(e, "expected a plain connection failure, got $result")
+    }
 
     @Test fun rightCodeDerivesEqualKeysAndExchangesFrames() {
         val hello = Frame.Hello(Hello(protocol = 1, deviceId = "rx", deviceName = "Receiver phone"))
@@ -51,29 +117,33 @@ class SecureChannelTest {
         val (s, r) = overLoopback(
             sender = { side ->
                 val key = JpakeHandshake.run(side.input, side.output, "042917", Role.Sender, "tx")
+                val counts = side.roundCounts()
                 val channel = SecureChannel(side.input, side.output, key, Role.Sender)
                 val got = channel.receive()
                 channel.send(chunk)
                 channel.send(Frame.Done)
-                key to got
+                Triple(key, got, counts)
             },
             receiver = { side ->
                 val key = JpakeHandshake.run(side.input, side.output, "042917", Role.Receiver, "rx")
+                val counts = side.roundCounts()
                 val channel = SecureChannel(side.input, side.output, key, Role.Receiver)
                 channel.send(hello)
-                key to listOf(channel.receive(), channel.receive())
+                Triple(key, listOf(channel.receive(), channel.receive()), counts)
             },
         )
-        val (senderKey, senderGot) = s.getOrThrow()
-        val (receiverKey, receiverGot) = r.getOrThrow()
+        val (senderKey, senderGot, senderRounds) = s.getOrThrow()
+        val (receiverKey, receiverGot, receiverRounds) = r.getOrThrow()
         assertEquals(32, senderKey.size)
         assertContentEquals(senderKey, receiverKey)
         assertEquals(hello, senderGot)
         assertEquals(listOf(chunk, Frame.Done), receiverGot)
+        assertEquals(listOf(6, 3, 1), senderRounds)
+        assertEquals(listOf(6, 3, 1), receiverRounds)
     }
 
-    @Test fun wrongCodeFailsOnBothSides() {
-        val (s, r) = overLoopback(
+    @Test fun wrongCodeFailsOnBothSidesAndSenderNeverRevealsItsMac() {
+        val (s, r, sides) = overLoopback(
             sender = { side -> JpakeHandshake.run(side.input, side.output, "123456", Role.Sender, "tx") },
             receiver = { side -> JpakeHandshake.run(side.input, side.output, "123457", Role.Receiver, "rx") },
         )
@@ -81,14 +151,49 @@ class SecureChannelTest {
         assertIs<DeviceSyncAuthException>(r.exceptionOrNull(), "receiver: $r")
         assertEquals("code_mismatch", s.exceptionOrNull()?.message)
         assertEquals("code_mismatch", r.exceptionOrNull()?.message)
+        // Sender: rounds 1 and 2, then a reject; never its round-3 MAC.
+        assertEquals(listOf(6, 3, 0), sides.first.roundCounts())
+        assertEquals(listOf(6, 3, 1), sides.second.roundCounts())
     }
 
-    @Test fun peerClosingDuringHandshakeIsAnAuthFailure() {
-        val (_, r) = overLoopback(
-            sender = { side -> side.socket.close() },
-            receiver = { side -> JpakeHandshake.run(side.input, side.output, "123456", Role.Receiver, "rx") },
+    @Test fun peerHangingUpAfterRound2IsAConnectionFailureNotAMismatch() {
+        for (reset in listOf(false, true)) {
+            val (s, _, sides) = overLoopback(
+                sender = ::senderHandshake,
+                receiver = { side -> receiverRounds1And2(side, "000000"); hangUp(side, reset) },
+            )
+            assertConnectionFailure(s)
+            assertEquals(listOf(6, 3), sides.first.roundCounts(), "reset=$reset")
+        }
+    }
+
+    @Test fun peerStallingAfterRound2TimesOutAsAConnectionFailure() {
+        val (s, _, sides) = overLoopback(
+            sender = ::senderHandshake,
+            receiver = { side -> receiverRounds1And2(side, "000000"); side.input.read() }, // waits for the sender to close
+            senderTimeoutMs = 1_500, // well above the ~0.1 s a round takes, so only the stalled round 3 times out
         )
-        assertIs<DeviceSyncAuthException>(r.exceptionOrNull(), "receiver: $r")
+        assertIs<SocketTimeoutException>(s.exceptionOrNull(), "sender: $s")
+        assertEquals(listOf(6, 3), sides.first.roundCounts())
+    }
+
+    @Test fun peerHangingUpDuringRound1IsAConnectionFailure() {
+        for (reset in listOf(false, true)) {
+            val (s, _) = overLoopback(sender = ::senderHandshake, receiver = { side -> hangUp(side, reset) })
+            assertConnectionFailure(s)
+        }
+    }
+
+    @Test fun malformedHandshakePayloadIsAProtocolError() {
+        val truncatedValue = byteArrayOf(0, 0, 0, 12, 0, 0, 0, 6, 0, 0, 0, 100, 1, 2, 3, 4) // value claims 100 bytes, has 4
+        val missingValues = byteArrayOf(0, 0, 0, 12, 0, 0, 0, 6, 0, 0, 0, 4, 1, 2, 3, 4) // 1 of 6 values present
+        for (bytes in listOf(truncatedValue, missingValues)) {
+            val (s, _) = overLoopback(
+                sender = ::senderHandshake,
+                receiver = { side -> side.output.write(bytes); side.output.flush(); side.input.skip(Long.MAX_VALUE) },
+            )
+            assertIs<DeviceSyncProtocolException>(s.exceptionOrNull(), "sender: $s")
+        }
     }
 
     // --- Record layer, with fixed keying material (no handshake needed) ---
@@ -148,6 +253,14 @@ class SecureChannelTest {
         // A record the receiver itself wrote (c2s) must not be accepted as an s2c record.
         val (own) = senderRecords(a, role = Role.Receiver)
         assertFailsWith<DeviceSyncAuthException> { receiverOf(own).receive() }
+    }
+
+    @Test fun channelIsUnusableAfterABadRecordLength() {
+        val (valid) = senderRecords(a)
+        val channel = receiverOf(intBytes(-1), valid)
+        assertFailsWith<DeviceSyncProtocolException> { channel.receive() }
+        assertFailsWith<DeviceSyncProtocolException> { channel.receive() } // refuses even though a valid record follows
+        assertFailsWith<DeviceSyncProtocolException> { channel.send(Frame.Done) }
     }
 
     @Test fun oversizedRecordLengthIsRejected() {
