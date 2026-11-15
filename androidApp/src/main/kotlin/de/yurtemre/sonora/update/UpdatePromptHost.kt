@@ -22,9 +22,13 @@ fun UpdatePromptHost() {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val prompt by viewModel.prompt.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    prompt?.let { update ->
+    // Parse the notes before the sheet opens: showing it first and filling in the text afterwards made the sheet
+    // open small and then jump to its final height.
+    val notes by de.yurtemre.sonora.ui.screens.changelog.rememberParsedMarkdown(prompt?.notesMarkdown.orEmpty())
+    prompt?.takeIf { it.notesMarkdown.isBlank() || notes != null }?.let { update ->
         UpdateSheet(
             update = update,
+            notes = notes,
             state = state,
             installSupported = viewModel.installSupported,
             onDismiss = viewModel::dismissPrompt,

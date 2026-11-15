@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun UpdateSheet(
     update: UpdateCheckResult.Available,
+    notes: com.mikepenz.markdown.model.State?,
     state: UpdateUiState,
     installSupported: Boolean,
     onDismiss: () -> Unit,
@@ -93,7 +94,7 @@ fun UpdateSheet(
                 if (update.notesMarkdown.isBlank()) {
                     Text(stringResource(R.string.update_sheet_no_notes), style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    SleeveMarkdown(update.notesMarkdown)
+                    if (notes != null) SleeveMarkdown(notes)
                 }
             }
             run {
