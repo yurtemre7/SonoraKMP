@@ -100,13 +100,14 @@ fun PlayerView(
     visualizer: (@Composable () -> Unit)? = null,
     elapsed: @Composable () -> Unit = {},
     sleepTimerActive: Boolean = false,
+    mfxActive: Boolean = false,
 ) {
     val art: @Composable (Modifier) -> Unit = { m ->
         if (style == NowPlayingStyle.Vinyl) VinylArtwork(song, state.isPlaying, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
         else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
     }
     if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
-        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive)
+        MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive, mfxActive)
         return
     }
     val horizontalSpine = spineIsHorizontal(LocalDensity.current.fontScale)
@@ -128,7 +129,7 @@ fun PlayerView(
         seekBar()
                 Transport(state, actions)
                 if (!immersive) {
-                    SecondaryRow(state, isFavorite, actions, sleepTimerActive)
+                    SecondaryRow(state, isFavorite, actions, sleepTimerActive, mfxActive)
                     ViewSwitcher(view, onViewChange)
                 }
                 Spacer(Modifier.height(16.dp))
@@ -183,7 +184,7 @@ fun PlayerView(
         seekBar()
         Transport(state, actions)
         if (!immersive) {
-            SecondaryRow(state, isFavorite, actions, sleepTimerActive)
+            SecondaryRow(state, isFavorite, actions, sleepTimerActive, mfxActive)
             ViewSwitcher(view, onViewChange)
         }
         Spacer(Modifier.height(16.dp))
@@ -240,6 +241,7 @@ internal fun SecondaryRow(
     isFavorite: Boolean,
     actions: PlayerActions,
     sleepTimerActive: Boolean = false,
+    mfxActive: Boolean = false,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Connected button group (DESIGN §6.7): shuffle | repeat.
@@ -281,7 +283,14 @@ internal fun SecondaryRow(
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = actions.onMfx) { Icon(Icons.Filled.GraphicEq, stringResource(R.string.np_mfx)) }
+        val mfxState = stringResource(if (mfxActive) R.string.np_state_on else R.string.np_state_off)
+        IconButton(onClick = actions.onMfx, modifier = Modifier.semantics { stateDescription = mfxState }) {
+            Icon(
+                Icons.Filled.GraphicEq,
+                stringResource(R.string.np_mfx),
+                tint = if (mfxActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         IconButton(onClick = actions.onSleepTimer) {
             Icon(
                 Icons.Filled.Bedtime,

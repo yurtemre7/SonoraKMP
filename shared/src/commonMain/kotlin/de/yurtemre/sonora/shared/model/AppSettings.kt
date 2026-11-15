@@ -69,8 +69,15 @@ data class AppSettings(
     val updateRateLimitResetMs: Long = 0,
 ) {
     companion object {
-        val SLEEP_TIMER_MINUTES_OPTIONS = listOf(5, 10, 15, 20, 25, 30, 45, 60)
+        /** Sleep timer quick presets; also the choices for the default duration. */
+        val SLEEP_TIMER_MINUTES_OPTIONS = listOf(5, 10, 15, 20, 30, 60)
+        /** Custom sleep timer duration range in minutes. */
+        val SLEEP_TIMER_CUSTOM_MINUTES = 1..60
+        /** Fade-out choices, shared by settings and the sleep timer sheet. */
         val SLEEP_TIMER_FADE_OPTIONS = listOf(0, 10, 30, 60)
+
+        /** Nearest entry of [options] to [value] (ties pick the smaller); keeps stored values from older versions valid. */
+        fun nearestOption(options: List<Int>, value: Int): Int = options.minBy { kotlin.math.abs(it - value) }
     }
 }
 

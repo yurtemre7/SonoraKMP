@@ -52,8 +52,11 @@ class SettingsTest {
             check("pauseOnDisconnect", false, ::setPauseOnDisconnect) { it.pauseOnDisconnect }
             check("resumeOnConnect", true, ::setResumeOnConnect) { it.resumeOnConnect }
             check("bluetoothMfxPatch", true, ::setBluetoothMfxPatch) { it.bluetoothMfxPatch }
-            check("sleepTimerDefaultMinutes", 45, ::setSleepTimerDefaultMinutes) { it.sleepTimerDefaultMinutes }
+            check("sleepTimerDefaultMinutes", 20, ::setSleepTimerDefaultMinutes) { it.sleepTimerDefaultMinutes }
+            setSleepTimerDefaultMinutes(45); assertEquals(30, settings.first().sleepTimerDefaultMinutes, "old 45 min snaps")
+            setSleepTimerDefaultMinutes(50); assertEquals(60, settings.first().sleepTimerDefaultMinutes, "snaps to nearest")
             check("sleepTimerFadeOutSeconds", 60, ::setSleepTimerFadeOutSeconds) { it.sleepTimerFadeOutSeconds }
+            setSleepTimerFadeOutSeconds(5); assertEquals(0, settings.first().sleepTimerFadeOutSeconds, "fade snaps")
             check("sleepTimerFinishSong", true, ::setSleepTimerFinishSong) { it.sleepTimerFinishSong }
             check("repeatMode", RepeatMode.entries.last(), ::setRepeatMode) { it.repeatMode }
             check("volume", 0.4, ::setVolume) { it.volume }

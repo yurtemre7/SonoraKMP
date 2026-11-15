@@ -45,14 +45,18 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
+import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.format.DurationFormat
 import kotlinx.coroutines.flow.first
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
-private val PresetMinutes = listOf(5, 15, 30, 45, 60)
-private val FadeOptions = listOf(0, 5, 10, 30)
+private val PresetMinutes = AppSettings.SLEEP_TIMER_MINUTES_OPTIONS
+private val PresetRows = PresetMinutes.chunked(3) // 6 presets: two rows of 3 so "60 min" never clips
+private val CustomRange = AppSettings.SLEEP_TIMER_CUSTOM_MINUTES
+// Same choices as settings, so the saved default fade (incl. 60 s) is always selectable here.
+private val FadeOptions = AppSettings.SLEEP_TIMER_FADE_OPTIONS
 
 /** Sleep timer sheet (UI-19, PLAY-26/27): presets, custom duration, finish-song, fade, live countdown. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -64,24 +68,22 @@ fun SleepTimerSheet(
 ) {
     val state by connection.sleepTimer.collectAsState()
     val haptics = LocalHapticFeedback.current
-    var fade by rememberSaveable { mutableIntStateOf(10) }
+    var fade by rememberSaveable { mutableIntStateOf(AppSettings().sleepTimerFadeOutSeconds) }
     var finishSong by rememberSaveable { mutableStateOfBool(false) }
-    var finishTouched by rememberSaveable { mutableStateOfBool(false) }
     // null = no duration (finish-song only), -1 = custom slider value, otherwise preset minutes.
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     var customMin by rememberSaveable { mutableFloatStateOf(20f) }
     var defaultsApplied by rememberSaveable { mutableStateOfBool(false) }
     LaunchedEffect(Unit) {
+        // Apply the saved defaults once per sheet; later recompositions (e.g. rotation) keep the user's edits.
+        if (defaultsApplied) return@LaunchedEffect
         val d = settingsRepository.settings.first()
-        if (!finishTouched) finishSong = d.sleepTimerFinishSong
-        // Preselect sleep_timer_default_minutes once (a preset chip, else the custom slider).
-        if (!defaultsApplied && selected == null) {
-            val m = d.sleepTimerDefaultMinutes
-            if (m in PresetMinutes) selected = m
-            else if (m > 0) { customMin = m.coerceIn(1, 180).toFloat(); selected = -1 }
-        }
+        finishSong = d.sleepTimerFinishSong
+        val m = d.sleepTimerDefaultMinutes
+        if (m in PresetMinutes) selected = m
+        else if (m > 0) { customMin = m.coerceIn(CustomRange.first, CustomRange.last).toFloat(); selected = -1 }
+        fade = AppSettings.nearestOption(FadeOptions, d.sleepTimerFadeOutSeconds)
         defaultsApplied = true
-        fade = d.sleepTimerFadeOutSeconds.takeIf { it in FadeOptions } ?: fade
     }
     val minutes: Int? = when (val sel = selected) {
         null -> null
@@ -103,19 +105,21 @@ fun SleepTimerSheet(
             AnimatedContent(targetState = state is SleepTimerUiState.Inactive, label = "sleep") { inactive ->
                 if (!inactive) RunningSection(state, connection) else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(R.string.sleep_sheet_presets), style = MaterialTheme.typography.titleSmall)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
-                        PresetMinutes.forEachIndexed { i, m ->
-                            ToggleButton(
-                                checked = selected == m,
-                                onCheckedChange = {
-                                    selected = if (it) m else null
-                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                                shapes = connectedShapes(i, PresetMinutes.size),
-                            ) { Text(stringResource(R.string.sleep_preset_minutes, m), maxLines = 1) }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { PresetRows.forEach { row ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+                            row.forEachIndexed { i, m ->
+                                ToggleButton(
+                                    checked = selected == m,
+                                    onCheckedChange = {
+                                        selected = if (it) m else null
+                                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    shapes = connectedShapes(i, row.size),
+                                ) { Text(stringResource(R.string.sleep_preset_minutes, m), maxLines = 1) }
+                            }
                         }
-                    }
+                    } }
                     Text(stringResource(R.string.sleep_custom_label, customMin.roundToInt()), style = MaterialTheme.typography.titleSmall)
                     Slider(
                         value = customMin,
@@ -124,11 +128,12 @@ fun SleepTimerSheet(
                             customMin = it
                             selected = -1
                         },
-                        valueRange = 1f..180f,
+                        valueRange = CustomRange.first.toFloat()..CustomRange.last.toFloat(),
+                        steps = CustomRange.last - CustomRange.first - 1, // whole minutes
                     )
                     Row(
                         Modifier.fillMaxWidth().height(56.dp)
-                            .toggleable(finishSong, role = Role.Switch) { finishSong = it; finishTouched = true },
+                            .toggleable(finishSong, role = Role.Switch) { finishSong = it },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {

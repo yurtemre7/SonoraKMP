@@ -76,4 +76,14 @@ data class MfxUiState(
     val effectivePitch: Float get() = if (preset.isNormal) customPitch else preset.pitch
     val isCustomSpeedEnabled: Boolean get() = preset.isNormal
     val isCustomPitchEnabled: Boolean get() = preset.isNormal
+    /** Playback runs at a speed other than 1×. */
+    val isSpeedChanged: Boolean get() = kotlin.math.abs(effectiveSpeed - 1f) >= MFX_EPSILON
+    /** Anything audible is applied: speed, pitch or an EQ effect (now playing indicator). */
+    val isActive: Boolean
+        get() = isSpeedChanged || kotlin.math.abs(effectivePitch - 1f) >= MFX_EPSILON || activeEqMode != EqMode.Off
+
+    private companion object {
+        /** Slider values land near, not exactly on, 1.0. */
+        const val MFX_EPSILON = 0.005f
+    }
 }

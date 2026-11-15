@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHostState
@@ -29,12 +31,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.model.Song
+import de.yurtemre.sonora.ui.components.MfxBadge
 import de.yurtemre.sonora.ui.components.SleepTimerBadge
 import de.yurtemre.sonora.ui.components.TintedBackdrop
 import de.yurtemre.sonora.ui.components.Visualizer
 import de.yurtemre.sonora.ui.components.WavySeekBar
 import de.yurtemre.sonora.ui.screens.nowplaying.sheets.EffectsSheet
 import de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet
+import de.yurtemre.sonora.ui.sheets.SongInfoSheet
 import org.koin.compose.koinInject
 
 /**
@@ -61,6 +65,7 @@ fun NowPlayingOverlay(
     val state by vm.player.collectAsStateWithLifecycle()
     val queue by playback.queue.collectAsStateWithLifecycle()
     val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
+    val mfx by playback.mfx.collectAsStateWithLifecycle()
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
@@ -69,6 +74,7 @@ fun NowPlayingOverlay(
     var view by rememberSaveable { mutableStateOf(NowPlayingView.Player) }
     var showEffects by rememberSaveable { mutableStateOf(false) }
     var showSleep by rememberSaveable { mutableStateOf(false) }
+    var showInfo by rememberSaveable { mutableStateOf(false) }
     val openMfx: () -> Unit = onMfx ?: { showEffects = true }
     val openSleep: () -> Unit = onSleepTimer ?: { showSleep = true }
     if (showEffects) EffectsSheet(onDismiss = { showEffects = false }, connection = playback)
@@ -89,16 +95,25 @@ fun NowPlayingOverlay(
         ) {
         Column(Modifier.fillMaxSize().then(dragModifier).safeDrawingPadding()) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp),
+                Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onCollapse) {
                     Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.np_collapse))
                 }
                 Spacer(Modifier.weight(1f))
-                SleepTimerBadge(sleepTimer, onClick = openSleep)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    MfxBadge(mfx, onClick = openMfx)
+                    SleepTimerBadge(sleepTimer, onClick = openSleep)
+                }
+                if (song != null) {
+                    IconButton(onClick = { showInfo = true }) {
+                        Icon(Icons.Outlined.Info, stringResource(R.string.song_info))
+                    }
+                }
             }
             if (song == null) return@Column
+            if (showInfo) SongInfoSheet(song, onDismiss = { showInfo = false })
             val actions = remember(vm, onOpenAlbum, onOpenArtist, openMfx, openSleep) { PlayerActions(
                 onTogglePlayPause = vm::togglePlayPause,
                 onPrevious = vm::previous,
@@ -128,6 +143,7 @@ fun NowPlayingOverlay(
                 } else null,
                 elapsed = { LiveElapsed(vm, state.durationMs) },
                 sleepTimerActive = sleepTimer !is SleepTimerUiState.Inactive,
+                mfxActive = mfx.isActive,
                 seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
                 upNext = {
                     if (upNext != null) upNext()
