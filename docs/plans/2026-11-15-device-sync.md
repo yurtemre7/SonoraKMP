@@ -289,19 +289,11 @@ Screens (Material 3 expressive, follow existing settings screens' components):
    launcher; result summary with failed files list and Done.
 Accessibility: all icons described, 48 dp targets, code field announces digits.
 
-## Task 13: Hotspot fallback with QR (Android, phase 4)
+## Task 13: (deferred) Hotspot fallback with QR
 
-Files: add `zxing-core` (com.google.zxing:core — Apache-2.0, not a Google Play service) and
-`com.journeyapps:zxing-android-embedded` to the version catalog / androidApp; `A/devicesync/HotspotHost.kt`,
-`A/devicesync/HotspotJoiner.kt`, `A/devicesync/SyncQr.kt`; permissions `NEARBY_WIFI_DEVICES`
-(`usesPermissionFlags="neverForLocation"`), `ACCESS_FINE_LOCATION` (`maxSdkVersion="32"`), `CAMERA`; strings.
-
-- QR payload (pure, tested): `sonora-sync:1?h=<ip>&p=<port>&c=<code>[&s=<ssid>&k=<passphrase>]` (URL-encoded).
-- Sender screen gains a QR of the LAN payload and a "No shared Wi-Fi? Use phone hotspot" action:
-  `WifiManager.startLocalOnlyHotspot` (request permission first), then QR with ssid/passphrase.
-- Receiver gains "Scan QR": LAN payload → connect directly; hotspot payload → `WifiNetworkSpecifier`
-  (API 29+; below 29 show "needs Android 10") + `ConnectivityManager.requestNetwork`, `bindProcessToNetwork`
-  for the session, unbind after.
+Deferred by the maintainer (2026-11-15): no QR code for now, and without a QR code the phone hotspot's random
+SSID/passphrase can't be handed over, so DSYNC-14 is not built in this plan. Do not add ZXing, camera, hotspot or
+location permissions. Same-Wi-Fi discovery plus manual IP:port entry (Task 8) are the only connection paths.
 
 ## Task 14: Docs and changelog
 

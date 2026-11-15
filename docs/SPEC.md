@@ -386,13 +386,13 @@ folder/MediaStore scan; this feature is always called *device sync*.) Decisions 
 | DSYNC-11 | **Safe writing.** Allowed extensions only (audio types the scanner accepts, `.lrc`/`.txt`, `.jpg`/`.jpeg`/`.png`/`.webp`); relative paths sanitized (no `..`, no absolute, no control/reserved characters, segment ≤ 255 bytes, depth ≤ 16); write to `<name>.sonora-part`, verify size + full SHA-256 against `END`, then rename; never overwrite an existing file — a name clash gets ` (2)` etc.; per-file failure is listed and skipped, not fatal. | Path-traversal and checksum-mismatch tests. |
 | DSYNC-12 | **Replace (D-72).** Old file is deleted only after the new one is verified and scanned; its favorites, playlist entries and stats move to the new song id in one transaction. Folder mode: delete via SAF; MediaStore mode on API 30+: `MediaStore.createDeleteRequest` (system confirmation, batched). If deletion is declined the old file stays and both are kept. | |
 | DSYNC-13 | **Running transfer.** Foreground service type `dataSync` with progress notification (files, bytes, speed, ETA) and Cancel; high-performance Wi-Fi lock + partial wake lock. Interrupted transfers resume by re-planning (verified files are Present). Data bundle is applied after the files, so playlists/favorites can match newly arrived songs; then the library rescans only the new folders. | Kill Wi-Fi mid-transfer → reconnect → only the rest is fetched. |
-| DSYNC-14 | **Phone hotspot fallback (phase 4).** Sender opens a `LocalOnlyHotspot`; its random SSID/passphrase + code are shown as a QR code (ZXing, no Google services); receiver scans and joins via `WifiNetworkSpecifier` (API 29+; system dialog), then DSYNC-02..13 as usual. | |
+| DSYNC-14 | **Phone hotspot fallback (phase 4, deferred — D-74).** Sender opens a `LocalOnlyHotspot`; its random SSID/passphrase + code are shown as a QR code (ZXing, no Google services); receiver scans and joins via `WifiNetworkSpecifier` (API 29+; system dialog), then DSYNC-02..13 as usual. | |
 
 Phases: (1) DSYNC-01..06 settings/playlists/favorites/stats over LAN; (2) DSYNC-07..10 manifest, plan, selection,
-space, folder; (3) DSYNC-11..13 transfer, replace, service, resume; (4) DSYNC-14 hotspot + QR.
+space, folder; (3) DSYNC-11..13 transfer, replace, service, resume; (4) DSYNC-14 hotspot + QR — deferred (D-74).
 New permissions: `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `FOREGROUND_SERVICE_DATA_SYNC` (phase 1–3);
-`NEARBY_WIFI_DEVICES` (API 33+, `neverForLocation`), `ACCESS_FINE_LOCATION` (maxSdk 32), `CAMERA` (phase 4).
-New dependencies: BouncyCastle (J-PAKE, HKDF); ZXing core (phase 4).
+`NEARBY_WIFI_DEVICES` (API 33+, `neverForLocation`), `ACCESS_FINE_LOCATION` (maxSdk 32), `CAMERA` (phase 4, deferred).
+New dependencies: BouncyCastle (J-PAKE, HKDF); ZXing core (phase 4, deferred).
 
 ---
 
@@ -802,7 +802,7 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 | R-13 | Palette seeds differ from Flutter mean colors | Accepted (D-41); ContrastTest fallback |
 | R-15 | Per-app locale on API < 33 requires AppCompat + autoStoreLocales | MainActivity is AppCompatActivity |
 | R-16 | Visualizer remains fake (no RECORD_AUDIO) | Documented |
-| R-17 | Routers with client isolation / mDNS filtering (guest networks) block DSYNC-02 | Manual IP:port entry; phase-4 hotspot fallback |
+| R-17 | Routers with client isolation / mDNS filtering (guest networks) block DSYNC-02 | Manual IP:port entry; phase-4 hotspot fallback once built (deferred, D-74) |
 | R-18 | Android 15 caps `dataSync` foreground services at ~6 h per 24 h | Resume by re-planning (DSYNC-13); show the limit if hit |
 | R-19 | SAF `createDocument` is slow for thousands of files (one binder call each) | Create folders once, stream into each document; acceptable for typical libraries, measure in phase 3 |
 | R-20 | Replace deletes the receiver's file | Only after verify + scan; system confirmation in MediaStore mode; stats/favorites/playlists moved first |
@@ -819,6 +819,7 @@ kept only on the error gate. **DevBadge kept** (debug builds). **Debug caches sc
 - **D-53 (2026-11-10):** a lyrics sidecar containing only metadata tags counts as "no lyrics" (Flutter showed an empty lyrics view).
 - **D-54 (2026-11-10):** releases are triggered by a `release: X.Y.Z` commit on main (tag `vX.Y.Z` is created by the workflow); a nightly workflow publishes a rolling `nightly` pre-release (version `<next patch>-nightly.<date>+<sha>`) that the updater ignores because its tag is not a version. All GitHub Actions on their latest majors (Node 24).
 - **D-55 (2026-11-10):** on API 30+ lyric sidecars and artist images (non-media files) are read through the user's picked folder (SAF tree URI index), since direct file access can't see them. Shared host tests load the bundled SQLite native for the build machine from `sqlite-bundled-jvm`.
+- **D-74 (2026-11-15):** no QR code for now, so the phone-hotspot fallback (DSYNC-14, phase 4) is deferred; same Wi-Fi + manual IP:port entry only.
 - **D-69 (2026-11-15):** device sync is one-way (sender → receiver); no two-way merge.
 - **D-70 (2026-11-15):** no Google Play Services: own LAN transport (NSD + TCP) with a hotspot + QR fallback instead of Nearby Connections; Bluetooth not used (too slow for music files).
 - **D-71 (2026-11-15):** synced stats are added as the difference since the last sync from that sender (per-peer baseline), never as full totals, so repeated syncs don't double-count.
