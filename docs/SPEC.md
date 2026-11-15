@@ -364,8 +364,6 @@ Dropped (D-52).
 | A11Y-07 | Reduce motion (`ANIMATOR_DURATION_SCALE == 0`): no cookie rotation, visualizer, vinyl spin, carousel auto-scroll, heartbeat | |
 | A11Y-08 | Seek bar & sliders expose `progressBarRangeInfo` + set-progress action; lyrics lines are buttons "seek to" | |
 
----
-
 ### 4.12 Device sync (DSYNC) — planned, not built
 
 One-way copy from a **sender** phone to a **receiver** phone on the same local network: settings, playlists,
