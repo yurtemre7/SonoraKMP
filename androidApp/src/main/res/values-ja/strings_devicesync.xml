@@ -16,7 +16,7 @@
     <string name="devicesync_notif_cancel">キャンセル</string>
     <!-- Screens (DSYNC-01..13) -->
     <string name="settings_perm_devicesync_title">Wi-Fiでのデバイス同期</string>
-    <string name="settings_perm_devicesync_body">デバイス同期は、同じWi-Fi上の別のスマートフォンを見つけ（Wi-Fiマルチキャスト）、入力したコードで暗号化して2台の間で直接ファイルをコピーします。データ同期用のフォアグラウンドサービスで、バックグラウンドでも転送を続け、進行状況を表示します。</string>
+    <string name="settings_perm_devicesync_body">デバイス同期は、同じWi-Fi上の別のスマートフォンを見つけ（Wi-Fiマルチキャスト。Android 17以降はローカルネットワークへのアクセスを求めます）、入力したコードで暗号化して2台の間で直接ファイルをコピーします。データ同期用のフォアグラウンドサービスで、バックグラウンドでも転送を続け、進行状況を表示します。</string>
     <string name="settings_devicesync_title">デバイス同期</string>
     <string name="settings_devicesync_subtitle">同じWi-Fiの別のスマートフォンに音楽とデータをコピー</string>
     <string name="devicesync_intro">音楽、プレイリスト、お気に入り、設定、再生統計を別のスマートフォンにコピーします。両方のスマートフォンにSonoraKMPが入っていて、同じWi-Fiにつながっている必要があります。コピーは一方向で、受信側に送信側の内容が届きます。</string>
@@ -164,4 +164,6 @@
     <string name="devicesync_preparing">送信するライブラリを準備しています…</string>
     <string name="devicesync_search_again">もう一度探す</string>
     <string name="devicesync_search_stopped">検索を停止しました。もう一度探すか、相手のスマートフォンに表示されたアドレスを入力してください。</string>
+    <string name="devicesync_local_network_denied">相手のスマートフォンを見つけて接続するには、ローカルネットワーク上のデバイスへのアクセスが必要です。アプリの設定で許可してください。</string>
+    <string name="devicesync_open_settings">設定を開く</string>
 </resources>
