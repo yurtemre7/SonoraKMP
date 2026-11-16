@@ -174,12 +174,15 @@ fun PlaylistsTab(
                 },
             )
         }
-        playlists.isEmpty() -> EmptyState(
-            icon = Icons.Rounded.SearchOff,
-            title = stringResource(R.string.library_playlists_no_match),
-            subtitle = stringResource(R.string.library_no_match_subtitle, state.query.trim()),
-            modifier = Modifier.fillMaxSize(),
-        )
+        playlists.isEmpty() -> Column(Modifier.fillMaxSize()) {
+            SmartListsRow(onOpenSmartList)
+            EmptyState(
+                icon = Icons.Rounded.SearchOff,
+                title = stringResource(R.string.library_playlists_no_match),
+                subtitle = stringResource(R.string.library_no_match_subtitle, state.query.trim()),
+                modifier = Modifier.weight(1f),
+            )
+        }
         else -> Box(Modifier.fillMaxSize()) {
             val sort = PlaylistSort.fromStorage(state.sort.key)
             val bins = remember(playlists, sort, state.librarySongIds) {

@@ -10,17 +10,17 @@ class SmartListsTest {
 
     private val songs = listOf(
         song(1, "Old", added = 100), song(2, "New", added = 300), song(3, "Mid", added = 200),
-        song(4, "Fallback", modified = 250), song(5, "Undated"),
+        song(4, "Fallback", modified = 250), song(5, "Undated"), song(6, "ZeroAdded", added = 0, modified = 50),
     )
 
     @Test fun recentlyAddedIsNewestFirstWithMtimeFallbackAndLimit() {
-        assertEquals(listOf(2L, 4L, 3L, 1L), SmartLists.recentlyAdded(songs).map { it.id })
+        assertEquals(listOf(2L, 4L, 3L, 1L, 6L), SmartLists.recentlyAdded(songs).map { it.id })
         assertEquals(listOf(2L, 4L), SmartLists.recentlyAdded(songs, limit = 2).map { it.id })
     }
 
     @Test fun neverPlayedIsTitleOrdered() {
         val plays = mapOf(2L to 3)
-        assertEquals(listOf(4L, 3L, 1L, 5L), SmartLists.neverPlayed(songs) { plays[it] ?: 0 }.map { it.id })
+        assertEquals(listOf(4L, 3L, 1L, 5L, 6L), SmartLists.neverPlayed(songs) { plays[it] ?: 0 }.map { it.id })
     }
 
     @Test fun mostPlayedRanksByCountThenTitleAndSkipsUnplayed() {

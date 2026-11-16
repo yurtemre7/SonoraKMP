@@ -16,7 +16,7 @@ object SmartLists {
 
     private val titleThenId: Comparator<Song> = compareBy<Song>({ it.titleLower }, { it.artistLower }, { it.id })
 
-    private val Song.addedMs: Long get() = dateAddedMs ?: lastModifiedMs ?: 0L
+    private val Song.addedMs: Long get() = dateAddedMs?.takeIf { it > 0 } ?: lastModifiedMs ?: 0L
 
     /** Newest [limit] songs by date added; songs with no known date are left out. */
     fun recentlyAdded(songs: List<Song>, limit: Int = DEFAULT_LIMIT): List<Song> =
