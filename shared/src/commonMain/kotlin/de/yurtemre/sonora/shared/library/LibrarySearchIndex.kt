@@ -39,7 +39,12 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
 
     fun searchAlbums(albums: List<AlbumGroup>, query: String, sort: AlbumSort = AlbumSort.Name, ascending: Boolean = true): List<AlbumGroup> {
         val q = normalizeForSearch(query.trim())
-        val filtered = if (q.isEmpty()) albums else albums.filter { normalizeForSearch(it.name).contains(q) || normalizeForSearch(it.artist).contains(q) }
+        val terms = q.split(WHITESPACE).filter { it.isNotEmpty() }
+        val filtered = if (terms.isEmpty()) albums else albums.filter { a ->
+            val name = normalizeForSearch(a.name)
+            val artist = normalizeForSearch(a.artist)
+            terms.all { t -> name.contains(t) || artist.contains(t) }
+        }
         return LibrarySorter.sortAlbums(filtered, sort, ascending)
     }
 
@@ -53,8 +58,8 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
         private val WHITESPACE = Regex("""\s+""")
 
         fun filterPlaylists(playlists: List<Playlist>, query: String): List<Playlist> {
-            val q = query.trim().lowercase()
-            return if (q.isEmpty()) playlists else playlists.filter { it.name.lowercase().contains(q) }
+            val q = normalizeForSearch(query.trim())
+            return if (q.isEmpty()) playlists else playlists.filter { normalizeForSearch(it.name).contains(q) }
         }
     }
 }
