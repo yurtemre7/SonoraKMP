@@ -1,7 +1,7 @@
 # Feature ideas
 
 Suggestions collected for what users expect from a local music player. Only the
-ones marked **Planned** or **Done** are being built; the rest is a backlog, each
+ones marked **Planned** are being built and **Done** ones are merged; the rest is a backlog, each
 to be picked up on its own branch (`feat/<name>`) with its own pull request.
 
 Status: **Planned** · **Done** · Idea (not requested yet)
@@ -10,8 +10,8 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 
 | Idea | Status | Notes |
 | --- | --- | --- |
-| Embedded lyrics (ID3 `USLT`, Vorbis `LYRICS`) as a fallback to `.lrc`/`.txt` sidecars | Planned | `feat/embedded-lyrics` |
-| Smart lists: recently added, never played, most played | Planned | `feat/smart-lists`; stats data already exists |
+| Embedded lyrics (ID3 `USLT`, Vorbis `LYRICS`) as a fallback to `.lrc`/`.txt` sidecars | Done | #20 |
+| Smart lists: recently added, never played, most played | Done | #22 |
 | Folder browsing (file-tree view next to Songs/Albums/Artists) | Idea | |
 | Genre and year browsing | Idea | `genre` and `year` are already on `Song` |
 | Exclude folders and a minimum track length | Idea | keeps voice memos and ringtones out |
@@ -22,11 +22,12 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 
 | Idea | Status | Notes |
 | --- | --- | --- |
-| Save queue as playlist | Planned | `feat/save-queue-as-playlist` |
+| Save queue as playlist | Done | #21 |
 | Crossfade | Idea | gapless is already supported |
 | Skip silence | Idea | Media3 supports it |
 | Remember position for long files (audiobooks, podcasts) | Idea | |
-| Sleep timer by track count / end of album | Idea | "finish this song" exists |
+| Sleep timer by number of songs (2, 3, 5, 10) | Done | #23 |
+| Sleep timer until the end of the album | Idea | "finish this song" and song counts exist |
 | Android Auto / media-browser service | Idea | |
 
 ## Quality of life
