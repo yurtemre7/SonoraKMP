@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 interface SleepTimerHost {
     val isPlaying: Boolean
     val currentSongId: Long?
+    /** Queue entry (uid) that is current; differs per slot even when the same song appears twice. */
+    val currentEntryId: Long?
     val positionMs: Long
     /** Player duration, falling back to the song duration. */
     val durationMs: Long
@@ -58,7 +60,13 @@ class SleepTimer(
     /** Stop at the end of the [count]th song, the current one counting as the first. */
     fun startTracks(count: Int, fadeOutSec: Int) {
         totalMs = 0
-        dispatch(SleepTimerEvent.StartTracks(count, fadeOutSec, host.userVolume, host.currentSongId))
+        dispatch(SleepTimerEvent.StartTracks(count, fadeOutSec, host.userVolume, host.currentEntryId))
+    }
+
+    /** The current queue entry changed; counted once per change in track-count mode, ignored otherwise. */
+    fun onEntryChanged() {
+        if (state.tracksRemaining == null) return
+        dispatch(SleepTimerEvent.EntryChanged(host.currentEntryId, host.currentSongId, host.isPlaying, host.userVolume))
     }
 
     fun stop() = dispatch(SleepTimerEvent.Stop)

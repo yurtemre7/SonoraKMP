@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -109,7 +111,10 @@ fun SleepTimerSheet(
         ) {
             Text(stringResource(R.string.sleep_sheet_title), style = MaterialTheme.typography.headlineSmall)
             AnimatedContent(targetState = state is SleepTimerUiState.Inactive, label = "sleep") { inactive ->
-                if (!inactive) RunningSection(state, connection) else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (!inactive) RunningSection(state, connection) else Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
                     Text(stringResource(R.string.sleep_sheet_presets), style = MaterialTheme.typography.titleSmall)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { PresetRows.forEach { row ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
