@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lyrics_empty_title">歌詞がありません</string>
-    <string name="lyrics_empty_subtitle">曲と同じ名前の .lrc または .txt ファイルを同じフォルダに置いてください。</string>
+    <string name="lyrics_empty_subtitle">曲と同じ名前の .lrc または .txt ファイルを同じフォルダに置くか、ファイルのタグに歌詞を埋め込んでください。</string>
     <string name="lyrics_line_seek">この行に移動</string>
     <string name="related_from_album">このアルバムから</string>
     <string name="related_more_by_artist">このアーティストの他の曲</string>

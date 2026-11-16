@@ -65,6 +65,7 @@
     <string name="sheets_dialog_save">Save</string>
     <string name="sheets_dialog_cancel">Cancel</string>
     <string name="sheets_dialog_saved_queue">Saved %1$s</string>
+    <string name="sheets_dialog_save_queue_failed">Couldn’t save the playlist</string>
     <string name="sheets_dialog_default_queue_name">Queue %1$s</string>
 
     <!-- Song actions sheet -->
