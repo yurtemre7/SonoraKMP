@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smart_list_recently_added">最近追加</string>
+    <string name="smart_list_never_played">未再生</string>
+    <string name="smart_list_most_played">よく聴く曲</string>
+    <string name="smart_list_shuffle">シャッフル</string>
+    <string name="smart_list_empty_title">まだ何もありません</string>
+    <string name="smart_list_empty_recently_added">ライブラリに曲が追加されるとここに表示されます。</string>
+    <string name="smart_list_empty_never_played">すべての曲を一度は再生しました。</string>
+    <string name="smart_list_empty_most_played">曲を再生すると、よく聴く曲がここに表示されます。</string>
+</resources>
