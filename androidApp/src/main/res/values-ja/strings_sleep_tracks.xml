@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sleep_badge_tracks">
+        <item quantity="other">%1$d曲</item>
+    </plurals>
+    <plurals name="sleep_tracks_remaining">
+        <item quantity="other">残り%1$d曲</item>
+    </plurals>
+    <string name="sleep_tracks_label">または曲数で停止</string>
+    <string name="sleep_tracks_option">%1$d</string>
+    <string name="sleep_tracks_start">%1$d曲後に停止</string>
+    <string name="sleep_tracks_extend">+1曲</string>
+</resources>

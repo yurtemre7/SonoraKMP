@@ -118,6 +118,7 @@ class FakePlayback(current: Song? = null) : PlaybackConnection {
     override fun closePlayer() {}
     override fun undoClosePlayer() {}
     override fun startSleepTimer(durationMs: Long, finishSong: Boolean, fadeSeconds: Int) {}
+    override fun startSleepTimerTracks(count: Int, fadeSeconds: Int) {}
     override fun extendSleepTimer(deltaMs: Long) {}
     override fun cancelSleepTimer() {}
 }

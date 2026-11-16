@@ -34,6 +34,7 @@ object SessionCommands {
     const val APPLY_EQ_PRESET = P + "APPLY_EQ_PRESET"
     const val RESET_EFFECTS = P + "RESET_EFFECTS"
     const val SLEEP_START = P + "SLEEP_START"
+    const val SLEEP_START_TRACKS = P + "SLEEP_START_TRACKS"
     const val SLEEP_EXTEND = P + "SLEEP_EXTEND"
     const val SLEEP_STOP = P + "SLEEP_STOP"
     const val CLOSE_PLAYER = P + "CLOSE_PLAYER"
@@ -41,8 +42,8 @@ object SessionCommands {
     val ALL = listOf(
         SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, INSERT_AT, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
         CYCLE_REPEAT, SKIP_NEXT, SKIP_PREVIOUS, SET_VOLUME, SET_SPEED, SET_PITCH, SET_MFX_PRESET, SET_BASS_BOOST, SET_WARMTH,
-        SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_EXTEND, SLEEP_STOP,
-        CLOSE_PLAYER,
+        SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_START_TRACKS, SLEEP_EXTEND,
+        SLEEP_STOP, CLOSE_PLAYER,
     )
 
     /** Commands any (external) controller may send: the notification buttons. */
@@ -66,6 +67,7 @@ object SessionCommands {
     const val ARG_SECONDS = "seconds"
     const val ARG_FINISH_SONG = "finishSong"
     const val ARG_FADE = "fade"
+    const val ARG_COUNT = "count"
     const val ARG_QUEUE_JSON = "queueJson"
     const val ARG_POSITION = "position"
 
@@ -76,6 +78,7 @@ object SessionCommands {
     private const val X_SLEEP_FADE = "x.sleep.fade"
     private const val X_SLEEP_FADING = "x.sleep.fading"
     private const val X_SLEEP_FINISH = "x.sleep.finish"
+    private const val X_SLEEP_TRACKS = "x.sleep.tracks"
     private const val X_EQ_SUPPORTED = "x.eq.supported"
     private const val X_EQ_CENTERS = "x.eq.centers"
     private const val X_EQ_MIN = "x.eq.min"
@@ -123,6 +126,10 @@ object SessionCommands {
                 putInt(X_SLEEP_KIND, 2)
                 putInt(X_SLEEP_FADE, s.fadeSeconds); putBoolean(X_SLEEP_FADING, s.isFading)
             }
+            is SleepTimerUiState.Tracks -> {
+                putInt(X_SLEEP_KIND, 3)
+                putInt(X_SLEEP_TRACKS, s.remaining); putInt(X_SLEEP_FADE, s.fadeSeconds)
+            }
         }
         putBoolean(X_EQ_SUPPORTED, e.eqSupported)
         e.eq?.let {
@@ -136,6 +143,7 @@ object SessionCommands {
                 b.getLong(X_SLEEP_REMAINING), b.getLong(X_SLEEP_TOTAL), b.getInt(X_SLEEP_FADE), b.getBoolean(X_SLEEP_FADING), b.getBoolean(X_SLEEP_FINISH),
             )
             2 -> SleepTimerUiState.FinishSong(b.getInt(X_SLEEP_FADE), b.getBoolean(X_SLEEP_FADING))
+            3 -> SleepTimerUiState.Tracks(b.getInt(X_SLEEP_TRACKS), b.getInt(X_SLEEP_FADE))
             else -> SleepTimerUiState.Inactive
         }
         val eq = b.getIntArray(X_EQ_CENTERS)?.let { AudioEffects.EqInfo(it.toList(), b.getInt(X_EQ_MIN), b.getInt(X_EQ_MAX)) }

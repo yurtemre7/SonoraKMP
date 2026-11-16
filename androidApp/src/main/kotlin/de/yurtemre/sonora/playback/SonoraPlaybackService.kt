@@ -60,6 +60,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -101,6 +102,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
         override val currentSongId: Long? get() = queue.state.value.currentEntry?.songId
+        override val currentEntryId: Long? get() = queue.state.value.currentEntry?.uid
         override val positionMs: Long get() = exo.currentPosition
         override val durationMs: Long
             get() = exo.duration.takeIf { it > 0 } ?: currentSongId?.let(queue::cachedSong)?.durationMs ?: 0L
@@ -201,6 +203,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         }
         scope.launch { queue.state.collect { queueBus.state.value = it } }
         scope.launch { sleepTimer.uiState.collect { publishExtras() } }
+        scope.launch { queue.state.map { it.currentEntry?.uid }.distinctUntilChanged().collect { sleepTimer.onEntryChanged() } }
         scope.launch { effects.eqInfo.collect { publishExtras() } }
         scope.launch { effects.isEqualizerSupported.collect { publishExtras() } }
         restoreJob = scope.launch { restore() }
@@ -368,6 +371,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 setMfxCustomEqEnabled(false); setMfxCustomEqGains(null)
             }
             C.SLEEP_START -> sleepTimer.start(a.getLong(C.ARG_SECONDS), a.getBoolean(C.ARG_FINISH_SONG), a.getInt(C.ARG_FADE))
+            C.SLEEP_START_TRACKS -> sleepTimer.startTracks(a.getInt(C.ARG_COUNT, 1), a.getInt(C.ARG_FADE))
             C.SLEEP_EXTEND -> extendTimer(a.getLong(C.ARG_SECONDS, SLEEP_EXTEND_SEC))
             C.SLEEP_STOP -> sleepTimer.stop()
             C.CLOSE_PLAYER -> closePlayer()

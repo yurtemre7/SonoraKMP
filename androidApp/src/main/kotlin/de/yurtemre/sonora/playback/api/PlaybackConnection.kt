@@ -70,6 +70,9 @@ interface PlaybackConnection {
     // PLAY-26 sleep timer
     /** [durationMs] 0 with [finishSong] = stop after the current song; both = count down, then finish that song. */
     fun startSleepTimer(durationMs: Long, finishSong: Boolean, fadeSeconds: Int)
+    /** Stop at the end of the [count]th song, counting the current one (see `SleepTimerEvent.StartTracks`). */
+    fun startSleepTimerTracks(count: Int, fadeSeconds: Int)
+    /** Extends the running timer: by [deltaMs] for a countdown, by one song in track-count mode. */
     fun extendSleepTimer(deltaMs: Long)
     fun cancelSleepTimer()
 }

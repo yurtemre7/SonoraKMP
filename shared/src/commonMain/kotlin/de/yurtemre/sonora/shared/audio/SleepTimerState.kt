@@ -13,8 +13,12 @@ data class SleepTimerState(
     val isFinishingSong: Boolean = false,
     val targetSongId: Long? = null,
     val originalVolume: Double = 1.0,
+    /** Track-count mode: songs left to play, the current one included; null = not counting songs. */
+    val tracksRemaining: Int? = null,
+    /** Track-count mode: the queue entry that was current at the last [SleepTimerEvent.EntryChanged]. */
+    val lastEntryId: Long? = null,
 ) {
-    val isActive: Boolean get() = remainingSec != null
+    val isActive: Boolean get() = remainingSec != null || tracksRemaining != null
 
     companion object {
         const val TICK_MS = 1000L
@@ -32,6 +36,16 @@ sealed interface SleepTimerEvent {
     /** Finish-song poll. [durationMs] = player duration ?: song duration. */
     data class FinishPoll(val playing: Boolean, val currentSongId: Long?, val positionMs: Long, val durationMs: Long) : SleepTimerEvent
     data object Stop : SleepTimerEvent
+    /**
+     * Start a track-count timer (replaces any timer): playback stops at the end of the [count]th song, the current
+     * song counting as the first. Counts every change of song, skips included.
+     */
+    data class StartTracks(val count: Int, val fadeOutSec: Int, val userVolume: Double, val currentEntryId: Long?) : SleepTimerEvent
+    /**
+     * The current queue entry changed (auto-advance, skip, queue edit). Fed once per change, so quick skips are all
+     * counted; [entryId] null = the queue went empty and is ignored. Only matters in track-count mode.
+     */
+    data class EntryChanged(val entryId: Long?, val songId: Long?, val playing: Boolean, val userVolume: Double) : SleepTimerEvent
     /** Extend; when idle, starts a new timer of [extensionSec] with the given defaults. */
     data class Extend(val extensionSec: Long, val defaultFinishSong: Boolean, val defaultFadeOutSec: Int, val userVolume: Double) : SleepTimerEvent
 }
@@ -57,6 +71,8 @@ object SleepTimerReducer {
         is SleepTimerEvent.Tick -> tick(state, event)
         is SleepTimerEvent.FinishPoll -> poll(state, event)
         SleepTimerEvent.Stop -> stop(state)
+        is SleepTimerEvent.StartTracks -> startTracks(state, event)
+        is SleepTimerEvent.EntryChanged -> entryChanged(state, event)
         is SleepTimerEvent.Extend -> extend(state, event)
     }
 
@@ -75,7 +91,54 @@ object SleepTimerReducer {
         )
     }
 
+    private fun startTracks(state: SleepTimerState, e: SleepTimerEvent.StartTracks): SleepTimerTransition {
+        val stopped = stop(state)
+        val s = SleepTimerState(
+            fadeOutSec = e.fadeOutSec, originalVolume = e.userVolume,
+            tracksRemaining = e.count.coerceAtLeast(1), lastEntryId = e.currentEntryId,
+        )
+        // Keep the cleanup of a replaced timer (restored volume, its countdown notification).
+        val cleanup = stopped.effects.filter { it is SleepTimerEffect.ApplyVolume || it is SleepTimerEffect.CancelNotification }
+        return SleepTimerTransition(s, cleanup + SleepTimerEffect.UpdateControls(true))
+    }
+
+    /**
+     * Last song reached while playing: hand over to the finish-song logic (pause at its end, with the fade).
+     * The final queue entry stays in [SleepTimerState.lastEntryId], so moving on to a later entry that holds the
+     * same song still pauses at once.
+     */
+    private fun handOverToFinishSong(state: SleepTimerState, songId: Long, entryId: Long?, userVolume: Double) = SleepTimerTransition(
+        state.copy(
+            remainingSec = 0, tracksRemaining = null, lastEntryId = entryId, isFinishingSong = true,
+            targetSongId = songId, originalVolume = userVolume, isFadingOut = false,
+        ),
+        listOf(SleepTimerEffect.ApplyVolume(userVolume), SleepTimerEffect.UpdateNotification(0, true)),
+    )
+
+    private fun entryChanged(state: SleepTimerState, e: SleepTimerEvent.EntryChanged): SleepTimerTransition {
+        // Finishing the last counted song: any other entry means playback moved past it.
+        if (state.isFinishingSong && state.lastEntryId != null) {
+            val moved = e.entryId != null && e.entryId != state.lastEntryId
+            return if (moved) finalize(immediatePause = true) else SleepTimerTransition(state)
+        }
+        val left = state.tracksRemaining ?: return SleepTimerTransition(state)
+        val id = e.entryId ?: return SleepTimerTransition(state)
+        // First entry seen (timer started with nothing playing) is song 1, not a change.
+        val remaining = if (state.lastEntryId == null || id == state.lastEntryId) left else left - 1
+        if (remaining <= 0) return finalize(immediatePause = true)
+        if (remaining == 1 && e.playing && e.songId != null) return handOverToFinishSong(state, e.songId, id, e.userVolume)
+        return SleepTimerTransition(state.copy(tracksRemaining = remaining, lastEntryId = id))
+    }
+
+    /** Counting songs: changes of song arrive as [SleepTimerEvent.EntryChanged]; a tick only resumes a paused last song. */
+    private fun trackTick(state: SleepTimerState, left: Int, e: SleepTimerEvent.Tick): SleepTimerTransition {
+        val id = e.currentSongId
+        if (left == 1 && e.playing && id != null) return handOverToFinishSong(state, id, state.lastEntryId, e.userVolume)
+        return SleepTimerTransition(state)
+    }
+
     private fun tick(state: SleepTimerState, e: SleepTimerEvent.Tick): SleepTimerTransition {
+        state.tracksRemaining?.let { return trackTick(state, it, e) }
         val current = state.remainingSec ?: return SleepTimerTransition(state)
         if (state.isFinishingSong) return SleepTimerTransition(state)
         val remaining = current - 1
@@ -144,6 +207,8 @@ object SleepTimerReducer {
     )
 
     private fun extend(state: SleepTimerState, e: SleepTimerEvent.Extend): SleepTimerTransition {
+        // Track-count mode: "extend" means one more song.
+        state.tracksRemaining?.let { return SleepTimerTransition(state.copy(tracksRemaining = it + 1)) }
         val remaining = state.remainingSec
             ?: return start(state, e.extensionSec, e.defaultFinishSong, e.defaultFadeOutSec, e.userVolume)
         val restore = if (state.isFadingOut) listOf(SleepTimerEffect.ApplyVolume(state.originalVolume)) else emptyList()

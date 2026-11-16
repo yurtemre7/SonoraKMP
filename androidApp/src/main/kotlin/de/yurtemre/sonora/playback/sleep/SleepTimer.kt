@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 interface SleepTimerHost {
     val isPlaying: Boolean
     val currentSongId: Long?
+    /** Queue entry (uid) that is current; differs per slot even when the same song appears twice. */
+    val currentEntryId: Long?
     val positionMs: Long
     /** Player duration, falling back to the song duration. */
     val durationMs: Long
@@ -53,6 +55,18 @@ class SleepTimer(
         dispatch(SleepTimerEvent.Start(durationSec, finishSong, fadeOutSec, host.userVolume))
         // "Finish the song" alone: enter finishing mode right away instead of after the first tick.
         if (durationSec <= 0 && finishSong) dispatch(SleepTimerEvent.Tick(host.isPlaying, host.currentSongId, host.userVolume))
+    }
+
+    /** Stop at the end of the [count]th song, the current one counting as the first. */
+    fun startTracks(count: Int, fadeOutSec: Int) {
+        totalMs = 0
+        dispatch(SleepTimerEvent.StartTracks(count, fadeOutSec, host.userVolume, host.currentEntryId))
+    }
+
+    /** The current queue entry changed; counted once per change in track-count mode (and while finishing its last song). */
+    fun onEntryChanged() {
+        if (state.tracksRemaining == null && state.lastEntryId == null) return
+        dispatch(SleepTimerEvent.EntryChanged(host.currentEntryId, host.currentSongId, host.isPlaying, host.userVolume))
     }
 
     fun stop() = dispatch(SleepTimerEvent.Stop)
@@ -120,7 +134,9 @@ class SleepTimer(
 
     private fun publish() {
         val remaining = state.remainingSec
+        val tracks = state.tracksRemaining
         _ui.value = when {
+            tracks != null -> SleepTimerUiState.Tracks(tracks, state.fadeOutSec)
             remaining == null -> SleepTimerUiState.Inactive
             state.isFinishingSong -> SleepTimerUiState.FinishSong(state.fadeOutSec, state.isFadingOut)
             else -> SleepTimerUiState.Countdown(

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sleep_badge_tracks">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="sleep_tracks_remaining">
+        <item quantity="one">%1$d song left</item>
+        <item quantity="other">%1$d songs left</item>
+    </plurals>
+    <string name="sleep_tracks_label">Or stop after a number of songs</string>
+    <string name="sleep_tracks_option">%1$d</string>
+    <string name="sleep_tracks_start">Stop after %1$d songs</string>
+    <string name="sleep_tracks_extend">+1 song</string>
+</resources>

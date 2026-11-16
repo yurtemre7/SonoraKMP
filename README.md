@@ -35,7 +35,7 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Background playback with notification, lock-screen and headset controls
 - Gapless playback, ReplayGain (track or album), smooth play/pause fades
 - Equalizer with presets, speed and pitch presets from slowed to nightcore
-- Sleep timer with "finish this song" and a fade-out
+- Sleep timer with "finish this song", stop after a number of songs, and a fade-out
 - Home-screen widget
 
 **Yours**
