@@ -81,6 +81,8 @@ class AudioEffects(
             }
         } catch (t: Throwable) {
             _isEqualizerSupported.value = false
+            _eqInfo.value = null // do not keep the band layout of an equalizer that no longer exists
+            _bandCount.value = 0
             null
         }
         current?.let(::applyEq)

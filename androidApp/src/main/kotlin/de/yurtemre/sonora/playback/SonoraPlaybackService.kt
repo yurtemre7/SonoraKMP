@@ -40,6 +40,7 @@ import de.yurtemre.sonora.shared.queue.cleared
 import de.yurtemre.sonora.shared.queue.currentEntry
 import de.yurtemre.sonora.shared.queue.cycleRepeat
 import de.yurtemre.sonora.shared.queue.insertAt
+import de.yurtemre.sonora.shared.queue.isLast
 import de.yurtemre.sonora.shared.queue.load
 import de.yurtemre.sonora.shared.queue.move
 import de.yurtemre.sonora.shared.queue.playNext
@@ -123,10 +124,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         }
         override fun onPlayerError(error: PlaybackException) = handlePlayerError(error)
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-            if (playWhenReady) {
-                MediaVolume.ensureAudible(this@SonoraPlaybackService)
-                if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) noisy.clearDisconnectFlag()
-            }
+            if (playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) noisy.clearDisconnectFlag()
         }
     }
 
@@ -157,7 +155,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         })
         // All transport routes (UI, notification, Bluetooth, widget) record skip/restart stats.
         player.navigator = object : QueueNavigator {
-            override fun skipNext() { recorder.onSkipNext(); queue.skipNext() }
+            override fun skipNext() { recorder.onSkipNext(queue.state.value.isLast); queue.skipNext() }
             override fun skipPrevious(positionMs: Long) { recorder.onPrevious(); queue.skipPrevious(positionMs) }
         }
         persistence = PlaybackPersistence(
@@ -262,7 +260,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
 
     private val callback = object : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            val trusted = controller.packageName == packageName
+            // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
+            val trusted = controller.packageName == packageName || controller.isTrusted
             val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
             (if (trusted) C.ALL else C.PUBLIC).forEach { cmds.add(C.command(it)) }
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
@@ -298,7 +297,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     }
 
     private fun handle(action: String, a: Bundle) {
-        val s = queue.state.value
+        val s = queue.latestState // edits build on a still-pending edit, so quick commands do not drop each other
         when (action) {
             C.SET_QUEUE -> {
                 val ids = a.getLongArray(C.ARG_IDS)?.toList().orEmpty()

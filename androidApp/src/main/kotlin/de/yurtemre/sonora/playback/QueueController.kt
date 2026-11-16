@@ -50,6 +50,15 @@ class QueueController(
     private val _state = MutableStateFlow(QueueState())
     val state: StateFlow<QueueState> = _state.asStateFlow()
 
+    /** The newest requested queue, set at once by [setQueue] / [applyEdit]; null once it has been applied. */
+    private var requested: QueueState? = null
+
+    /**
+     * The queue as the next edit must start from: a request still being built into the player counts. [state] only
+     * changes after that async build, so two quick edits computed from [state] would drop the first one.
+     */
+    val latestState: QueueState get() = requested ?: _state.value
+
     /** Fired after the current index and ReplayGain are applied (stats, persistence, widget). */
     var onCurrentChanged: ((QueueState) -> Unit)? = null
 
@@ -79,6 +88,7 @@ class QueueController(
     /** Replaces the queue and loads a window around its current entry. */
     fun setQueue(newState: QueueState, startPositionMs: Long = 0, playWhenReady: Boolean = true): Job {
         val t = ++token
+        requested = newState
         return scope.launch {
             val idx = newState.currentIndex.coerceIn(0, (newState.entries.size - 1).coerceAtLeast(0))
             // Always start from the small window so playback begins at once; repeat-all gets the rest afterwards.
@@ -87,6 +97,7 @@ class QueueController(
             val items = buildItems(newState, start, end)
             if (t != token) return@launch // a newer request superseded this one
             _state.value = newState.copy(currentIndex = if (newState.entries.isEmpty()) -1 else idx)
+            requested = null
             windowStart = start; windowEnd = end
             editing = true
             if (items.isEmpty()) player.wrappedPlayer.clearMediaItems()
@@ -140,6 +151,7 @@ class QueueController(
             return
         }
         val t = ++token
+        requested = newState
         scope.launch {
             val idx = newState.currentIndex
             var start = (idx - PREPEND).coerceAtLeast(0)
@@ -159,6 +171,7 @@ class QueueController(
             editing = false
             windowStart = start; windowEnd = end
             _state.value = newState
+            requested = null
             syncCurrentFromPlayer(slide = false) // a transition during the edit still updates item + gain
         }
     }
@@ -167,6 +180,7 @@ class QueueController(
     fun restoreRepeat(mode: RepeatMode) {
         if (_state.value.repeat == mode) return
         _state.value = _state.value.copy(repeat = mode)
+        requested = requested?.copy(repeat = mode)
         player.wrappedPlayer.repeatMode = mode.toPlayer()
     }
 
@@ -241,8 +255,13 @@ class QueueController(
         val slice = s.entries.subList(from, to)
         val missing = slice.map { it.songId }.filter { it !in songCache }.distinct()
         if (missing.isNotEmpty()) songCache.putAll(songs(missing))
+        // The cache is only touched on the player thread: concurrent builds write it, so the IO block below must
+        // not read it. It gets the resolved songs instead.
+        val resolved = slice.map { it to songCache[it.songId] }
         return withContext(io) {
-            slice.map { e -> songCache[e.songId]?.let { toMediaItem(e.uid, it, s.playlistContext) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build() }
+            resolved.map { (e, song) ->
+                song?.let { toMediaItem(e.uid, it, s.playlistContext) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build()
+            }
         }
     }
 
