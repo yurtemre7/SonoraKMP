@@ -82,7 +82,10 @@ internal fun MinimalPlayer(
     if (maxHeight < CompactHeight) {
         Column(
             Modifier.fillMaxSize().padding(horizontal = 16.dp).then(swipe)
+                // fillMaxSize() gives the column a minimum height of the viewport and verticalScroll only lifts the
+                // maximum, so a centre arrangement centres short content and tall content still scrolls.
                 .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            verticalArrangement = if (centered) Arrangement.Center else Arrangement.Top,
             horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
         ) {
             Spine(song.displayTitle(), Modifier.fillMaxWidth(), horizontal = true, style = ts, centered = centered)
