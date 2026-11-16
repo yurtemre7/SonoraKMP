@@ -29,7 +29,7 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Songs, albums, artists and playlists, with search and per-tab sorting
 - Playlists with drag-to-reorder and M3U import/export
 - Favourites, recently played, and a listening statistics dashboard
-- Synced `.lrc` and plain `.txt` lyrics
+- Synced `.lrc` and plain `.txt` lyrics, or lyrics embedded in the file's tags
 
 **Playback**
 - Background playback with notification, lock-screen and headset controls
