@@ -63,9 +63,9 @@ class SleepTimer(
         dispatch(SleepTimerEvent.StartTracks(count, fadeOutSec, host.userVolume, host.currentEntryId))
     }
 
-    /** The current queue entry changed; counted once per change in track-count mode, ignored otherwise. */
+    /** The current queue entry changed; counted once per change in track-count mode (and while finishing its last song). */
     fun onEntryChanged() {
-        if (state.tracksRemaining == null) return
+        if (state.tracksRemaining == null && state.lastEntryId == null) return
         dispatch(SleepTimerEvent.EntryChanged(host.currentEntryId, host.currentSongId, host.isPlaying, host.userVolume))
     }
 

@@ -98,4 +98,17 @@ class SleepTimerStateTest {
         assertTrue(SleepTimerEffect.CancelNotification in replaced.effects)
         assertTrue(SleepTimerEffect.UpdateControls(true) in replaced.effects)
     }
+
+    @Test
+    fun movingPastTheLastSongPausesEvenWhenTheNextEntryHoldsTheSameSong() {
+        var s = SleepTimerState.Idle.on(SleepTimerEvent.StartTracks(2, 0, 1.0, currentEntryId = 1L)).state
+        s = s.on(changed(entry = 2L, song = 7L)).state
+        assertTrue(s.isFinishingSong); assertEquals(2L, s.lastEntryId)
+        // Same entry again (e.g. a re-emitted state): nothing happens.
+        assertEquals(s, s.on(changed(entry = 2L, song = 7L)).state)
+        // Entry 3 holds the same song 7: the poll alone would accept it, the entry check must not.
+        val t = s.on(changed(entry = 3L, song = 7L))
+        assertEquals(SleepTimerState.Idle, t.state)
+        assertTrue(SleepTimerEffect.PauseImmediate in t.effects)
+    }
 }
