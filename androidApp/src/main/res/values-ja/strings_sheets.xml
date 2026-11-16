@@ -60,6 +60,7 @@
     <string name="sheets_dialog_save">保存</string>
     <string name="sheets_dialog_cancel">キャンセル</string>
     <string name="sheets_dialog_saved_queue">「%1$s」を保存しました</string>
+    <string name="sheets_dialog_save_queue_failed">プレイリストを保存できませんでした</string>
     <string name="sheets_dialog_default_queue_name">キュー%1$s</string>
 
     <string name="sheets_actions_play_next">次に再生</string>
