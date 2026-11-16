@@ -158,11 +158,17 @@ fun PlayerView(
         } else if (horizontalSpine || !ts.usesSpine) {
             // Large fonts put the title above the sleeve; the plain title style puts it under it, like a classic player.
             val titleBelow = !ts.usesSpine && !horizontalSpine
-            Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Classic: cover, title and chips are one centred block, in the middle of the space between the top and
+            // the controls (it used to hug the left edge and the top when the cover was narrower than the screen).
+            Column(
+                Modifier.weight(1f).fillMaxWidth(),
+                verticalArrangement = if (titleBelow) Arrangement.spacedBy(12.dp, Alignment.CenterVertically) else Arrangement.spacedBy(12.dp),
+                horizontalAlignment = if (titleBelow) Alignment.CenterHorizontally else Alignment.Start,
+            ) {
                 if (!titleBelow) Spine(song.displayTitle(), horizontal = true, style = ts)
                 // Square, but never taller than the slot left after Spine + chips, so it can't overlap them.
                 art(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true))
-                if (titleBelow) Spine(song.displayTitle(), horizontal = true, style = ts)
+                if (titleBelow) Spine(song.displayTitle(), Modifier.fillMaxWidth(), horizontal = true, style = ts, centered = true)
                 if (!immersive) MetaChips(song, actions)
             }
         } else {

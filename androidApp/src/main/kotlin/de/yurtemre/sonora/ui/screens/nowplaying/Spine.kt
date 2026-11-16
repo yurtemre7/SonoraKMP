@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -71,6 +72,8 @@ fun Spine(
     style: TitleStyle = TitleStyle.Hybrid,
     /** Marquee only: keep scrolling (settings preview) instead of once per track. */
     loopMarquee: Boolean = false,
+    /** Horizontal title only: centre the text (the Classic title under a centred cover). */
+    centered: Boolean = false,
 ) {
     val color = MaterialTheme.colorScheme.onSurface
     if (horizontal || style == TitleStyle.Classic) {
@@ -79,6 +82,7 @@ fun Spine(
             modifier = modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineMedium,
             color = color,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Unspecified,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
