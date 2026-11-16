@@ -21,6 +21,7 @@ import de.yurtemre.sonora.ui.navigation.Favorites
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.RecentlyPlayed
 import de.yurtemre.sonora.ui.navigation.Settings
+import de.yurtemre.sonora.ui.navigation.SmartList
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 
@@ -64,7 +65,11 @@ fun HomeRoute(
                 LibraryTab.Songs -> SongsTab(s, vm, header.isSyncing, snackbar, onNavigate)
                 LibraryTab.Albums -> AlbumsTab(s, snackbar) { onNavigate(Album(it.name, it.artist)) }
                 LibraryTab.Artists -> ArtistsTab(s) { onNavigate(Artist(it.name)) }
-                LibraryTab.Playlists -> PlaylistsTab(s, snackbar) { onNavigate(Playlist(it.id)) }
+                LibraryTab.Playlists -> PlaylistsTab(
+                    s, snackbar,
+                    onOpen = { onNavigate(Playlist(it.id)) },
+                    onOpenSmartList = { onNavigate(SmartList(it.key)) },
+                )
             }
         },
     )

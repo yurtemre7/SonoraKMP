@@ -28,7 +28,7 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Plays the music on your device (MediaStore), or a folder you pick
 - Songs, albums, artists and playlists, with search and per-tab sorting
 - Playlists with drag-to-reorder and M3U import/export
-- Favourites, recently played, and a listening statistics dashboard
+- Favourites, recently played, smart lists (recently added, never played, most played), and a listening statistics dashboard
 - Synced `.lrc` and plain `.txt` lyrics
 
 **Playback**

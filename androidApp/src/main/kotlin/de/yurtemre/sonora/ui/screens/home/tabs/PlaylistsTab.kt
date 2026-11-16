@@ -12,6 +12,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -62,6 +63,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.library.ScrollSection
+import de.yurtemre.sonora.shared.library.SmartListKind
 import de.yurtemre.sonora.shared.model.Playlist
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
@@ -93,7 +95,12 @@ private sealed interface PlaylistDialog {
 
 /** Playlists tab (UI-11): create, M3U import, rows with cover and menu (export, description, cover, rename, delete). */
 @Composable
-fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Playlist) -> Unit) {
+fun PlaylistsTab(
+    state: HomeTabState,
+    snackbar: SnackbarHostState,
+    onOpen: (Playlist) -> Unit,
+    onOpenSmartList: (SmartListKind) -> Unit,
+) {
     val repo = koinInject<PlaylistRepository>()
     val library = koinInject<LibraryRepository>()
     val songs by library.songs.collectAsStateWithLifecycle(emptyList())
@@ -152,18 +159,21 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
 
     when {
         !state.loaded -> Unit
-        state.totalCount == 0 -> EmptyState(
-            icon = Icons.Rounded.QueueMusic,
-            title = stringResource(R.string.library_playlists_empty),
-            subtitle = stringResource(R.string.library_playlists_empty_subtitle),
-            modifier = Modifier.fillMaxSize(),
-            action = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { dialog = PlaylistDialog.Create }) { Text(stringResource(R.string.library_new_playlist)) }
-                    TextButton(onClick = importM3u) { Text(stringResource(R.string.library_import_m3u)) }
-                }
-            },
-        )
+        state.totalCount == 0 -> Column(Modifier.fillMaxSize()) {
+            SmartListsRow(onOpenSmartList)
+            EmptyState(
+                icon = Icons.Rounded.QueueMusic,
+                title = stringResource(R.string.library_playlists_empty),
+                subtitle = stringResource(R.string.library_playlists_empty_subtitle),
+                modifier = Modifier.weight(1f),
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { dialog = PlaylistDialog.Create }) { Text(stringResource(R.string.library_new_playlist)) }
+                        TextButton(onClick = importM3u) { Text(stringResource(R.string.library_import_m3u)) }
+                    }
+                },
+            )
+        }
         playlists.isEmpty() -> EmptyState(
             icon = Icons.Rounded.SearchOff,
             title = stringResource(R.string.library_playlists_no_match),
@@ -178,8 +188,9 @@ fun PlaylistsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (Play
                 }
             }
             val labels = bins.map { binLabel(it.key) }
-            val starts = remember(bins) { binStarts(bins, leading = 1) }
+            val starts = remember(bins) { binStarts(bins, leading = 2) }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                item(key = "smart_lists") { SmartListsRow(onOpenSmartList) }
                 item(key = "header") {
                     SectionHeader(
                         text = stringResource(R.string.library_playlists_header),
