@@ -19,11 +19,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.playback.api.PlayerUiState
@@ -57,6 +59,8 @@ internal fun MinimalPlayer(
     titleStyle: TitleStyle = TitleStyle.Hybrid,
 ) {
     val ts = titleStyle.resolved()
+    // Classic has no Spine to anchor a left-aligned block, so title, time and artist are centred as one block.
+    val centered = !ts.usesSpine
     val haptics = LocalHapticFeedback.current
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
     val latest by rememberUpdatedState(actions)
@@ -79,15 +83,18 @@ internal fun MinimalPlayer(
         Column(
             Modifier.fillMaxSize().padding(horizontal = 16.dp).then(swipe)
                 .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
         ) {
-            Spine(song.displayTitle(), horizontal = true, style = ts)
+            Spine(song.displayTitle(), Modifier.fillMaxWidth(), horizontal = true, style = ts, centered = centered)
             elapsed()
             Text(
                 song.artist,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = if (centered) TextAlign.Center else TextAlign.Unspecified,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
             visualizer?.invoke()
@@ -111,16 +118,19 @@ internal fun MinimalPlayer(
             }
             Column(
                 Modifier.weight(1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.Bottom,
+                verticalArrangement = if (centered) Arrangement.Center else Arrangement.Bottom,
+                horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
             ) {
-                if (horizontalSpine) Spine(song.displayTitle(), horizontal = true, style = ts)
+                if (horizontalSpine) Spine(song.displayTitle(), Modifier.fillMaxWidth(), horizontal = true, style = ts, centered = centered)
                 elapsed()
                 Text(
                     song.artist,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = if (centered) TextAlign.Center else TextAlign.Unspecified,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(16.dp))
             }
