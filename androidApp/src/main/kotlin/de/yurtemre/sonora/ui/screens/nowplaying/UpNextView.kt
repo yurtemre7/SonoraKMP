@@ -50,6 +50,7 @@ import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.ui.components.SongRow
 import de.yurtemre.sonora.ui.components.SongRowAction
 import de.yurtemre.sonora.ui.sheets.SaveQueueAsPlaylistDialog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
@@ -105,6 +106,7 @@ fun UpNextView(
 
     var showSaveDialog by remember { mutableStateOf(false) }
     val savedText = stringResource(R.string.sheets_dialog_saved_queue, "%s")
+    val saveFailedText = stringResource(R.string.sheets_dialog_save_queue_failed)
     val removedText = stringResource(R.string.up_next_removed, "%s")
     val undoLabel = stringResource(R.string.up_next_undo)
     /** [index] is the queue position (not the list row). */
@@ -247,9 +249,16 @@ fun UpNextView(
             onSave = { name ->
                 val ids = items.map { it.song.id }
                 scope.launch {
-                    playlists.createFromQueue(name, ids)
+                    val message = try {
+                        playlists.createFromQueue(name, ids)
+                        savedText.replace("%s", name)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        saveFailedText
+                    }
                     snackbarHostState.currentSnackbarData?.dismiss()
-                    snackbarHostState.showSnackbar(message = savedText.replace("%s", name), duration = SnackbarDuration.Short)
+                    snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
                 }
             },
             onDismiss = { showSaveDialog = false },
