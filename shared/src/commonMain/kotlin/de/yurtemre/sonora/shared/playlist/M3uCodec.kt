@@ -19,7 +19,7 @@ object M3uCodec {
 
     /** Path lines: trimmed, non-empty, not starting with `#`. */
     fun decodePaths(content: String): List<String> =
-        content.lines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+        content.removePrefix("\uFEFF").lines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
 
     /** Exact path → else case-insensitive equal (URL-decoded) file name, first in library order. Duplicates kept. */
     fun match(paths: List<String>, library: List<Song>): List<Song> {

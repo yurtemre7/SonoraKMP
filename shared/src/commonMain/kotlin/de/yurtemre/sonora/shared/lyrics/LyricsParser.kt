@@ -7,6 +7,8 @@ import de.yurtemre.sonora.shared.model.Lyrics
 object LyricsParser {
     private val stamp = Regex("""\[(\d+):(\d+)(?:\.(\d+))?\]""")
     private val offsetTag = Regex("""^\[offset:\s*([+-]?\d+)\s*\]""", RegexOption.IGNORE_CASE)
+    /** Enhanced-LRC per-word stamps (`<00:12.50>`); lines are synced by their `[..]` stamp only. */
+    private val wordStamp = Regex("""<\d+:\d+(?:\.\d+)?>""")
     private val metaTag = Regex("""^\[(ti|ar|al|by|offset|re|ve|length):""", RegexOption.IGNORE_CASE)
 
     /** Sidecar candidates in lookup order: `<path-no-ext>.lrc`, then `.txt`; empty if no extension. */
@@ -20,7 +22,7 @@ object LyricsParser {
 
     /** Parses file content; null when nothing usable remains. */
     fun parse(content: String): Lyrics? {
-        val lines = content.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val lines = content.removePrefix("\uFEFF").lines().map { it.trim() }.filter { it.isNotEmpty() }
         var offsetMs = 0L
         lines.firstNotNullOfOrNull { offsetTag.find(it) }?.let { offsetMs = it.groupValues[1].toLong() }
         val timed = ArrayList<LyricLine>()
@@ -29,7 +31,7 @@ object LyricsParser {
             val matches = stamp.findAll(line).toList()
             if (matches.isEmpty()) continue
             anyStamp = true
-            val text = stamp.replace(line, "").trim()
+            val text = wordStamp.replace(stamp.replace(line, ""), "").trim()
             if (text.isEmpty()) continue
             for (m in matches) {
                 val min = m.groupValues[1].toLong()
