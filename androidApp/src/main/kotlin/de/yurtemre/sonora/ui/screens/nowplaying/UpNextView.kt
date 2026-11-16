@@ -2,7 +2,9 @@ package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.compose.foundation.background
 import de.yurtemre.sonora.ui.components.displayTitle
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
@@ -43,8 +46,10 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.QueueItemUi
+import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.ui.components.SongRow
 import de.yurtemre.sonora.ui.components.SongRowAction
+import de.yurtemre.sonora.ui.sheets.SaveQueueAsPlaylistDialog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
@@ -52,13 +57,15 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /**
  * Up Next queue (UI-18, PLAY-06): current item highlighted, drag handle to reorder, swipe to remove
- * (by entry uid, with undo snackbar that re-inserts at the old index), tap to skip, scroll-to-current.
+ * (by entry uid, with undo snackbar that re-inserts at the old index), tap to skip, scroll-to-current,
+ * and a button that saves the whole queue as a new playlist (LIB-16).
  */
 @Composable
 fun UpNextView(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     connection: PlaybackConnection = koinInject(),
+    playlists: PlaylistRepository = koinInject(),
 ) {
     val queue by connection.queue.collectAsState()
     val player by connection.player.collectAsState()
@@ -96,6 +103,8 @@ fun UpNextView(
     }
     LaunchedEffect(reorderState.isAnyItemDragging) { if (!reorderState.isAnyItemDragging) dragging = false }
 
+    var showSaveDialog by remember { mutableStateOf(false) }
+    val savedText = stringResource(R.string.sheets_dialog_saved_queue, "%s")
     val removedText = stringResource(R.string.up_next_removed, "%s")
     val undoLabel = stringResource(R.string.up_next_undo)
     /** [index] is the queue position (not the list row). */
@@ -209,16 +218,41 @@ fun UpNextView(
             }
         }
         val currentRow = shown.indexOfFirst { it.entryUid == currentUid }
-        if (currentRow >= 0) {
-            SmallFloatingActionButton(
-                onClick = { scope.launch { listState.animateScrollToItem((currentRow - 1).coerceAtLeast(0)) } },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            ) {
+        Column(
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SmallFloatingActionButton(onClick = { showSaveDialog = true }) {
                 Icon(
-                    Icons.Filled.MyLocation,
-                    contentDescription = stringResource(R.string.up_next_scroll_to_current),
+                    Icons.AutoMirrored.Filled.PlaylistAdd,
+                    contentDescription = stringResource(R.string.save_queue_as_playlist),
                 )
             }
+            if (currentRow >= 0) {
+                SmallFloatingActionButton(
+                    onClick = { scope.launch { listState.animateScrollToItem((currentRow - 1).coerceAtLeast(0)) } },
+                ) {
+                    Icon(
+                        Icons.Filled.MyLocation,
+                        contentDescription = stringResource(R.string.up_next_scroll_to_current),
+                    )
+                }
+            }
         }
+    }
+
+    if (showSaveDialog) {
+        SaveQueueAsPlaylistDialog(
+            onSave = { name ->
+                val ids = items.map { it.song.id }
+                scope.launch {
+                    playlists.createFromQueue(name, ids)
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    snackbarHostState.showSnackbar(message = savedText.replace("%s", name), duration = SnackbarDuration.Short)
+                }
+            },
+            onDismiss = { showSaveDialog = false },
+        )
     }
 }
