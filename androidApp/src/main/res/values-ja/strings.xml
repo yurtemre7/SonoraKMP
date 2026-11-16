@@ -87,6 +87,7 @@
     <string name="get_started">はじめる</string>
     <string name="good_afternoon">%1$sさん、こんにちは</string>
     <string name="good_evening">%1$sさん、こんばんは</string>
+    <string name="good_night">%1$sさん、おやすみなさい</string>
     <string name="good_morning">%1$sさん、おはようございます</string>
     <string name="info_settings">情報とサポート</string>
     <string name="info_subtitle">アプリ情報、更新、更新履歴、データの初期化</string>

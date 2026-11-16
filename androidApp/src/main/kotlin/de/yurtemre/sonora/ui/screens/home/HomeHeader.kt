@@ -84,11 +84,12 @@ import androidx.compose.ui.semantics.contentDescription
 import de.yurtemre.sonora.ui.theme.tabular
 import java.time.LocalTime
 
-/** Greeting resource for the hour (UI-04): <12 morning, <17 afternoon, else evening. */
-internal fun greetingRes(hour: Int = LocalTime.now().hour): Int = when {
-    hour < 12 -> R.string.good_morning
-    hour < 17 -> R.string.good_afternoon
-    else -> R.string.good_evening
+/** Greeting resource for the hour (UI-04): 5-11 morning, 12-16 afternoon, 17-21 evening, 22-4 night. */
+internal fun greetingRes(hour: Int = LocalTime.now().hour): Int = when (hour) {
+    in 5..11 -> R.string.good_morning
+    in 12..16 -> R.string.good_afternoon
+    in 17..21 -> R.string.good_evening
+    else -> R.string.good_night
 }
 
 /**
