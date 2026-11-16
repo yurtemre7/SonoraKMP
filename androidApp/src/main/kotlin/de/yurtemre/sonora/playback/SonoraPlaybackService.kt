@@ -263,7 +263,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
             val trusted = controller.packageName == packageName || controller.isTrusted
             val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-            (if (trusted) C.ALL else C.PUBLIC).forEach { cmds.add(C.command(it)) }
+            if (trusted) C.ALL.forEach { cmds.add(C.command(it)) } // untrusted apps keep the default playback commands only
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(cmds.build())
                 .build()
