@@ -37,4 +37,9 @@ class LyricsParserTest {
         assertTrue(l.isSynchronized)
         assertEquals(listOf(LyricLine(1000, "Hello world"), LyricLine(3000, "Bye")), l.lines)
     }
+
+    @Test fun wordStampRemovalKeepsOriginalSpacing() {
+        val l = LyricsParser.parse("[00:01.00]<00:01.00>Hello<00:01.50>!\n[00:02.00]<00:02.00>日<00:02.20>本")!!
+        assertEquals(listOf("Hello!", "日本"), l.lines.map { it.text })
+    }
 }
