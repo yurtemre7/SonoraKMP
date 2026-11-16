@@ -3,6 +3,7 @@ package de.yurtemre.sonora.ui.screens.nowplaying
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -82,7 +83,11 @@ internal fun MinimalPlayer(
     if (maxHeight < CompactHeight) {
         Column(
             Modifier.fillMaxSize().padding(horizontal = 16.dp).then(swipe)
-                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                // A scrolling column is measured with unbounded height, so Arrangement.Center would do nothing. Giving
+                // it at least the viewport's height centres short content and still scrolls tall content.
+                .then(if (centered) Modifier.heightIn(min = maxHeight) else Modifier),
+            verticalArrangement = if (centered) Arrangement.Center else Arrangement.Top,
             horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
         ) {
             Spine(song.displayTitle(), Modifier.fillMaxWidth(), horizontal = true, style = ts, centered = centered)
