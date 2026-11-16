@@ -73,6 +73,11 @@
     <string name="settings_title_hybrid_desc">今までのスパイン。切れるタイトルはカバーの下にも全文を表示します。</string>
     <string name="settings_title_classic">クラシック</string>
     <string name="settings_title_classic_desc">アートワークの下に通常のタイトルを表示します。</string>
+    <string name="settings_np_style_modern_desc">カバーの横にタイトルを沿わせ、操作ボタンを下に配置します。</string>
+    <string name="settings_np_style_vinyl_desc">カバーが横にずれて、再生中に回るレコードが現れます。</string>
+    <string name="settings_np_style_minimalist_desc">アートワークなし。タイトルを横に、時間を大きく表示し、操作ボタンを配置した落ち着いたテキスト中心のプレーヤーです。</string>
+    <string name="settings_player_style_sample">Weightless</string>
+    <string name="settings_player_style_artist">アーティスト名</string>
     <string name="settings_np_style_title">プレーヤーのスタイル</string>
     <string name="settings_np_style_modern">モダン</string>
     <string name="settings_np_style_vinyl">レコード</string>

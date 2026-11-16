@@ -79,6 +79,11 @@
     <string name="settings_title_hybrid_desc">The Spine as it is. When the title is cut, it also shows in full under the cover.</string>
     <string name="settings_title_classic">Classic</string>
     <string name="settings_title_classic_desc">A plain title under the artwork.</string>
+    <string name="settings_np_style_modern_desc">The cover with the title along its side and all controls below.</string>
+    <string name="settings_np_style_vinyl_desc">The cover slides aside to reveal a record that turns while music plays.</string>
+    <string name="settings_np_style_minimalist_desc">No artwork. The title along the side, the time in big type and the controls: a calm, text-only player.</string>
+    <string name="settings_player_style_sample">Weightless</string>
+    <string name="settings_player_style_artist">Artist name</string>
     <string name="settings_np_style_title">Player style</string>
     <string name="settings_np_style_modern">Modern</string>
     <string name="settings_np_style_vinyl">Vinyl</string>

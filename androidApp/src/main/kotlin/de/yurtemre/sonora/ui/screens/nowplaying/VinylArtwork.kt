@@ -53,7 +53,7 @@ fun VinylArtwork(
 }
 
 @Composable
-private fun Record(label: Color, isPlaying: Boolean, modifier: Modifier) {
+internal fun Record(label: Color, isPlaying: Boolean, modifier: Modifier) {
     val reduceMotion = LocalReduceMotion.current
     val angle = remember { Animatable(0f) }
     LaunchedEffect(isPlaying, reduceMotion) {

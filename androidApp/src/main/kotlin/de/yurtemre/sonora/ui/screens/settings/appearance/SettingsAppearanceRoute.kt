@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBox
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.rounded.ArtTrack
 import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.BlurOn
@@ -35,12 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.library.SeedColorBuckets
 import de.yurtemre.sonora.shared.model.AppSettings
-import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.ThemeColorSource
 import de.yurtemre.sonora.shared.model.ThemeModeSetting
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.settings.SettingsRepository
-import de.yurtemre.sonora.ui.screens.settings.ChoiceRow
 import de.yurtemre.sonora.ui.screens.settings.ConnectedChoice
 import de.yurtemre.sonora.ui.screens.settings.SettingsNote
 import de.yurtemre.sonora.ui.screens.settings.SettingsRow
@@ -140,14 +137,7 @@ fun SettingsAppearanceRoute(onBack: () -> Unit) {
 
         settingsHeader("now_playing") { stringResource(R.string.settings_section_now_playing) }
         item(key = "np_style") {
-            ChoiceRow(
-                title = stringResource(R.string.settings_np_style_title),
-                options = NowPlayingStyle.entries,
-                selected = settings.nowPlayingStyle,
-                label = { stringResource(it.labelRes) },
-                onSelect = { save { setNowPlayingStyle(it) } },
-                icon = Icons.Rounded.ArtTrack,
-            )
+            PlayerStylePicker(settings.nowPlayingStyle, onSelect = { save { setNowPlayingStyle(it) } })
         }
         item(key = "title_style") {
             TitleStylePicker(settings.titleStyle, onSelect = { save { setTitleStyle(it) } })
@@ -248,8 +238,3 @@ private val ThemeColorSource.descRes: Int get() = when (this) {
     ThemeColorSource.Custom -> R.string.settings_color_custom_desc
 }
 
-private val NowPlayingStyle.labelRes: Int get() = when (this) {
-    NowPlayingStyle.Modern -> R.string.settings_np_style_modern
-    NowPlayingStyle.Vinyl -> R.string.settings_np_style_vinyl
-    NowPlayingStyle.Minimalist -> R.string.settings_np_style_minimalist
-}
