@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
@@ -31,6 +32,7 @@ fun SleepTimerBadge(
         SleepTimerUiState.Inactive -> return
         is SleepTimerUiState.Countdown -> DurationFormat.clockMs(state.remainingMs)
         is SleepTimerUiState.FinishSong -> stringResource(R.string.sleep_badge_finish)
+        is SleepTimerUiState.Tracks -> pluralStringResource(R.plurals.sleep_badge_tracks, state.remaining, state.remaining)
     }
     val cs = MaterialTheme.colorScheme
     Surface(

@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +55,7 @@ import kotlin.math.roundToInt
 
 private val PresetMinutes = AppSettings.SLEEP_TIMER_MINUTES_OPTIONS
 private val PresetRows = PresetMinutes.chunked(3) // 6 presets: two rows of 3 so "60 min" never clips
+private val TrackPresets = listOf(2, 3, 5, 10)
 private val CustomRange = AppSettings.SLEEP_TIMER_CUSTOM_MINUTES
 // Same choices as settings, so the saved default fade (incl. 60 s) is always selectable here.
 private val FadeOptions = AppSettings.SLEEP_TIMER_FADE_OPTIONS
@@ -72,6 +74,8 @@ fun SleepTimerSheet(
     var finishSong by rememberSaveable { mutableStateOfBool(false) }
     // null = no duration (finish-song only), -1 = custom slider value, otherwise preset minutes.
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
+    // Stop after this many songs (current one included); null = use the minutes selection instead.
+    var selectedTracks by rememberSaveable { mutableStateOf<Int?>(null) }
     var customMin by rememberSaveable { mutableFloatStateOf(20f) }
     var defaultsApplied by rememberSaveable { mutableStateOfBool(false) }
     LaunchedEffect(Unit) {
@@ -93,7 +97,9 @@ fun SleepTimerSheet(
 
     fun start() {
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-        connection.startSleepTimer((minutes ?: 0) * 60_000L, finishSong, fade)
+        val tracks = selectedTracks
+        if (tracks != null) connection.startSleepTimerTracks(tracks, fade)
+        else connection.startSleepTimer((minutes ?: 0) * 60_000L, finishSong, fade)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -112,6 +118,7 @@ fun SleepTimerSheet(
                                     checked = selected == m,
                                     onCheckedChange = {
                                         selected = if (it) m else null
+                                        if (it) selectedTracks = null
                                         haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                     },
                                     modifier = Modifier.weight(1f).height(56.dp),
@@ -127,10 +134,26 @@ fun SleepTimerSheet(
                             if (it.roundToInt() != customMin.roundToInt()) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                             customMin = it
                             selected = -1
+                            selectedTracks = null
                         },
                         valueRange = CustomRange.first.toFloat()..CustomRange.last.toFloat(),
                         steps = CustomRange.last - CustomRange.first - 1, // whole minutes
                     )
+                    Text(stringResource(R.string.sleep_tracks_label), style = MaterialTheme.typography.titleSmall)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+                        TrackPresets.forEachIndexed { i, n ->
+                            ToggleButton(
+                                checked = selectedTracks == n,
+                                onCheckedChange = {
+                                    selectedTracks = if (it) n else null
+                                    if (it) selected = null
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shapes = connectedShapes(i, TrackPresets.size),
+                            ) { Text(stringResource(R.string.sleep_tracks_option, n), maxLines = 1) }
+                        }
+                    }
                     Row(
                         Modifier.fillMaxWidth().height(56.dp)
                             .toggleable(finishSong, role = Role.Switch) { finishSong = it },
@@ -162,11 +185,12 @@ fun SleepTimerSheet(
                     }
                     Button(
                         onClick = { start(); onDismiss() },
-                        enabled = minutes != null || finishSong,
+                        enabled = minutes != null || finishSong || selectedTracks != null,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
                         Text(
                             when {
+                                selectedTracks != null -> stringResource(R.string.sleep_tracks_start, selectedTracks!!)
                                 minutes != null -> stringResource(R.string.sleep_custom_start, minutes)
                                 finishSong -> stringResource(R.string.sleep2_start_finish_only)
                                 else -> stringResource(R.string.sleep2_start)
@@ -202,6 +226,10 @@ private fun RunningSection(state: SleepTimerUiState, connection: PlaybackConnect
                 if (state.finishSong) Text(stringResource(R.string.sleep2_then_finish), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             is SleepTimerUiState.FinishSong -> Text(stringResource(R.string.sleep2_finishing_status), style = MaterialTheme.typography.titleLarge)
+            is SleepTimerUiState.Tracks -> Text(
+                pluralStringResource(R.plurals.sleep_tracks_remaining, state.remaining, state.remaining),
+                style = MaterialTheme.typography.titleLarge,
+            )
             SleepTimerUiState.Inactive -> Unit
         }
         if (fading) Text(stringResource(R.string.sleep_fading), color = MaterialTheme.colorScheme.primary)
@@ -210,7 +238,9 @@ private fun RunningSection(state: SleepTimerUiState, connection: PlaybackConnect
                 FilledTonalButton(
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); connection.extendSleepTimer(60_000L) },
                     modifier = Modifier.weight(1f).height(56.dp),
-                ) { Text(stringResource(R.string.sleep_extend)) }
+                ) {
+                    Text(stringResource(if (state is SleepTimerUiState.Tracks) R.string.sleep_tracks_extend else R.string.sleep_extend))
+                }
             }
             OutlinedButton(
                 onClick = { haptics.performHapticFeedback(HapticFeedbackType.Reject); connection.cancelSleepTimer() },

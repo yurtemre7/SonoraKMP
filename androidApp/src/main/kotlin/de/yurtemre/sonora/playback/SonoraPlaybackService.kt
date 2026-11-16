@@ -368,6 +368,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 setMfxCustomEqEnabled(false); setMfxCustomEqGains(null)
             }
             C.SLEEP_START -> sleepTimer.start(a.getLong(C.ARG_SECONDS), a.getBoolean(C.ARG_FINISH_SONG), a.getInt(C.ARG_FADE))
+            C.SLEEP_START_TRACKS -> sleepTimer.startTracks(a.getInt(C.ARG_COUNT, 1), a.getInt(C.ARG_FADE))
             C.SLEEP_EXTEND -> extendTimer(a.getLong(C.ARG_SECONDS, SLEEP_EXTEND_SEC))
             C.SLEEP_STOP -> sleepTimer.stop()
             C.CLOSE_PLAYER -> closePlayer()

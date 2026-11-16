@@ -55,6 +55,12 @@ class SleepTimer(
         if (durationSec <= 0 && finishSong) dispatch(SleepTimerEvent.Tick(host.isPlaying, host.currentSongId, host.userVolume))
     }
 
+    /** Stop at the end of the [count]th song, the current one counting as the first. */
+    fun startTracks(count: Int, fadeOutSec: Int) {
+        totalMs = 0
+        dispatch(SleepTimerEvent.StartTracks(count, fadeOutSec, host.userVolume, host.currentSongId))
+    }
+
     fun stop() = dispatch(SleepTimerEvent.Stop)
 
     /** "+1 min" by default; when idle starts a new timer with the given defaults. */
@@ -120,7 +126,9 @@ class SleepTimer(
 
     private fun publish() {
         val remaining = state.remainingSec
+        val tracks = state.tracksRemaining
         _ui.value = when {
+            tracks != null -> SleepTimerUiState.Tracks(tracks, state.fadeOutSec)
             remaining == null -> SleepTimerUiState.Inactive
             state.isFinishingSong -> SleepTimerUiState.FinishSong(state.fadeOutSec, state.isFadingOut)
             else -> SleepTimerUiState.Countdown(

@@ -52,6 +52,9 @@ sealed interface SleepTimerUiState {
     ) : SleepTimerUiState
 
     data class FinishSong(val fadeSeconds: Int, val isFading: Boolean) : SleepTimerUiState
+
+    /** Stop after a number of songs; [remaining] counts the current song (the last one is then finished as [FinishSong]). */
+    data class Tracks(val remaining: Int, val fadeSeconds: Int) : SleepTimerUiState
 }
 
 /** Speed/pitch/EQ effects (PLAY-12..16). */
