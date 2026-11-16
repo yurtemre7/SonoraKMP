@@ -31,4 +31,10 @@ class LyricsParserTest {
         assertEquals(listOf("/m/a.b.lrc", "/m/a.b.txt"), LyricsParser.sidecarPaths("/m/a.b.mp3"))
         assertEquals(emptyList(), LyricsParser.sidecarPaths("/m.d/noext"))
     }
+
+    @Test fun enhancedWordStampsAreStrippedAndBomIgnored() {
+        val l = LyricsParser.parse("\uFEFF[00:01.00]<00:01.00>Hello <00:01.50>world\n[00:03.00]<00:03.00>Bye")!!
+        assertTrue(l.isSynchronized)
+        assertEquals(listOf(LyricLine(1000, "Hello world"), LyricLine(3000, "Bye")), l.lines)
+    }
 }

@@ -30,4 +30,8 @@ class M3uCodecTest {
         assertEquals("Mix.M3U", M3uCodec.playlistNameFromFile("Mix.M3U"))
         assertTrue(M3uCodec.isM3uFile("x.M3U8")); assertFalse(M3uCodec.isM3uFile("x.pls"))
     }
+
+    @Test fun decodeIgnoresUtf8Bom() {
+        assertEquals(listOf("/x/a.mp3"), M3uCodec.decodePaths("\uFEFF#EXTM3U\n/x/a.mp3\n"))
+    }
 }
