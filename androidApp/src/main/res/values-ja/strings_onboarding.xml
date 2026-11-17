@@ -15,7 +15,7 @@
     <string name="onboarding_permission_notifications">通知</string>
     <string name="onboarding_permission_notifications_body">ロック画面と通知シェードに再生コントロールを表示します</string>
     <string name="onboarding_permission_allfiles">すべてのファイルへのアクセス</string>
-    <string name="onboarding_permission_allfiles_body">任意。すべての音声ファイルの読み取りとタグ編集が可能になります</string>
+    <string name="onboarding_permission_allfiles_body">任意。Android が認識していない音声ファイルの読み取りとタグ編集を助けます</string>
     <string name="onboarding_permission_allfiles_allow">すべてのファイルへのアクセスを許可</string>
     <string name="onboarding_permissions_allow">アクセスを許可</string>
     <string name="onboarding_status_granted">許可済み</string>

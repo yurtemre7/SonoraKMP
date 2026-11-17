@@ -29,8 +29,11 @@ object MediaPermissions {
     fun hasLocalNetwork(context: Context): Boolean = localNetwork?.let { granted(context, it) } ?: true
 
     /** All files access (API 30+): a special grant given on a system settings screen, not a runtime dialog. Optional. */
+    /** All files access only exists from API 30; below that the onboarding row and button are hidden. */
+    val allFilesSupported: Boolean = Build.VERSION.SDK_INT >= 30
+
     fun hasAllFiles(): Boolean =
-        Build.VERSION.SDK_INT < 30 || try {
+        allFilesSupported && try {
             android.os.Environment.isExternalStorageManager()
         } catch (_: RuntimeException) {
             false // optional grant: an unreadable state counts as not granted
@@ -38,7 +41,7 @@ object MediaPermissions {
 
     /** Opens the per-app "All files access" screen, falling back to the app details page. */
     fun openAllFilesSettings(context: Context) {
-        if (Build.VERSION.SDK_INT < 30) return openAppSettings(context)
+        if (!allFilesSupported) return openAppSettings(context)
         val uri = Uri.fromParts("package", context.packageName, null)
         val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {

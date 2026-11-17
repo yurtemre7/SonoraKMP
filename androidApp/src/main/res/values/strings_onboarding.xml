@@ -15,7 +15,7 @@
     <string name="onboarding_permission_notifications">Notifications</string>
     <string name="onboarding_permission_notifications_body">Controls on the lock screen and in the notification shade</string>
     <string name="onboarding_permission_allfiles">All files access</string>
-    <string name="onboarding_permission_allfiles_body">Optional. Lets SonoraKMP read every audio file and edit tags</string>
+    <string name="onboarding_permission_allfiles_body">Optional. Helps SonoraKMP read audio files Android has not indexed and edit their tags</string>
     <string name="onboarding_permission_allfiles_allow">Allow all files access</string>
     <string name="onboarding_permissions_allow">Allow access</string>
     <string name="onboarding_status_granted">allowed</string>

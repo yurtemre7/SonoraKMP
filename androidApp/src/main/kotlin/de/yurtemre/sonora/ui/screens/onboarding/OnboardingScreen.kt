@@ -320,15 +320,17 @@ private fun PermissionsPage(
                 stringResource(R.string.onboarding_permission_notifications_body),
                 notificationsGranted,
             )
-            PermissionRow(
-                Icons.Rounded.FolderOpen,
-                stringResource(R.string.onboarding_permission_allfiles),
-                stringResource(R.string.onboarding_permission_allfiles_body),
-                allFilesGranted,
-            )
+            if (MediaPermissions.allFilesSupported) {
+                PermissionRow(
+                    Icons.Rounded.FolderOpen,
+                    stringResource(R.string.onboarding_permission_allfiles),
+                    stringResource(R.string.onboarding_permission_allfiles_body),
+                    allFilesGranted,
+                )
+            }
         }
     }
-    if (!allFilesGranted) {
+    if (MediaPermissions.allFilesSupported && !allFilesGranted) {
         OutlinedButton(onClick = onAllFiles, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
             Text(stringResource(R.string.onboarding_permission_allfiles_allow))
         }

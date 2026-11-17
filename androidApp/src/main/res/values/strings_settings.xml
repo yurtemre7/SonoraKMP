@@ -162,7 +162,7 @@
     <string name="settings_perm_audio_title">Music and audio</string>
     <string name="settings_perm_audio_body">Reads the audio files in the folder you chose, plus cover images such as cover.jpg stored next to them. SonoraKMP does not ask for access to your photos or videos.</string>
     <string name="settings_perm_allfiles_title">All files access (optional)</string>
-    <string name="settings_perm_allfiles_body">Lets SonoraKMP read audio files that Android\'s media library does not list or will not open, and write edited tags back to them. It is only used on audio files and folders you added. Turn it on or off any time in the system settings under All files access.</string>
+    <string name="settings_perm_allfiles_body">Lets SonoraKMP read audio files that Android\'s media library does not list or will not open, and write edited tags back to them. It is only used to read and write audio files: in the folder you chose, or, if you chose none, the audio Android\'s media library lists. Turn it on or off any time in the system settings under All files access.</string>
     <string name="settings_perm_notifications_title">Notifications and background playback</string>
     <string name="settings_perm_notifications_body">Shows playback controls in the notification shade and on the lock screen. A media foreground service keeps music playing while the app is in the background.</string>
     <string name="settings_perm_wake_title">Keep awake</string>
