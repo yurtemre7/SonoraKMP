@@ -281,11 +281,12 @@ class LibraryRepositoryImpl(
     override suspend fun updateTags(songId: Long, edit: TagEdit) {
         val e = edit.normalized()
         // Same fallbacks the scanners use for missing tags.
-        songDao.updateTags(
+        // Under the sync mutex so an in-flight sync can't overwrite this row with metadata read before the edit.
+        syncMutex.withLock { songDao.updateTags(
             id = songId, title = e.title, artist = e.artist.ifEmpty { TagEdit.UNKNOWN_ARTIST },
             album = e.album.ifEmpty { TagEdit.UNKNOWN_ALBUM }, albumArtist = e.albumArtist.ifEmpty { null },
             genre = e.genre.ifEmpty { null }, year = e.yearOrNull(), track = e.trackOrNull(), disc = e.discOrNull(),
-        )
+        ) }
     }
 
     override suspend fun updateSeedColor(songId: Long, seedColor: Int?) = songDao.updateSeedColor(songId, seedColor)

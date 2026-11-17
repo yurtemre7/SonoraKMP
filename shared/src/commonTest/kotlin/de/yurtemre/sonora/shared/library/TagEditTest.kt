@@ -36,6 +36,11 @@ class TagEditTest {
         assertEquals("a\nb", n.lyrics)
     }
 
+    @Test fun unknownPlaceholdersRoundTripAsUnchanged() {
+        val s = song.copy(artist = "Unknown Artist", album = "Unknown Album")
+        assertFalse(TagEdit.from(s).changesRow(s))
+    }
+
     @Test fun changesRowDetectsEdits() {
         assertFalse(TagEdit.from(song).changesRow(song))
         assertTrue(TagEdit.from(song).copy(genre = "Pop").changesRow(song))

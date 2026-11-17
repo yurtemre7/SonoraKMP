@@ -59,6 +59,8 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
     var edit by remember { mutableStateOf(TagEdit.from(song)) }
     var uri by remember { mutableStateOf<Uri?>(null) }
     var loading by remember { mutableStateOf(true) }
+    // False when the file's current lyrics couldn't be read: the field is locked and saving leaves the lyrics tag alone.
+    var lyricsKnown by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<Int?>(null) }
     var showErrors by remember { mutableStateOf(false) }
@@ -67,7 +69,10 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
         val u = TagFileAccess.uriFor(context, song.filePath)
         uri = u
         if (u == null) message = R.string.tag_edit_not_indexed
-        else edit = edit.copy(lyrics = TagFileAccess.readLyrics(context, u, song.filePath.substringAfterLast('.', "")))
+        else {
+            val lyrics = TagFileAccess.readLyrics(context, u, song.filePath.substringAfterLast('.', ""))
+            if (lyrics == null) lyricsKnown = false else edit = edit.copy(lyrics = lyrics)
+        }
         loading = false
     }
 
@@ -76,12 +81,20 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
         saving = true
         scope.launch {
             val failure = try {
-                TagFileAccess.write(context, u, song.filePath, edit.normalized())
+                TagFileAccess.write(context, u, song.filePath, edit.normalized(), writeLyrics = lyricsKnown)
             } catch (c: CancellationException) { throw c }
             if (failure == null) {
-                try { library.updateTags(song.id, edit) } catch (c: CancellationException) { throw c } catch (_: Throwable) {}
-                onSaved()
-                onDismiss()
+                val libraryFailure = try {
+                    library.updateTags(song.id, edit)
+                    null
+                } catch (c: CancellationException) { throw c } catch (t: Throwable) { t }
+                if (libraryFailure == null) {
+                    onSaved()
+                    onDismiss()
+                } else {
+                    saving = false
+                    message = R.string.tag_edit_save_failed
+                }
             } else {
                 saving = false
                 message = R.string.tag_edit_save_failed
@@ -122,7 +135,8 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
                 Field(R.string.sheets_info_track_label, edit.track, enabled, err == TagEdit.Error.BadTrack, R.string.tag_edit_error_number, number = true, modifier = Modifier.weight(1f)) { edit = edit.copy(track = it) }
                 Field(R.string.sheets_info_disc_label, edit.disc, enabled, err == TagEdit.Error.BadDisc, R.string.tag_edit_error_number, number = true, modifier = Modifier.weight(1f)) { edit = edit.copy(disc = it) }
             }
-            Field(R.string.tag_edit_lyrics, edit.lyrics, enabled, singleLine = false) { edit = edit.copy(lyrics = it) }
+            Field(R.string.tag_edit_lyrics, edit.lyrics, enabled && lyricsKnown, singleLine = false) { edit = edit.copy(lyrics = it) }
+            if (!loading && uri != null && !lyricsKnown) Text(stringResource(R.string.tag_edit_lyrics_unreadable), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             message?.let { Text(stringResource(it), color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth().padding(bottom = 16.dp).navigationBarsPadding(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.tag_edit_cancel)) }

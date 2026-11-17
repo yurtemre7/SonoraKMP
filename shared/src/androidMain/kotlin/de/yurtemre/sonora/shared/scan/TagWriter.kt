@@ -17,16 +17,16 @@ object TagWriter {
         try { Logger.getLogger("org.jaudiotagger").level = Level.OFF } catch (_: Throwable) {}
     }
 
-    /** Lyrics text stored in the file's tags (raw, not parsed), or "" when there are none. */
-    fun readLyrics(file: File): String = try {
+    /** Lyrics text stored in the file's tags (raw, not parsed): "" when there are none, null when the file can't be read. */
+    fun readLyrics(file: File): String? = try {
         AudioFileIO.read(file).tag?.getFirst(FieldKey.LYRICS).orEmpty()
-    } catch (_: Throwable) { "" }
+    } catch (_: Throwable) { null }
 
     /**
      * Writes [edit] into [file]'s tags. Blank values remove that field. Throws on unsupported or damaged files,
      * so the caller can leave the original untouched.
      */
-    fun write(file: File, edit: TagEdit) {
+    fun write(file: File, edit: TagEdit, writeLyrics: Boolean = true) {
         val e = edit.normalized()
         val audio = AudioFileIO.read(file)
         val tag: Tag = audio.tagOrCreateAndSetDefault
@@ -38,7 +38,7 @@ object TagWriter {
         set(tag, FieldKey.YEAR, e.yearOrNull()?.toString().orEmpty())
         set(tag, FieldKey.TRACK, e.trackOrNull()?.toString().orEmpty())
         set(tag, FieldKey.DISC_NO, e.discOrNull()?.toString().orEmpty())
-        set(tag, FieldKey.LYRICS, e.lyrics)
+        if (writeLyrics) set(tag, FieldKey.LYRICS, e.lyrics) // skipped when the current lyrics couldn't be read
         audio.commit()
     }
 

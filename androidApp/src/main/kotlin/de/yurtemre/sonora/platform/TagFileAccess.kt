@@ -51,33 +51,64 @@ object TagFileAccess {
         return null
     }
 
-    /** Lyrics currently stored in the file's tags ("" when none or unreadable). */
-    suspend fun readLyrics(context: Context, uri: Uri, ext: String): String = withContext(Dispatchers.IO) {
-        val temp = copyOut(context, uri, ext) ?: return@withContext ""
+    /** Lyrics currently stored in the file's tags: "" when none, null when the file couldn't be read. */
+    suspend fun readLyrics(context: Context, uri: Uri, ext: String): String? = withContext(Dispatchers.IO) {
+        val temp = copyOut(context, uri, ext) ?: return@withContext null
         try { TagWriter.readLyrics(temp) } finally { temp.delete() }
     }
 
-    /** Writes [edit] into the file behind [uri]. Returns the failure, or null on success. */
-    suspend fun write(context: Context, uri: Uri, path: String, edit: TagEdit): Throwable? = withContext(Dispatchers.IO) {
-        var temp: File? = null
-        try {
-            temp = copyOut(context, uri, path.substringAfterLast('.', "")) ?: return@withContext IllegalStateException("cannot read file")
-            TagWriter.write(temp, edit) // throws on unsupported/damaged files; the original is untouched until here
-            val out = context.contentResolver.openOutputStream(uri, "wt") ?: return@withContext IllegalStateException("cannot open file")
-            out.use { o -> temp.inputStream().use { it.copyTo(o) } }
-            MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
-            null
-        } catch (t: Throwable) {
-            if (t is kotlinx.coroutines.CancellationException) throw t
-            t
-        } finally {
-            temp?.delete()
+    /**
+     * Writes [edit] into the file behind [uri]; [writeLyrics] = false leaves the lyrics tag alone. Returns the
+     * failure, or null on success. The untouched original is kept in a temp copy until the new bytes are fully
+     * written; if writing fails midway it is written back, and if even that fails it is kept in `tag_recovery/`.
+     */
+    suspend fun write(context: Context, uri: Uri, path: String, edit: TagEdit, writeLyrics: Boolean = true): Throwable? =
+        withContext(Dispatchers.IO) {
+            val ext = path.substringAfterLast('.', "")
+            var original: File? = null
+            var edited: File? = null
+            try {
+                original = copyOut(context, uri, ext) ?: return@withContext IllegalStateException("cannot read file")
+                edited = File.createTempFile("tagedit_", if (ext.isEmpty()) null else ".$ext", context.cacheDir)
+                original.copyTo(edited, overwrite = true)
+                TagWriter.write(edited, edit, writeLyrics) // throws on unsupported/damaged files; the original is untouched until here
+                try {
+                    overwrite(context, uri, edited)
+                } catch (t: Throwable) {
+                    // "wt" truncated the file before failing: put the original bytes back.
+                    try { overwrite(context, uri, original) } catch (restore: Throwable) {
+                        t.addSuppressed(restore)
+                        val kept = File(context.cacheDir, "tag_recovery").apply { mkdirs() }
+                            .let { File(it, "${System.currentTimeMillis()}_${path.substringAfterLast('/')}") }
+                        runCatching { original.copyTo(kept, overwrite = true) }
+                    }
+                    throw t
+                }
+                MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+                null
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                t
+            } finally {
+                edited?.delete()
+                original?.delete() // a copy was saved to tag_recovery/ first if the restore failed
+            }
         }
+
+    private fun overwrite(context: Context, uri: Uri, source: File) {
+        val out = context.contentResolver.openOutputStream(uri, "wt") ?: throw IllegalStateException("cannot open file")
+        out.use { o -> source.inputStream().use { it.copyTo(o) } }
     }
 
-    private fun copyOut(context: Context, uri: Uri, ext: String): File? = try {
-        val t = File.createTempFile("tagedit_", if (ext.isEmpty()) null else ".$ext", context.cacheDir)
-        val ok = context.contentResolver.openInputStream(uri)?.use { i -> t.outputStream().use { i.copyTo(it) }; true } ?: false
-        if (ok) t else { t.delete(); null }
-    } catch (_: Exception) { null }
+    private fun copyOut(context: Context, uri: Uri, ext: String): File? {
+        var t: File? = null
+        return try {
+            t = File.createTempFile("tagedit_", if (ext.isEmpty()) null else ".$ext", context.cacheDir)
+            val ok = context.contentResolver.openInputStream(uri)?.use { i -> t.outputStream().use { i.copyTo(it) }; true } ?: false
+            if (ok) t else { t.delete(); null }
+        } catch (_: Exception) {
+            t?.delete() // never hand back (or leak) a partial copy
+            null
+        }
+    }
 }

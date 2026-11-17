@@ -41,7 +41,7 @@ data class TagEdit(
     /** Whether saving would change anything compared to [song] (lyrics are not stored on the row, so they always count). */
     fun changesRow(song: Song): Boolean {
         val n = normalized()
-        return n.title != song.title || n.artist != song.artist || n.album != song.album ||
+        return n.title != song.title || n.artist != Companion.visible(song.artist, UNKNOWN_ARTIST) || n.album != Companion.visible(song.album, UNKNOWN_ALBUM) ||
             n.albumArtist != (song.albumArtist ?: "") || n.genre != (song.genre ?: "") ||
             n.yearOrNull() != song.year || n.trackOrNull() != song.trackNumber || n.discOrNull() != song.discNumber
     }
@@ -49,13 +49,15 @@ data class TagEdit(
     private fun positiveOrNull(s: String): Int? = s.trim().toIntOrNull()?.takeIf { it > 0 }
 
     companion object {
+        private fun visible(value: String, placeholder: String) = if (value == placeholder) "" else value
+
         const val UNKNOWN_ARTIST = "Unknown Artist"
         const val UNKNOWN_ALBUM = "Unknown Album"
 
         fun from(song: Song, lyrics: String = "") = TagEdit(
             title = song.title,
-            artist = song.artist.takeIf { it != UNKNOWN_ARTIST } ?: "",
-            album = song.album.takeIf { it != UNKNOWN_ALBUM } ?: "",
+            artist = visible(song.artist, UNKNOWN_ARTIST),
+            album = visible(song.album, UNKNOWN_ALBUM),
             albumArtist = song.albumArtist.orEmpty(),
             genre = song.genre.orEmpty(),
             year = song.year?.toString().orEmpty(),
