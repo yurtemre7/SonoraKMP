@@ -163,5 +163,6 @@ GitHub for new releases and download an update when you ask for it.
 
 ## License
 
-[MIT](LICENSE). Fonts: Bricolage Grotesque, SIL Open Font License
+[Sonora Non-Commercial License](LICENSE): free for non-commercial use;
+commercial use requires written permission. Fonts: Bricolage Grotesque, SIL Open Font License
 ([docs/licenses](docs/licenses)).
