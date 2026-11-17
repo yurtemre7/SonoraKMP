@@ -87,7 +87,7 @@ Already done: GitHub signing secrets set, GitHub Pages enabled (source: GitHub A
 2. **Cut the first release (later, when 1.0 is ready):**
 
    ```bash
-   git commit --allow-empty -m "release: 1.29.0"
+   git commit --allow-empty -m "release: X.Y.Z"
    git push origin main
    ```
 
