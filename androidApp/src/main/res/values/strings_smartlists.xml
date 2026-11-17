@@ -4,6 +4,7 @@
     <string name="smart_list_never_played">Never played</string>
     <string name="smart_list_most_played">Most played</string>
     <string name="smart_list_shuffle">Shuffle</string>
+    <string name="smart_list_save">Save as playlist</string>
     <string name="smart_list_empty_title">Nothing here yet</string>
     <string name="smart_list_empty_recently_added">New songs show up here once they are in your library.</string>
     <string name="smart_list_empty_never_played">You have played every song at least once.</string>
