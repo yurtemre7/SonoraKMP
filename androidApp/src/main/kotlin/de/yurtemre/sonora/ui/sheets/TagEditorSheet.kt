@@ -40,8 +40,9 @@ import de.yurtemre.sonora.platform.TagFileAccess
 import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 /**
@@ -88,23 +89,18 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
         saving = true
         val submitted = edit
         scope.launch {
-            val failure = try {
-                TagFileAccess.write(context, u, song.filePath, submitted.normalized(), base)
-            } catch (c: CancellationException) { throw c }
-            if (failure == null) {
+            // File write, scan wait and Room update commit together: a recreated activity must not cancel
+            // the save between the file and the library.
+            val result = withContext(NonCancellable) {
+                val failure = TagFileAccess.write(context, u, song.filePath, submitted.normalized(), base)
+                if (failure != null) return@withContext SaveResult.FileFailed
                 // The file now holds `submitted`: retries must diff against it, not the stale load.
                 baseline = submitted.normalized()
-                val libraryFailure = try {
-                    library.updateTags(song.id, submitted)
-                    null
-                } catch (c: CancellationException) { throw c } catch (t: Throwable) { t }
-                if (libraryFailure == null) {
-                    onSaved()
-                    onDismiss()
-                } else {
-                    saving = false
-                    message = R.string.tag_edit_save_failed
-                }
+                try { library.updateTags(song.id, submitted); SaveResult.Saved } catch (_: Throwable) { SaveResult.LibraryFailed }
+            }
+            if (result == SaveResult.Saved) {
+                onSaved()
+                onDismiss()
             } else {
                 saving = false
                 message = R.string.tag_edit_save_failed
@@ -156,6 +152,8 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
         }
     }
 }
+
+private enum class SaveResult { Saved, FileFailed, LibraryFailed }
 
 @Composable
 private fun Field(
