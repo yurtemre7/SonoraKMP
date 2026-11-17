@@ -23,7 +23,8 @@ import java.security.MessageDigest
 /**
  * P3-12 Android [LibraryScanner] (LIB-03..07, LIB-24; audit/data §2.2–2.7).
  *
- * MediaStore first; directory scan when MediaStore is empty or fails for the folder. One
+ * MediaStore first; directory scan when MediaStore is empty or fails for the folder, and merged in for files
+ * MediaStore does not list. One
  * [TreeSidecarIndex] per scan (when a tree URI is persisted) feeds `hasLyrics` for every song and
  * SAF-only artist images. Returns null (= repository keeps the cache) on missing folder or any failure.
  * The unchanged rule (LIB-04) is applied by the repository; this class only produces its inputs
@@ -69,7 +70,10 @@ class AndroidLibraryScanner(
         // library across rescans, shrinking slowly and never reaching zero. Only files that still exist count.
         val rows = mediaStore.query(root)?.filter { File(it.filePath).exists() }
 
-        if (!rows.isNullOrEmpty()) return fromMediaStore(rows, cached)
+        if (!rows.isNullOrEmpty()) {
+            val indexed = fromMediaStore(rows, cached)
+            return if (root == null) indexed else mergeUnindexed(indexed, root, treeUri, cached)
+        }
 
         if (root == null) {
             // No folder and MediaStore empty: keep cached songs whose file still exists (audit §2.2 step 4).
@@ -82,6 +86,27 @@ class AndroidLibraryScanner(
         ) + 1
         val dir = directoryScanner.scan(root, treeUri, cached, minNextId) ?: return null
         return ScanResult(dir.songs, null)
+    }
+
+    /**
+     * MediaStore can list only part of a folder (files copied in without a media scan, `.nomedia` trees, SD cards).
+     * Walk the chosen folder too and add the audio files MediaStore does not list, so a partly indexed folder still
+     * shows every song. Files MediaStore knows are skipped (not parsed). If the walk fails, the MediaStore result
+     * stands unchanged.
+     */
+    private fun mergeUnindexed(indexed: ScanResult, root: String, treeUri: Uri?, cached: List<Song>): ScanResult {
+        val known = indexed.songs.mapTo(HashSet()) { it.filePath }
+        val usedIds = indexed.songs.mapTo(HashSet()) { it.id }
+        val minNextId = maxOf(usedIds.maxOrNull() ?: 0L, cached.maxOfOrNull { it.id } ?: 0L) + 1
+        val dir = runCatching { directoryScanner.scan(root, treeUri, cached, minNextId, skipPaths = known) }.getOrNull()
+            ?: return indexed
+        var nextId = minNextId
+        val extra = dir.songs.filter { it.filePath !in known }.map { s ->
+            // A cached directory-scan id can equal a MediaStore _ID handed out later: never share an id.
+            if (s.id in usedIds) s.copy(id = nextId++) else s
+        }
+        if (extra.isEmpty()) return indexed
+        return ScanResult(indexed.songs + extra, indexed.artistImages)
     }
 
     /** Background half of a scan (see [LibraryScanner.enrich]): no per-song work blocks the UI result. */
