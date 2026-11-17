@@ -17,28 +17,45 @@ object TagWriter {
         try { Logger.getLogger("org.jaudiotagger").level = Level.OFF } catch (_: Throwable) {}
     }
 
-    /** Lyrics text stored in the file's tags (raw, not parsed): "" when there are none, null when the file can't be read. */
-    fun readLyrics(file: File): String? = try {
-        AudioFileIO.read(file).tag?.getFirst(FieldKey.LYRICS).orEmpty()
+    /**
+     * The file's own tags as an editable form (what is really stored, not what the library row happens to hold),
+     * or null when the file can't be read. [fallbackTitle] is used when the file has no title tag.
+     */
+    fun readEditable(file: File, fallbackTitle: String): TagEdit? = try {
+        val tag: Tag? = AudioFileIO.read(file).tag
+        fun f(k: FieldKey) = try { tag?.getFirst(k)?.trim().orEmpty() } catch (_: Throwable) { "" }
+        TagEdit(
+            title = f(FieldKey.TITLE).ifEmpty { fallbackTitle },
+            artist = f(FieldKey.ARTIST),
+            album = f(FieldKey.ALBUM),
+            albumArtist = f(FieldKey.ALBUM_ARTIST),
+            genre = f(FieldKey.GENRE),
+            year = TagReader.leadingInt(f(FieldKey.YEAR))?.toString().orEmpty(),
+            track = TagReader.leadingInt(f(FieldKey.TRACK))?.toString().orEmpty(),
+            disc = TagReader.leadingInt(f(FieldKey.DISC_NO))?.toString().orEmpty(),
+            lyrics = try { tag?.getFirst(FieldKey.LYRICS).orEmpty() } catch (_: Throwable) { "" },
+        )
     } catch (_: Throwable) { null }
 
     /**
-     * Writes [edit] into [file]'s tags. Blank values remove that field. Throws on unsupported or damaged files,
-     * so the caller can leave the original untouched.
+     * Writes [edit] into [file]'s tags, touching only the fields that differ from [baseline] (the form as loaded
+     * from this file), so e.g. a title-only edit leaves genre, lyrics and full dates alone. Blank values remove
+     * that field. Throws on unsupported or damaged files, so the caller can leave the original untouched.
      */
-    fun write(file: File, edit: TagEdit, writeLyrics: Boolean = true) {
+    fun write(file: File, edit: TagEdit, baseline: TagEdit) {
         val e = edit.normalized()
+        val b = baseline.normalized()
         val audio = AudioFileIO.read(file)
         val tag: Tag = audio.tagOrCreateAndSetDefault
-        set(tag, FieldKey.TITLE, e.title)
-        set(tag, FieldKey.ARTIST, e.artist)
-        set(tag, FieldKey.ALBUM, e.album)
-        set(tag, FieldKey.ALBUM_ARTIST, e.albumArtist)
-        set(tag, FieldKey.GENRE, e.genre)
-        set(tag, FieldKey.YEAR, e.yearOrNull()?.toString().orEmpty())
-        set(tag, FieldKey.TRACK, e.trackOrNull()?.toString().orEmpty())
-        set(tag, FieldKey.DISC_NO, e.discOrNull()?.toString().orEmpty())
-        if (writeLyrics) set(tag, FieldKey.LYRICS, e.lyrics) // skipped when the current lyrics couldn't be read
+        if (e.title != b.title) set(tag, FieldKey.TITLE, e.title)
+        if (e.artist != b.artist) set(tag, FieldKey.ARTIST, e.artist)
+        if (e.album != b.album) set(tag, FieldKey.ALBUM, e.album)
+        if (e.albumArtist != b.albumArtist) set(tag, FieldKey.ALBUM_ARTIST, e.albumArtist)
+        if (e.genre != b.genre) set(tag, FieldKey.GENRE, e.genre)
+        if (e.year != b.year) set(tag, FieldKey.YEAR, e.yearOrNull()?.toString().orEmpty())
+        if (e.track != b.track) set(tag, FieldKey.TRACK, e.trackOrNull()?.toString().orEmpty())
+        if (e.disc != b.disc) set(tag, FieldKey.DISC_NO, e.discOrNull()?.toString().orEmpty())
+        if (e.lyrics != b.lyrics) set(tag, FieldKey.LYRICS, e.lyrics)
         audio.commit()
     }
 

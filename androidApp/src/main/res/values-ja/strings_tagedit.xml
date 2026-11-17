@@ -12,5 +12,5 @@
     <string name="tag_edit_not_indexed">このファイルはメディアライブラリに登録されていないため、タグを編集できません。</string>
     <string name="tag_edit_permission_denied">ファイルの変更が許可されませんでした。</string>
     <string name="tag_edit_save_failed">タグを書き込めませんでした。この形式は編集に対応していない可能性があります。</string>
-    <string name="tag_edit_lyrics_unreadable">既存の歌詞を読み取れなかったため、歌詞は変更されません。</string>
+    <string name="tag_edit_unreadable">このファイルの現在のタグを読み取れないため、安全に編集できません。</string>
 </resources>

@@ -51,27 +51,29 @@ object TagFileAccess {
         return null
     }
 
-    /** Lyrics currently stored in the file's tags: "" when none, null when the file couldn't be read. */
-    suspend fun readLyrics(context: Context, uri: Uri, ext: String): String? = withContext(Dispatchers.IO) {
-        val temp = copyOut(context, uri, ext) ?: return@withContext null
-        try { TagWriter.readLyrics(temp) } finally { temp.delete() }
+    /** The file's real tags as an editable form, or null when the file can't be read (then it must not be edited). */
+    suspend fun readEditable(context: Context, uri: Uri, path: String, fallbackTitle: String): TagEdit? = withContext(Dispatchers.IO) {
+        val temp = copyOut(context, uri, path.substringAfterLast('.', "")) ?: return@withContext null
+        try { TagWriter.readEditable(temp, fallbackTitle) } finally { temp.delete() }
     }
 
     /**
-     * Writes [edit] into the file behind [uri]; [writeLyrics] = false leaves the lyrics tag alone. Returns the
+     * Writes [edit] into the file behind [uri], changing only fields that differ from [baseline]. Returns the
      * failure, or null on success. The untouched original is kept in a temp copy until the new bytes are fully
-     * written; if writing fails midway it is written back, and if even that fails it is kept in `tag_recovery/`.
+     * written; if writing fails midway it is written back, and if even that fails it is kept (in `tag_recovery/`,
+     * or where it already is if that copy fails too).
      */
-    suspend fun write(context: Context, uri: Uri, path: String, edit: TagEdit, writeLyrics: Boolean = true): Throwable? =
+    suspend fun write(context: Context, uri: Uri, path: String, edit: TagEdit, baseline: TagEdit): Throwable? =
         withContext(Dispatchers.IO) {
             val ext = path.substringAfterLast('.', "")
             var original: File? = null
             var edited: File? = null
+            var keepOriginal = false
             try {
                 original = copyOut(context, uri, ext) ?: return@withContext IllegalStateException("cannot read file")
                 edited = File.createTempFile("tagedit_", if (ext.isEmpty()) null else ".$ext", context.cacheDir)
                 original.copyTo(edited, overwrite = true)
-                TagWriter.write(edited, edit, writeLyrics) // throws on unsupported/damaged files; the original is untouched until here
+                TagWriter.write(edited, edit, baseline) // throws on unsupported/damaged files; the original is untouched until here
                 try {
                     overwrite(context, uri, edited)
                 } catch (t: Throwable) {
@@ -80,7 +82,11 @@ object TagFileAccess {
                         t.addSuppressed(restore)
                         val kept = File(context.cacheDir, "tag_recovery").apply { mkdirs() }
                             .let { File(it, "${System.currentTimeMillis()}_${path.substringAfterLast('/')}") }
-                        runCatching { original.copyTo(kept, overwrite = true) }
+                        // Only drop the original temp copy once a recovery copy really exists.
+                        if (runCatching { original.copyTo(kept, overwrite = true) }.isFailure) {
+                            kept.delete()
+                            keepOriginal = true
+                        }
                     }
                     throw t
                 }
@@ -91,7 +97,7 @@ object TagFileAccess {
                 t
             } finally {
                 edited?.delete()
-                original?.delete() // a copy was saved to tag_recovery/ first if the restore failed
+                if (!keepOriginal) original?.delete()
             }
         }
 

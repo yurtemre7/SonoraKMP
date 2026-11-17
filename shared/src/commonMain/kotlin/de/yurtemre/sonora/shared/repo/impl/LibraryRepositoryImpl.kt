@@ -149,7 +149,8 @@ class LibraryRepositoryImpl(
                 (s.artworkPath == null || s.artworkPath == old.artworkPath)
             if (unchanged) old.copy(id = s.id, albumId = s.albumId ?: old.albumId, dateAddedMs = s.dateAddedMs ?: old.dateAddedMs,
                 trackNumber = s.trackNumber, discNumber = s.discNumber, albumArtist = s.albumArtist ?: old.albumArtist, isFavorite = false, favoriteDateMs = null)
-            else s.copy(seedColor = s.seedColor ?: old.seedColor.takeIf { s.artworkPath == old.artworkPath })
+            // The MediaStore scan doesn't read genre; keep the one already on the row (e.g. from the tag editor).
+            else s.copy(seedColor = s.seedColor ?: old.seedColor.takeIf { s.artworkPath == old.artworkPath }, genre = s.genre ?: old.genre)
         }
     }
 

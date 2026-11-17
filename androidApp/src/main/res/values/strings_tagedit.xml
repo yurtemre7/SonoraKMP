@@ -12,5 +12,5 @@
     <string name="tag_edit_not_indexed">This file isn’t in the system media library, so its tags can’t be edited.</string>
     <string name="tag_edit_permission_denied">Permission to modify the file was not granted.</string>
     <string name="tag_edit_save_failed">Couldn’t write the tags. This file format may not support editing.</string>
-    <string name="tag_edit_lyrics_unreadable">Existing lyrics couldn’t be read, so they are left unchanged.</string>
+    <string name="tag_edit_unreadable">Couldn’t read this file’s current tags, so it can’t be edited safely.</string>
 </resources>
