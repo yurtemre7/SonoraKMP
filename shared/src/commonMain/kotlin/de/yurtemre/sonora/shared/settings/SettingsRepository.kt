@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import de.yurtemre.sonora.shared.audio.TransitionFade
 import de.yurtemre.sonora.shared.model.*
 import de.yurtemre.sonora.shared.settings.SettingsKeys as K
 import kotlinx.coroutines.flow.Flow
@@ -50,6 +51,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSleepTimerDefaultMinutes(v: Int) = put { it[K.SLEEP_TIMER_DEFAULT_MINUTES] = v }
     suspend fun setSleepTimerFadeOutSeconds(v: Int) = put { it[K.SLEEP_TIMER_FADE_OUT_SECONDS] = v }
     suspend fun setSleepTimerFinishSong(v: Boolean) = put { it[K.SLEEP_TIMER_FINISH_SONG] = v }
+    suspend fun setSkipSilence(v: Boolean) = put { it[K.SKIP_SILENCE] = v }
+    suspend fun setFadeBetweenSongsSeconds(v: Int) = put { it[K.FADE_BETWEEN_SONGS_SECONDS] = v }
     suspend fun setRepeatMode(v: RepeatMode) = put { it[K.REPEAT_MODE] = v.storageName }
     suspend fun setVolume(v: Double) = put { it[K.VOLUME] = v }
     suspend fun setSpeed(v: Double) = put { it[K.SPEED] = v }
@@ -167,6 +170,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 sleepTimerFadeOutSeconds = p[K.SLEEP_TIMER_FADE_OUT_SECONDS]
                     ?.let { AppSettings.nearestOption(AppSettings.SLEEP_TIMER_FADE_OPTIONS, it) } ?: d.sleepTimerFadeOutSeconds,
                 sleepTimerFinishSong = p[K.SLEEP_TIMER_FINISH_SONG] ?: d.sleepTimerFinishSong,
+                skipSilence = p[K.SKIP_SILENCE] ?: d.skipSilence,
+                fadeBetweenSongsSeconds = p[K.FADE_BETWEEN_SONGS_SECONDS]
+                    ?.let { AppSettings.nearestOption(TransitionFade.OPTIONS_SECONDS, it) } ?: d.fadeBetweenSongsSeconds,
                 repeatMode = RepeatMode.fromStorage(p[K.REPEAT_MODE]),
                 filterTitleFeatures = p[K.FILTER_TITLE_FEATURES] ?: d.filterTitleFeatures,
                 filterTitleArtist = p[K.FILTER_TITLE_ARTIST] ?: d.filterTitleArtist,

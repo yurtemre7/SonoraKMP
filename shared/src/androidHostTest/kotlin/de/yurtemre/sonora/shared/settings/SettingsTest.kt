@@ -59,6 +59,9 @@ class SettingsTest {
             check("sleepTimerFadeOutSeconds", 60, ::setSleepTimerFadeOutSeconds) { it.sleepTimerFadeOutSeconds }
             setSleepTimerFadeOutSeconds(5); assertEquals(0, settings.first().sleepTimerFadeOutSeconds, "fade snaps")
             check("sleepTimerFinishSong", true, ::setSleepTimerFinishSong) { it.sleepTimerFinishSong }
+            check("skipSilence", true, ::setSkipSilence) { it.skipSilence }
+            check("fadeBetweenSongsSeconds", 8, ::setFadeBetweenSongsSeconds) { it.fadeBetweenSongsSeconds }
+            setFadeBetweenSongsSeconds(5); assertEquals(4, settings.first().fadeBetweenSongsSeconds, "fade snaps")
             check("repeatMode", RepeatMode.entries.last(), ::setRepeatMode) { it.repeatMode }
             check("volume", 0.4, ::setVolume) { it.volume }
             check("speed", 1.25, ::setSpeed) { it.speed }

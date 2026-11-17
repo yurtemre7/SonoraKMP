@@ -32,6 +32,10 @@ data class AppSettings(
     val sleepTimerDefaultMinutes: Int = 5,
     val sleepTimerFadeOutSeconds: Int = 10,
     val sleepTimerFinishSong: Boolean = false,
+    /** Skip silent passages in songs (native-only, not in backups). */
+    val skipSilence: Boolean = false,
+    /** Fade out and in around song changes, in seconds; 0 = off (native-only, not in backups). */
+    val fadeBetweenSongsSeconds: Int = 0,
     val repeatMode: RepeatMode = RepeatMode.Off,
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,

@@ -85,6 +85,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private lateinit var player: SonoraForwardingPlayer
     private lateinit var queue: QueueController
     private lateinit var effects: AudioEffects
+    private lateinit var fader: TransitionFader
     private lateinit var focus: AudioFocusController
     private lateinit var noisy: NoisyAndReconnectHandler
     private lateinit var recorder: ListenStatsRecorder
@@ -162,6 +163,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             stateStore, scope, snapshot = ::snapshot, positionMs = { exo.currentPosition },
             restoreEnabled = { settingsRepo.settings.first().restoreLastPlayedSong },
         )
+        fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
         focus = AudioFocusController(this, exo, settingsRepo.settings, scope).also { it.start() }
         noisy = NoisyAndReconnectHandler(this, exo, settingsRepo.settings, scope, resume = { player.play() })
@@ -197,7 +199,12 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 player.volumes.userVolume = it.volume
                 queue.restoreRepeat(it.repeatMode)
             }
-            settingsRepo.settings.collect { settings = it; queue.replayGainMode = it.replayGainMode }
+            settingsRepo.settings.collect {
+                settings = it
+                queue.replayGainMode = it.replayGainMode
+                exo.skipSilenceEnabled = it.skipSilence
+                fader.setFadeSeconds(it.fadeBetweenSongsSeconds)
+            }
         }
         scope.launch { queue.state.collect { queueBus.state.value = it } }
         scope.launch { sleepTimer.uiState.collect { publishExtras() } }
@@ -245,6 +252,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         widget.markStopped()
         sleepTimer.release()
         recorder.release()
+        fader.stop()
         effects.stop()
         focus.stop()
         noisy.stop()
