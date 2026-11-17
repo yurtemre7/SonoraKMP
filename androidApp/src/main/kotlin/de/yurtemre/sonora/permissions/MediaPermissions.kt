@@ -29,7 +29,12 @@ object MediaPermissions {
     fun hasLocalNetwork(context: Context): Boolean = localNetwork?.let { granted(context, it) } ?: true
 
     /** All files access (API 30+): a special grant given on a system settings screen, not a runtime dialog. Optional. */
-    fun hasAllFiles(): Boolean = Build.VERSION.SDK_INT < 30 || android.os.Environment.isExternalStorageManager()
+    fun hasAllFiles(): Boolean =
+        Build.VERSION.SDK_INT < 30 || try {
+            android.os.Environment.isExternalStorageManager()
+        } catch (_: RuntimeException) {
+            false // optional grant: an unreadable state counts as not granted
+        }
 
     /** Opens the per-app "All files access" screen, falling back to the app details page. */
     fun openAllFilesSettings(context: Context) {
