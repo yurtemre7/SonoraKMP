@@ -23,10 +23,9 @@ class SleepTimerNotifier(
 ) {
     private val manager = NotificationManagerCompat.from(context)
 
-    fun show(remainingSec: Long, finishingSong: Boolean, thenFinishSong: Boolean = false) {
-        if (!canPost()) return
-        ensureChannel()
-        val b = NotificationCompat.Builder(context, CHANNEL_ID)
+    /** Shared look of the ongoing notification; [extendLabel] is "+1 min" for a countdown, "+1 song" for a song count. */
+    private fun builder(extendLabel: String): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(context.withAppLocale().getString(R.string.sleep_timer_notification_title))
             .setOngoing(true)
@@ -34,8 +33,26 @@ class SleepTimerNotifier(
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_extend), servicePi(ACTION_EXTEND, 1))
+            .addAction(0, extendLabel, servicePi(ACTION_EXTEND, 1))
             .addAction(0, context.withAppLocale().getString(R.string.sleep_timer_action_end), servicePi(ACTION_END, 2))
+
+    /** Song-count timer: "N songs left" with "+1 song" and "End timer". */
+    fun showTracks(songsLeft: Int) {
+        if (!canPost()) return
+        ensureChannel()
+        val localized = context.withAppLocale()
+        val b = builder(localized.getString(R.string.sleep_tracks_extend))
+            .setContentText(localized.resources.getQuantityString(R.plurals.sleep_tracks_remaining, songsLeft, songsLeft))
+        try {
+            manager.notify(NOTIFICATION_ID, b.build())
+        } catch (_: SecurityException) {
+        }
+    }
+
+    fun show(remainingSec: Long, finishingSong: Boolean, thenFinishSong: Boolean = false) {
+        if (!canPost()) return
+        ensureChannel()
+        val b = builder(context.withAppLocale().getString(R.string.sleep_timer_action_extend))
         if (finishingSong) {
             b.setContentText(context.withAppLocale().getString(R.string.sleep2_notification_finishing))
         } else {
