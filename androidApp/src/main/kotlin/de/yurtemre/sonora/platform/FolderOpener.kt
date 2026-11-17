@@ -42,13 +42,20 @@ object FolderOpener {
             }
         }
 
-        // 3. DocumentsUI via ACTION_OPEN_DOCUMENT_TREE at the folder
+        // 3. The folder itself in the system Files app: VIEW on the external-storage document URI with the directory
+        //    MIME. Stock Android has no third-party manager, so this is the step that normally succeeds.
+        val docUri = DocumentsContract.buildDocumentUri(EXT_AUTHORITY, documentId(folder))
+        if (tryStart(context, Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(docUri, DocumentsContract.Document.MIME_TYPE_DIR)
+            })) return Result.OPENED_DOCUMENTS_UI
+
+        // 4. Last resort: a folder picker starting at the folder (it browses, but does not "open")
         if (tryStart(context, Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                 putExtra(DocumentsContract.EXTRA_INITIAL_URI,
                     DocumentsContract.buildTreeDocumentUri(EXT_AUTHORITY, documentId(folder)))
             })) return Result.OPENED_DOCUMENTS_UI
 
-        // 4. Generic VIEW chooser
+        // 5. Generic VIEW chooser
         val generic = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(folderUri, "*/*")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
