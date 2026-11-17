@@ -37,6 +37,15 @@ interface SongDao {
     @Query("UPDATE songs SET duration_verified = 1 WHERE id IN (:ids)")
     suspend fun markDurationVerified(ids: List<Long>)
 
+    @Query(
+        "UPDATE songs SET title = :title, artist = :artist, album = :album, album_artist = :albumArtist, genre = :genre, " +
+            "year = :year, track_number = :track, disc_number = :disc WHERE id = :id",
+    )
+    suspend fun updateTags(
+        id: Long, title: String, artist: String, album: String, albumArtist: String?, genre: String?,
+        year: Int?, track: Int?, disc: Int?,
+    )
+
     @Query("UPDATE songs SET has_lyrics = :has WHERE id IN (:ids)")
     suspend fun updateHasLyrics(ids: List<Long>, has: Boolean)
 

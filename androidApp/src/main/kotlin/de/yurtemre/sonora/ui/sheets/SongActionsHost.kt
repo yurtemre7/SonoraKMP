@@ -29,7 +29,7 @@ import org.koin.compose.koinInject
  */
 @Stable
 class SongActionsState {
-    internal enum class Mode { Actions, Playlist, Info }
+    internal enum class Mode { Actions, Playlist, Info, Edit }
 
     var song: Song? by mutableStateOf(null)
         private set
@@ -118,6 +118,7 @@ fun SongActionsHost(
                 snack(resources.getString(if (next) R.string.sheets_actions_snack_favorited else R.string.sheets_actions_snack_unfavorited))
             },
             onInfo = { state.mode = SongActionsState.Mode.Info },
+            onEditTags = { state.mode = SongActionsState.Mode.Edit },
             onShare = {
                 if (!ShareHelper.share(context, listOf(ShareHelper.Item(song.filePath, song.id.takeIf { it > 0 })))) {
                     snack(resources.getString(R.string.sheets_info_share_failed))
@@ -135,5 +136,10 @@ fun SongActionsHost(
             onMessage = { snack(it) },
         )
         SongActionsState.Mode.Info -> SongInfoSheet(song, onDismiss = state::dismiss)
+        SongActionsState.Mode.Edit -> TagEditorSheet(
+            song = song,
+            onDismiss = state::dismiss,
+            onSaved = { snack(resources.getString(R.string.tag_edit_saved)) },
+        )
     }
 }

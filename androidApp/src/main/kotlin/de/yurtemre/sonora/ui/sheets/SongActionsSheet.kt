@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlaylistPlay
@@ -63,6 +64,7 @@ fun SongActionsSheet(
     onAddToPlaylist: () -> Unit,
     onToggleFavorite: () -> Unit,
     onInfo: () -> Unit,
+    onEditTags: (() -> Unit)? = null,
     onShare: () -> Unit,
     onGoToAlbum: (() -> Unit)? = null,
     onGoToArtist: (() -> Unit)? = null,
@@ -114,6 +116,7 @@ fun SongActionsSheet(
             if (onGoToAlbum != null) ActionRow(Icons.Rounded.Album, stringResource(R.string.sheets_actions_go_to_album)) { onDismiss(); onGoToAlbum() }
             if (onGoToArtist != null) ActionRow(Icons.Rounded.Person, stringResource(R.string.sheets_actions_go_to_artist)) { onDismiss(); onGoToArtist() }
             ActionRow(Icons.Rounded.Info, stringResource(R.string.sheets_actions_info), onClick = onInfo)
+            if (onEditTags != null) ActionRow(Icons.Rounded.Edit, stringResource(R.string.tag_edit_action), onClick = onEditTags)
             ActionRow(Icons.Rounded.Share, stringResource(R.string.sheets_actions_share)) { onShare(); onDismiss() }
             extraActions.forEach { a ->
                 ActionRow(a.icon, a.label, destructive = a.destructive) { onDismiss(); a.onClick() }
