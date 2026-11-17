@@ -66,6 +66,8 @@ object FolderOpener {
 
     internal fun documentId(folder: File): String {
         val norm = folder.absolutePath.replace('\\', '/')
+            // Secondary users' primary volume is /storage/emulated/<userId>; DocumentsUI still calls it "primary".
+            .replace(Regex("^/storage/emulated/\\d+(?=/|$)"), "/storage/emulated/0")
         for (p in listOf("/storage/emulated/0", "/sdcard")) {
             if (norm.equals(p, true) || norm.startsWith("$p/", true)) {
                 return "primary:" + norm.substring(p.length).trimStart('/')
