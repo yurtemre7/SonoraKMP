@@ -12,6 +12,7 @@ import de.yurtemre.sonora.shared.db.toModel
 import de.yurtemre.sonora.shared.library.AlbumGrouper
 import de.yurtemre.sonora.shared.library.ArtistGrouper
 import de.yurtemre.sonora.shared.library.LibrarySearchIndex
+import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.model.AlbumGroup
 import de.yurtemre.sonora.shared.model.ArtistGroup
 import de.yurtemre.sonora.shared.model.Song
@@ -275,6 +276,16 @@ class LibraryRepositoryImpl(
                 songDao.upsertAll(rows.map { it.copy(artworkPath = artworkBySongId[it.id]) })
             }
         }
+    }
+
+    override suspend fun updateTags(songId: Long, edit: TagEdit) {
+        val e = edit.normalized()
+        // Same fallbacks the scanners use for missing tags.
+        songDao.updateTags(
+            id = songId, title = e.title, artist = e.artist.ifEmpty { TagEdit.UNKNOWN_ARTIST },
+            album = e.album.ifEmpty { TagEdit.UNKNOWN_ALBUM }, albumArtist = e.albumArtist.ifEmpty { null },
+            genre = e.genre.ifEmpty { null }, year = e.yearOrNull(), track = e.trackOrNull(), disc = e.discOrNull(),
+        )
     }
 
     override suspend fun updateSeedColor(songId: Long, seedColor: Int?) = songDao.updateSeedColor(songId, seedColor)

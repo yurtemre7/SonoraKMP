@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.shared.repo.api
 
+import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.model.Song
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,8 @@ interface LibraryRepository {
     suspend fun updateSeedColor(songId: Long, seedColor: Int?)
     /** PLAY-09 ReplayGain scan results. */
     suspend fun updateReplayGain(songs: List<Song>)
+    /** Writes an already-saved tag edit to the song's row so the library shows it without a rescan. */
+    suspend fun updateTags(songId: Long, edit: TagEdit)
     suspend fun clearAll()
 }
 

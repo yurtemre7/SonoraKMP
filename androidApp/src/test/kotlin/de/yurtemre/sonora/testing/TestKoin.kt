@@ -77,6 +77,7 @@ class FakeLibrary(songs: List<Song>) : LibraryRepository {
     override suspend fun updateArtwork(artworkBySongId: Map<Long, String?>) {}
     override suspend fun updateSeedColor(songId: Long, seedColor: Int?) {}
     override suspend fun updateReplayGain(songs: List<Song>) {}
+    override suspend fun updateTags(songId: Long, edit: de.yurtemre.sonora.shared.library.TagEdit) {}
     override suspend fun clearAll() { all.value = emptyList() }
 }
 

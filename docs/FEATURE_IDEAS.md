@@ -37,7 +37,7 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 | Swipe actions on song rows (play next, add to queue) | Idea | |
 | Queue undo covering clear-queue | Idea | `insertAt` already undoes single removals |
 | Share a song's file | Idea | |
-| Edit tags and lyrics in the app | Idea | |
+| Edit tags and lyrics in the app | Done | title/artist/album/album artist/genre/year/track/disc/lyrics; cover art editing and batch edit are still ideas |
 | Notification / lock-screen custom actions (favourite, repeat) | Idea | |
 
 ## Stats and privacy
