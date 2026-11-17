@@ -28,6 +28,21 @@ object MediaPermissions {
 
     fun hasLocalNetwork(context: Context): Boolean = localNetwork?.let { granted(context, it) } ?: true
 
+    /** All files access (API 30+): a special grant given on a system settings screen, not a runtime dialog. Optional. */
+    fun hasAllFiles(): Boolean = Build.VERSION.SDK_INT < 30 || android.os.Environment.isExternalStorageManager()
+
+    /** Opens the per-app "All files access" screen, falling back to the app details page. */
+    fun openAllFilesSettings(context: Context) {
+        if (Build.VERSION.SDK_INT < 30) return openAppSettings(context)
+        val uri = Uri.fromParts("package", context.packageName, null)
+        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            openAppSettings(context)
+        }
+    }
+
     fun hasAudio(context: Context): Boolean = granted(context, audio)
 
     /** Below API 33 notifications need no runtime grant. */

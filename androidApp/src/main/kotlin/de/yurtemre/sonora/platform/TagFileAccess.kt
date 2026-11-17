@@ -17,7 +17,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /**
- * Scoped-storage plumbing for the tag editor. The app only holds READ_MEDIA_AUDIO, so writing a tag goes through
+ * Scoped-storage plumbing for the tag editor. The app holds READ_MEDIA_AUDIO (and optionally All files access), so writing a tag goes through
  * the song's MediaStore URI: the user approves a system prompt, the audio is copied to a temp file, edited with
  * jaudiotagger and copied back. The original is only overwritten after the temp copy was edited successfully.
  */

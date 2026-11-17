@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -101,11 +102,13 @@ fun OnboardingScreen(onFinished: (message: String) -> Unit) {
     var notificationsAsked by rememberSaveable { mutableStateOf(false) }
     var audioGranted by remember { mutableStateOf(MediaPermissions.hasAudio(context)) }
     var notificationsGranted by remember { mutableStateOf(MediaPermissions.hasNotifications(context)) }
+    var allFilesGranted by remember { mutableStateOf(MediaPermissions.hasAllFiles()) }
     var finishing by remember { mutableStateOf(false) }
 
     LifecycleResumeEffect(Unit) {
         audioGranted = MediaPermissions.hasAudio(context)
         notificationsGranted = MediaPermissions.hasNotifications(context)
+        allFilesGranted = MediaPermissions.hasAllFiles()
         onPauseOrDispose { }
     }
 
@@ -211,6 +214,8 @@ fun OnboardingScreen(onFinished: (message: String) -> Unit) {
                             1 -> PermissionsPage(
                                 audioGranted = audioGranted,
                                 notificationsGranted = notificationsGranted,
+                                allFilesGranted = allFilesGranted,
+                                onAllFiles = { MediaPermissions.openAllFilesSettings(context) },
                                 onRequest = {
                                     if (!audioGranted) storageLauncher.launch(MediaPermissions.storageRequest)
                                     else MediaPermissions.notifications?.let(notificationLauncher::launch)
@@ -294,6 +299,8 @@ private fun WelcomePage(name: String, onName: (String) -> Unit, onDone: () -> Un
 private fun PermissionsPage(
     audioGranted: Boolean,
     notificationsGranted: Boolean,
+    allFilesGranted: Boolean,
+    onAllFiles: () -> Unit,
     onRequest: () -> Unit,
     onOpenSettings: () -> Unit,
     showSettings: Boolean,
@@ -313,6 +320,17 @@ private fun PermissionsPage(
                 stringResource(R.string.onboarding_permission_notifications_body),
                 notificationsGranted,
             )
+            PermissionRow(
+                Icons.Rounded.FolderOpen,
+                stringResource(R.string.onboarding_permission_allfiles),
+                stringResource(R.string.onboarding_permission_allfiles_body),
+                allFilesGranted,
+            )
+        }
+    }
+    if (!allFilesGranted) {
+        OutlinedButton(onClick = onAllFiles, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Text(stringResource(R.string.onboarding_permission_allfiles_allow))
         }
     }
     if (!(audioGranted && notificationsGranted)) {

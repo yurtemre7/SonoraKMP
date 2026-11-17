@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.InstallMobile
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -36,6 +37,8 @@ private data class PrivacyCard(val key: String, val icon: ImageVector, val title
 private val PermissionCards = listOf(
     // READ_MEDIA_AUDIO (READ_EXTERNAL_STORAGE ≤ API 32)
     PrivacyCard("audio", Icons.Rounded.LibraryMusic, R.string.settings_perm_audio_title, R.string.settings_perm_audio_body),
+    // MANAGE_EXTERNAL_STORAGE (optional, API 30+)
+    PrivacyCard("all_files", Icons.Rounded.FolderOpen, R.string.settings_perm_allfiles_title, R.string.settings_perm_allfiles_body),
     // POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK)
     PrivacyCard(
         "notifications", Icons.Rounded.NotificationsActive,

@@ -203,7 +203,7 @@ Card layout: surfaceContainerLow, radius 16, border; icon (primary) + title (tit
 7. Header `dataManagement` "Data Management"
 8. Card delete_sweep: `privacyCardDeleteDataTitle` "Delete All Data" / content (points to Danger Zone in Info & Support).
 
-Port note: these texts describe the Android permission set: READ_MEDIA_AUDIO/IMAGES (or READ_EXTERNAL_STORAGE), POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK), WAKE_LOCK, INTERNET (+ REQUEST_INSTALL_PACKAGES for updater). Keep them consistent with the Kotlin manifest.
+Port note: these texts describe the Android permission set: READ_MEDIA_AUDIO/IMAGES (or READ_EXTERNAL_STORAGE), MANAGE_EXTERNAL_STORAGE (optional), POST_NOTIFICATIONS, FOREGROUND_SERVICE(_MEDIA_PLAYBACK), WAKE_LOCK, INTERNET (+ REQUEST_INSTALL_PACKAGES for updater). Keep them consistent with the Kotlin manifest.
 
 ---
 

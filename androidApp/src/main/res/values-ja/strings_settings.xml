@@ -149,6 +149,8 @@
     <string name="settings_section_permissions">権限について</string>
     <string name="settings_perm_audio_title">音楽とオーディオ</string>
     <string name="settings_perm_audio_body">選んだフォルダ内の音声ファイルと、その横にある cover.jpg などのジャケット画像を読み込みます。写真や動画へのアクセスは求めません。</string>
+    <string name="settings_perm_allfiles_title">すべてのファイルへのアクセス（任意）</string>
+    <string name="settings_perm_allfiles_body">Android のメディアライブラリに載っていない、または開けない音声ファイルを読み取り、編集したタグを書き戻せるようにします。追加した音声ファイルとフォルダにのみ使用します。システム設定の「すべてのファイルへのアクセス」でいつでも切り替えられます。</string>
     <string name="settings_perm_notifications_title">通知とバックグラウンド再生</string>
     <string name="settings_perm_notifications_body">通知シェードとロック画面に再生コントロールを表示します。メディア用のフォアグラウンドサービスで、アプリがバックグラウンドにあっても再生を続けます。</string>
     <string name="settings_perm_wake_title">スリープの防止</string>
