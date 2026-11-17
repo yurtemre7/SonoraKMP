@@ -107,11 +107,11 @@ Versions are never bumped by hand. A release is a commit on `main` whose
 subject is `release: <version>`:
 
 ```bash
-git commit --allow-empty -m "release: 1.0.0"
+git commit --allow-empty -m "release: 1.29.0"
 git push origin main
 ```
 
-The [release workflow](.github/workflows/release.yml) then tags `v1.0.0` and
+The [release workflow](.github/workflows/release.yml) then tags `v1.29.0` and
 builds, signs and publishes `sonora-<version>.apk`, its `.sha256` checksum and
 an `.aab`, with release notes generated from the commit history by
 [git-cliff](cliff.toml) (grouped by type, with contributor credits and a link

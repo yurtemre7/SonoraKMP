@@ -43,10 +43,10 @@ Everything still to do, so you can continue on your own. Written 2026-11-12.
 - Lint: predictive-back corners use the public navigationevent transition state, not `Transition.isSeeking`.
 - Not checked: vinyl in landscape, tablet sizes, the sleep timer's fade by ear.
 
-### 3. Before 1.0
+### 3. After the first release
 
-`wip/p11` is merged into `main` (2026-11-12). 1.0.0 is **not** close: keep shipping nightlies and only cut
-`release: 1.0.0` when the maintainer decides the app is ready. Open items:
+`wip/p11` is merged into `main` (2026-11-12). The first stable release is 1.29.0 (it continues the 1.28.x nightly line, so installs upgrade in place). Cut later
+releases with a `release: X.Y.Z` commit. Open items:
 
 1. Optional: vinyl in landscape and on a tablet.
 2. Run a nightly after big merges (*Actions → Nightly → Run workflow*, tick `force`).
