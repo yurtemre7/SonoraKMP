@@ -50,6 +50,25 @@ class QueueController(
     private val _state = MutableStateFlow(QueueState())
     val state: StateFlow<QueueState> = _state.asStateFlow()
 
+    /** The newest requested queue, set at once by [setQueue] / [applyEdit]; null once it has been applied. */
+    private var requested: QueueState? = null
+
+    /**
+     * The queue as the next edit must start from: a request still being built into the player counts. [state] only
+     * changes after that async build, so two quick edits computed from [state] would drop the first one.
+     */
+    val latestState: QueueState get() = requested ?: _state.value
+
+    /**
+     * The pending request is an edit that keeps the playing entry (not an explicit track choice). While it is being
+     * built, playback may move on by itself; [syncCurrentFromPlayer] then moves [requested]'s current entry along,
+     * so the next edit does not reload the song that was playing before.
+     */
+    private var requestedFollowsPlayer = false
+
+    /** A repeat mode restored while a build is pending; that build applies it when it commits. */
+    private var repeatOverride: RepeatMode? = null
+
     /** Fired after the current index and ReplayGain are applied (stats, persistence, widget). */
     var onCurrentChanged: ((QueueState) -> Unit)? = null
 
@@ -79,6 +98,9 @@ class QueueController(
     /** Replaces the queue and loads a window around its current entry. */
     fun setQueue(newState: QueueState, startPositionMs: Long = 0, playWhenReady: Boolean = true): Job {
         val t = ++token
+        requested = newState
+        requestedFollowsPlayer = false // an explicit queue/track choice: the player's progress must not rewrite it
+        repeatOverride = null // this request carries its own repeat mode
         return scope.launch {
             val idx = newState.currentIndex.coerceIn(0, (newState.entries.size - 1).coerceAtLeast(0))
             // Always start from the small window so playback begins at once; repeat-all gets the rest afterwards.
@@ -86,18 +108,21 @@ class QueueController(
             val end = (idx + APPEND).coerceAtMost(newState.entries.size)
             val items = buildItems(newState, start, end)
             if (t != token) return@launch // a newer request superseded this one
-            _state.value = newState.copy(currentIndex = if (newState.entries.isEmpty()) -1 else idx)
+            val repeat = repeatOverride ?: newState.repeat
+            repeatOverride = null
+            _state.value = newState.copy(currentIndex = if (newState.entries.isEmpty()) -1 else idx, repeat = repeat)
+            requested = null
             windowStart = start; windowEnd = end
             editing = true
             if (items.isEmpty()) player.wrappedPlayer.clearMediaItems()
             else player.wrappedPlayer.setMediaItems(items, idx - start, startPositionMs)
-            player.wrappedPlayer.repeatMode = newState.repeat.toPlayer()
+            player.wrappedPlayer.repeatMode = repeat.toPlayer()
             player.wrappedPlayer.prepare()
             editing = false
             applyReplayGain()
             onCurrentChanged?.invoke(_state.value)
             if (playWhenReady && items.isNotEmpty()) player.play()
-            if (newState.repeat == RepeatMode.All) scope.launch { fillWholeQueue(t) } // not part of the returned job
+            if (repeat == RepeatMode.All) scope.launch { fillWholeQueue(t) } // not part of the returned job
         }
     }
 
@@ -140,14 +165,34 @@ class QueueController(
             return
         }
         val t = ++token
+        requested = newState
+        requestedFollowsPlayer = true // keeps the playing entry; see [requestedFollowsPlayer]
+        repeatOverride = null // this request carries its own repeat mode: it was built from [latestState]
         scope.launch {
-            val idx = newState.currentIndex
-            var start = (idx - PREPEND).coerceAtLeast(0)
-            var end = (idx + APPEND).coerceAtMost(newState.entries.size)
-            if (newState.repeat == RepeatMode.All) { start = 0; end = newState.entries.size }
-            val before = buildItems(newState, start, idx)
-            val after = buildItems(newState, idx + 1, end)
-            if (t != token) return@launch
+            var idx = newState.currentIndex
+            var start = 0
+            var end = 0
+            var before = emptyList<MediaItem>()
+            var after = emptyList<MediaItem>()
+            while (true) {
+                start = (idx - PREPEND).coerceAtLeast(0)
+                end = (idx + APPEND).coerceAtMost(newState.entries.size)
+                if (newState.repeat == RepeatMode.All) { start = 0; end = newState.entries.size }
+                before = buildItems(newState, start, idx)
+                after = buildItems(newState, idx + 1, end)
+                if (t != token) return@launch
+                // The player may have moved on while the items were built (auto-advance, skip). Split around the
+                // entry that plays now, or the old suffix would be appended behind it and that song would play twice.
+                val live = liveIndexIn(newState)
+                if (live == null) {
+                    // The entry that plays now is not part of the edited queue (the edit removed it): load the
+                    // edited queue instead. [requested] keeps a repeat mode restored while this edit was built.
+                    setQueue(requested ?: newState, playWhenReady = player.playWhenReady)
+                    return@launch
+                }
+                if (live == idx) break
+                idx = live
+            }
             val p = player.wrappedPlayer
             editing = true
             val native = p.currentMediaItemIndex
@@ -155,16 +200,35 @@ class QueueController(
             p.removeMediaItems(0, native)
             p.addMediaItems(0, before)
             p.addMediaItems(after)
-            p.repeatMode = newState.repeat.toPlayer()
+            val repeat = repeatOverride ?: newState.repeat
+            repeatOverride = null
+            p.repeatMode = repeat.toPlayer()
             editing = false
             windowStart = start; windowEnd = end
-            _state.value = newState
+            _state.value = newState.copy(currentIndex = idx, repeat = repeat)
+            requested = null
             syncCurrentFromPlayer(slide = false) // a transition during the edit still updates item + gain
+            // Repeat-all restored mid-build: the window built for another mode still has to grow to the whole queue.
+            if (repeat == RepeatMode.All && (windowStart > 0 || windowEnd < newState.entries.size)) {
+                scope.launch { fillWholeQueue(t) }
+            }
         }
+    }
+
+    /** Index in [s] of the entry the player is playing now, or null when that is unknown or not part of [s]. */
+    private fun liveIndexIn(s: QueueState): Int? {
+        val uid = player.wrappedPlayer.currentMediaItem?.mediaId?.removePrefix(ID_PREFIX)?.toLongOrNull() ?: return null
+        return s.entries.indexOfFirst { it.uid == uid }.takeIf { it >= 0 }
     }
 
     /** Applies the persisted repeat mode (service start); no reload, the queue is otherwise untouched. */
     fun restoreRepeat(mode: RepeatMode) {
+        if (requested != null) {
+            // A build is pending and will write its own repeat mode when it commits: hand it this one instead.
+            repeatOverride = mode
+            requested = requested?.copy(repeat = mode)
+            return
+        }
         if (_state.value.repeat == mode) return
         _state.value = _state.value.copy(repeat = mode)
         player.wrappedPlayer.repeatMode = mode.toPlayer()
@@ -198,6 +262,12 @@ class QueueController(
         val global = (windowStart + native).takeIf { s.entries.getOrNull(it)?.uid == uid }
             ?: s.entries.indexOfFirst { it.uid == uid }.takeIf { it >= 0 } ?: return
         if (global != s.currentIndex) _state.value = s.copy(currentIndex = global)
+        if (requestedFollowsPlayer) {
+            requested?.let { r ->
+                val i = r.entries.indexOfFirst { it.uid == uid }
+                if (i >= 0 && i != r.currentIndex) requested = r.copy(currentIndex = i)
+            }
+        }
         applyReplayGain() // before the session broadcasts the transition
         onCurrentChanged?.invoke(_state.value)
         if (slide) slideWindow(native)
@@ -241,8 +311,13 @@ class QueueController(
         val slice = s.entries.subList(from, to)
         val missing = slice.map { it.songId }.filter { it !in songCache }.distinct()
         if (missing.isNotEmpty()) songCache.putAll(songs(missing))
+        // The cache is only touched on the player thread: concurrent builds write it, so the IO block below must
+        // not read it. It gets the resolved songs instead.
+        val resolved = slice.map { it to songCache[it.songId] }
         return withContext(io) {
-            slice.map { e -> songCache[e.songId]?.let { toMediaItem(e.uid, it, s.playlistContext) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build() }
+            resolved.map { (e, song) ->
+                song?.let { toMediaItem(e.uid, it, s.playlistContext) } ?: MediaItem.Builder().setMediaId("$ID_PREFIX${e.uid}").build()
+            }
         }
     }
 

@@ -48,7 +48,8 @@ class ListenStatsRecorder(
     fun resumeRecording() { tracker.resumeRecording(); repo.resumeRecording() }
 
     /** Explicit user actions the player cannot distinguish (P4-11 calls these). */
-    fun onSkipNext() = tracker.onSkipNext(isLastItem = !player.hasNextMediaItem())
+    /** [isLastItem]: the logical queue's last entry (the player's window can end before the queue does). */
+    fun onSkipNext(isLastItem: Boolean) = tracker.onSkipNext(isLastItem)
     fun onPrevious() = tracker.onPrevious(player.currentPosition)
     fun onShuffleSessionStarted() = tracker.onShuffleSessionStarted()
 

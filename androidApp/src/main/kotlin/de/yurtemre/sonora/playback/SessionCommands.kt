@@ -46,9 +46,6 @@ object SessionCommands {
         SLEEP_STOP, CLOSE_PLAYER,
     )
 
-    /** Commands any (external) controller may send: the notification buttons. */
-    val PUBLIC = listOf(SLEEP_EXTEND, SLEEP_STOP, CLOSE_PLAYER)
-
     fun command(action: String) = SessionCommand(action, Bundle.EMPTY)
 
     // Argument keys

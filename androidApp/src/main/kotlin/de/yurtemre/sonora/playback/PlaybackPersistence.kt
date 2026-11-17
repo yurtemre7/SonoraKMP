@@ -23,8 +23,8 @@ class PlaybackPersistence(
 ) {
     private var periodic: Job? = null
 
+    /** Also called after every queue edit (see `QueueController.onCurrentChanged`). */
     fun onTrackChanged() = saveNow()
-    fun onQueueEdited() = saveNow()
 
     fun onIsPlayingChanged(playing: Boolean) {
         if (playing) {
