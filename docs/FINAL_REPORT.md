@@ -70,8 +70,7 @@ Numbers: 160 planned tasks done, 29 tests, 68 recorded decisions, ~110 commits.
    path is covered by `SleepTimerStateTest`, not listened to.
 2. **Not tested on a device:** home-screen widget placement, Bluetooth headset buttons, danger-zone wipe,
    display cutouts (checked in code only), equalizer/fades/speed by ear.
-3. **No stable release yet, on purpose:** 1.0.0 is still some way off; the website and the Stable update
-   channel fall back to the nightly until the maintainer cuts it.
+3. **First stable release is 1.29.0.** The version continues the nightly line (1.28.x), so existing installs upgrade in place; a 1.0.0 would sort below installed nightlies and be refused as a downgrade.
 4. **Side by side with Flutter Sonora:** different app ID and signing key, so no in-place upgrade; users move
    over by restoring a Flutter backup (open question Q-2).
 5. **Material 3 1.5.0-rc01:** a release candidate (needed for the expressive components); move to the stable

@@ -2,10 +2,18 @@
 
 All notable changes to SonoraKMP. Generated from Conventional Commits.
 
-## Unreleased
+## 1.29.0 - 2026-11-17
+
+First regular release.
 
 ### Features
 
+- **library:** Edit song tags (title, artist, album, album artist, genre, year, track and disc) with a safe write-back that restores the original file if anything fails
+- **library:** Smart lists for recently added, never played and most played; save a smart list or the Up Next queue as a playlist
+- **sleep:** Stop playback after a number of songs, with a notification for the timer
+- **settings:** Skip silence, fade between songs, and a player style picker with live previews
+- **lyrics:** Fall back to lyrics embedded in the file's tags; strip enhanced-LRC word stamps
+- **home:** Night greeting between 22:00 and 04:59
 - **device-sync:** Add device sync (Settings › Device sync): send songs, lyrics, covers, playlists, favorites, settings and listening stats from one phone to another on the same Wi-Fi with a 6-digit code. One way, encrypted, never overwrites files, and replaces another format of a song only after you confirm
 - **ui:** Add gestures, optimistic controls and M3 seek bar
 - **ui:** Add song sheets, playlist dialogs and playlist page
@@ -52,6 +60,11 @@ All notable changes to SonoraKMP. Generated from Conventional Commits.
 
 ### Bug fixes
 
+- **scan:** Show audio files that Android's media library does not list, even when it lists part of the same folder
+- **platform:** Open a song's folder in the system Files app
+- **library:** Ignore media library entries whose file no longer exists
+- **search:** Match every term for albums and fold accents in playlist search
+- **playback:** Fixes from the playback audit
 - **ui:** Wire Up Next, fix seek bar, Opus covers and permissions
 - Skip broken files and adopt quirk fixes on Android
 - **shared:** Fix Flutter grouping, search and queue quirks
