@@ -95,18 +95,28 @@ class AndroidLibraryScanner(
      * stands unchanged.
      */
     private fun mergeUnindexed(indexed: ScanResult, root: String, treeUri: Uri?, cached: List<Song>): ScanResult {
-        val known = indexed.songs.mapTo(HashSet()) { it.filePath }
-        val usedIds = indexed.songs.mapTo(HashSet()) { it.id }
-        val minNextId = maxOf(usedIds.maxOrNull() ?: 0L, cached.maxOfOrNull { it.id } ?: 0L) + 1
+        val known = indexed.songs.mapTo(HashSet()) { DirectoryScanner.pathKey(it.filePath) }
+        val minNextId = maxOf(indexed.songs.maxOfOrNull { it.id } ?: 0L, cached.maxOfOrNull { it.id } ?: 0L) + 1
         val dir = runCatching { directoryScanner.scan(root, treeUri, cached, minNextId, skipPaths = known) }.getOrNull()
             ?: return indexed
-        var nextId = minNextId
-        val extra = dir.songs.filter { it.filePath !in known }.map { s ->
-            // A cached directory-scan id can equal a MediaStore _ID handed out later: never share an id.
-            if (s.id in usedIds) s.copy(id = nextId++) else s
-        }
+        val extra = dir.songs.filter { DirectoryScanner.pathKey(it.filePath) !in known }
         if (extra.isEmpty()) return indexed
-        return ScanResult(indexed.songs + extra, indexed.artistImages)
+        // A cached directory-scan id can equal a MediaStore _ID handed out later: never share an id. Replacements
+        // start above every id in play and are reserved as they are assigned.
+        val used = indexed.songs.mapTo(HashSet()) { it.id }
+        var nextId = maxOf(used.maxOrNull() ?: 0L, extra.maxOf { it.id }) + 1
+        val merged = extra.map { s ->
+            if (used.add(s.id)) s else s.copy(id = nextId++).let { moveEmbeddedArt(s, it) }.also { used += it.id }
+        }
+        return ScanResult(indexed.songs + merged, indexed.artistImages)
+    }
+
+    /** Embedded art is stored per song id: carry it over when the id changes so the next scan's prune keeps it. */
+    private fun moveEmbeddedArt(old: Song, new: Song): Song {
+        val from = directoryScanner.embeddedArtFile(old.id)
+        if (old.artworkPath != from.absolutePath) return new
+        val to = directoryScanner.embeddedArtFile(new.id)
+        return if (runCatching { from.renameTo(to) }.getOrDefault(false)) new.copy(artworkPath = to.absolutePath) else new.copy(artworkPath = null)
     }
 
     /** Background half of a scan (see [LibraryScanner.enrich]): no per-song work blocks the UI result. */
