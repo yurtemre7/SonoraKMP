@@ -86,13 +86,16 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
         val u = uri ?: return
         val base = baseline ?: return
         saving = true
+        val submitted = edit
         scope.launch {
             val failure = try {
-                TagFileAccess.write(context, u, song.filePath, edit.normalized(), base)
+                TagFileAccess.write(context, u, song.filePath, submitted.normalized(), base)
             } catch (c: CancellationException) { throw c }
             if (failure == null) {
+                // The file now holds `submitted`: retries must diff against it, not the stale load.
+                baseline = submitted.normalized()
                 val libraryFailure = try {
-                    library.updateTags(song.id, edit)
+                    library.updateTags(song.id, submitted)
                     null
                 } catch (c: CancellationException) { throw c } catch (t: Throwable) { t }
                 if (libraryFailure == null) {

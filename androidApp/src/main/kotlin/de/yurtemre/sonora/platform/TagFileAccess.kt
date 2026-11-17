@@ -11,7 +11,9 @@ import android.provider.MediaStore
 import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.scan.TagWriter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /**
@@ -90,7 +92,7 @@ object TagFileAccess {
                     }
                     throw t
                 }
-                MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+                awaitScan(context, path)
                 null
             } catch (t: Throwable) {
                 if (t is kotlinx.coroutines.CancellationException) throw t
@@ -115,6 +117,24 @@ object TagFileAccess {
         } catch (_: Exception) {
             t?.delete() // never hand back (or leak) a partial copy
             null
+        }
+    }
+
+    /**
+     * Asks the media scanner to re-index [path] and waits (bounded) for it, so a library sync that runs right
+     * after a save reads the new tags instead of the stale index.
+     */
+    private suspend fun awaitScan(context: Context, path: String) {
+        withTimeoutOrNull(5_000) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                try {
+                    MediaScannerConnection.scanFile(context, arrayOf(path), null) { _, _ ->
+                        if (cont.isActive) cont.resume(Unit) {}
+                    }
+                } catch (_: Throwable) {
+                    if (cont.isActive) cont.resume(Unit) {}
+                }
+            }
         }
     }
 }
