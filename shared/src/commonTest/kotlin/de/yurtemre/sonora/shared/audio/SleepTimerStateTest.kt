@@ -111,4 +111,20 @@ class SleepTimerStateTest {
         assertEquals(SleepTimerState.Idle, t.state)
         assertTrue(SleepTimerEffect.PauseImmediate in t.effects)
     }
+
+    @Test
+    fun trackCountNotificationFollowsTheSongsLeft() {
+        val started = SleepTimerState.Idle.on(SleepTimerEvent.StartTracks(3, 0, 1.0, currentEntryId = 1L))
+        assertTrue(SleepTimerEffect.UpdateTracksNotification(3) in started.effects)
+        // Same entry again: nothing to refresh. A new entry: one song less.
+        assertTrue(started.state.on(changed(1L)).effects.isEmpty())
+        val next = started.state.on(changed(2L))
+        assertEquals(listOf<SleepTimerEffect>(SleepTimerEffect.UpdateTracksNotification(2)), next.effects)
+        // "+1 song" refreshes it too; on the last song the finish-song notification takes over.
+        assertEquals(
+            listOf<SleepTimerEffect>(SleepTimerEffect.UpdateTracksNotification(3)),
+            next.state.on(SleepTimerEvent.Extend(60, false, 0, 1.0)).effects,
+        )
+        assertTrue(SleepTimerEffect.UpdateNotification(0, true) in next.state.on(changed(3L)).effects)
+    }
 }
