@@ -183,7 +183,13 @@ class QueueController(
                 if (t != token) return@launch
                 // The player may have moved on while the items were built (auto-advance, skip). Split around the
                 // entry that plays now, or the old suffix would be appended behind it and that song would play twice.
-                val live = liveIndexIn(newState) ?: idx
+                val live = liveIndexIn(newState)
+                if (live == null) {
+                    // The entry that plays now is not part of the edited queue (the edit removed it): load the
+                    // edited queue instead. [requested] keeps a repeat mode restored while this edit was built.
+                    setQueue(requested ?: newState, playWhenReady = player.playWhenReady)
+                    return@launch
+                }
                 if (live == idx) break
                 idx = live
             }
