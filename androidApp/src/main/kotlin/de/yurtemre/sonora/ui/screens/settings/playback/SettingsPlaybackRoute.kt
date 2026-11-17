@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Headset
 import androidx.compose.material.icons.rounded.HeadsetOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.NotificationsPaused
 import androidx.compose.material.icons.rounded.Timer
@@ -18,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
+import de.yurtemre.sonora.shared.audio.TransitionFade
 import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.model.ReplayGainMode
 import de.yurtemre.sonora.shared.settings.SettingsRepository
@@ -63,6 +65,24 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
                         },
                     )
                 },
+            )
+        }
+        item(key = "skip_silence") {
+            SwitchRow(
+                stringResource(R.string.settings_skip_silence), s.skipSilence, { save { setSkipSilence(it) } },
+                icon = Icons.Rounded.SkipNext, subtitle = stringResource(R.string.settings_skip_silence_subtitle),
+            )
+        }
+        item(key = "fade_between_songs") {
+            ChoiceRow(
+                title = stringResource(R.string.settings_fade_songs),
+                options = TransitionFade.OPTIONS_SECONDS,
+                // The repository snaps stored values to these options.
+                selected = s.fadeBetweenSongsSeconds,
+                label = { if (it == 0) stringResource(R.string.settings_off) else stringResource(R.string.settings_seconds, it) },
+                onSelect = { save { setFadeBetweenSongsSeconds(it) } },
+                icon = Icons.Rounded.VolumeDown,
+                subtitle = stringResource(R.string.settings_fade_songs_subtitle),
             )
         }
         item(key = "keep_playing") {

@@ -131,6 +131,10 @@
     <string name="settings_minutes" tools:ignore="PluralsCandidate">%1$d分</string>
     <string name="settings_seconds" tools:ignore="PluralsCandidate">%1$d秒</string>
     <string name="settings_off">オフ</string>
+    <string name="settings_skip_silence">無音をスキップ</string>
+    <string name="settings_skip_silence_subtitle">曲の中の無音部分を飛ばします</string>
+    <string name="settings_fade_songs">曲間のフェード</string>
+    <string name="settings_fade_songs_subtitle">曲の終わりをフェードアウトし、次の曲をフェードインします。曲は重なりません。</string>
     <string name="settings_finish_song">今の曲を最後まで再生</string>
     <string name="settings_finish_song_subtitle">曲が終わるのを待ってから停止します</string>
     <string name="settings_start_page">最初に開くタブ</string>

@@ -23,8 +23,8 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 | Idea | Status | Notes |
 | --- | --- | --- |
 | Save queue as playlist | Done | #21 |
-| Crossfade | Idea | gapless is already supported |
-| Skip silence | Idea | Media3 supports it |
+| Fade between songs (fade out and in, no overlap) | Done | settings → Playback; a true overlapping crossfade needs a second player and is still an idea |
+| Skip silence | Done | settings → Playback |
 | Remember position for long files (audiobooks, podcasts) | Idea | |
 | Sleep timer by number of songs (2, 3, 5, 10) | Done | #23 |
 | Sleep timer until the end of the album | Idea | "finish this song" and song counts exist |
