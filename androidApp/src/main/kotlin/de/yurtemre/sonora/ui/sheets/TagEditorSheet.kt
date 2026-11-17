@@ -41,6 +41,8 @@ import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
@@ -98,6 +100,7 @@ fun TagEditorSheet(song: Song, onDismiss: () -> Unit, onSaved: () -> Unit) {
                 baseline = submitted.normalized()
                 try { library.updateTags(song.id, submitted); SaveResult.Saved } catch (_: Throwable) { SaveResult.LibraryFailed }
             }
+            currentCoroutineContext().ensureActive() // the save above ran to completion; skip UI callbacks if we were cancelled
             if (result == SaveResult.Saved) {
                 onSaved()
                 onDismiss()
