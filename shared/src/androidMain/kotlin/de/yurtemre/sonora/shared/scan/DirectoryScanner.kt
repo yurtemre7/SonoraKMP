@@ -27,9 +27,17 @@ class DirectoryScanner(private val context: Context) {
      * @param existing cached songs (ids/favorites carried by path; unchanged files kept as-is).
      * @param minNextId lower bound for new ids — pass `max(all known ids incl. MediaStore) + 1` so new ids
      *   never collide with MediaStore `_ID`s (audit §2.6).
+     * @param skipPaths [pathKey]s of files to leave out of the result (already indexed by MediaStore): they are neither parsed
+     *   nor returned, so a merge with a MediaStore result only pays for the unindexed files.
      * @return null when the folder is unreachable (cache must stay untouched).
      */
-    fun scan(rootPath: String, treeUri: Uri?, existing: List<Song>, minNextId: Long = 1): DirectoryScanResult? {
+    fun scan(
+        rootPath: String,
+        treeUri: Uri?,
+        existing: List<Song>,
+        minNextId: Long = 1,
+        skipPaths: Set<String> = emptySet(),
+    ): DirectoryScanResult? {
         val root = rootPath.trimEnd('/')
         val listing = Listing()
         if (treeUri != null) {
@@ -48,6 +56,7 @@ class DirectoryScanner(private val context: Context) {
         var reparsed = 0
         val now = System.currentTimeMillis()
         for ((path, saf) in listing.audio) {
+            if (skipPaths.isNotEmpty() && pathKey(path) in skipPaths) continue
             val (mtime, size) = listing.stats[path] ?: (0L to 0L)
             val cached = byPath[path]
             // "Added" = first time this path was seen (persisted on the song row); first scan / legacy rows use mtime.
@@ -140,6 +149,13 @@ class DirectoryScanner(private val context: Context) {
     }
 
     companion object {
+        /** One identity for the storage aliases of a file (`/sdcard`, `/storage/self/primary`, `/storage/emulated/0`). */
+        fun pathKey(path: String): String = when {
+            path.startsWith("/sdcard/") -> "/storage/emulated/0" + path.removePrefix("/sdcard")
+            path.startsWith("/storage/self/primary/") -> "/storage/emulated/0" + path.removePrefix("/storage/self/primary")
+            else -> path
+        }
+
         val AUDIO_EXTS = setOf("mp3", "m4a", "mp4", "aac", "flac", "ogg", "opus", "wav", "wma", "amr", "3gp", "ts", "mkv", "mid", "midi")
         val COVER_NAMES = setOf("cover.jpg", "cover.png", "cover.webp")
         private val TRACK_RE = Regex("""^(\d+)\s*[-_.]?\s*""")
