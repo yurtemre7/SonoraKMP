@@ -4,6 +4,7 @@
     <string name="smart_list_never_played">未再生</string>
     <string name="smart_list_most_played">よく聴く曲</string>
     <string name="smart_list_shuffle">シャッフル</string>
+    <string name="smart_list_save">プレイリストとして保存</string>
     <string name="smart_list_empty_title">まだ何もありません</string>
     <string name="smart_list_empty_recently_added">ライブラリに曲が追加されるとここに表示されます。</string>
     <string name="smart_list_empty_never_played">すべての曲を一度は再生しました。</string>
