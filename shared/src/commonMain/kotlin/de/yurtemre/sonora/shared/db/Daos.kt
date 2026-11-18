@@ -37,9 +37,10 @@ interface SongDao {
 
     @Query(
         "UPDATE songs SET rg_track_gain = :trackGain, rg_album_gain = :albumGain, rg_track_peak = :trackPeak, " +
-            "rg_album_peak = :albumPeak, rg_scanned = :scanned WHERE id = :id",
+            "rg_album_peak = :albumPeak, rg_scanned = :scanned WHERE id = :id AND file_path = :filePath",
     )
-    suspend fun updateReplayGain(id: Long, trackGain: Double?, albumGain: Double?, trackPeak: Double?, albumPeak: Double?, scanned: Boolean)
+    /** Guarded by path: if a sync gave this id to another file meanwhile, the stale result is dropped. */
+    suspend fun updateReplayGain(id: Long, filePath: String, trackGain: Double?, albumGain: Double?, trackPeak: Double?, albumPeak: Double?, scanned: Boolean)
 
     @Query("UPDATE songs SET duration_ms = :durationMs, duration_verified = 1 WHERE id = :id")
     suspend fun updateVerifiedDuration(id: Long, durationMs: Long)

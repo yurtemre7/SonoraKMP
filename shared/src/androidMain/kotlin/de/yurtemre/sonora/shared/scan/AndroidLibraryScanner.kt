@@ -16,7 +16,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -203,14 +202,15 @@ class AndroidLibraryScanner(
                 // Albums with a cached cover already carry it from the scan; only the rest need an extraction.
                 val todo = albumSongs.keys.filter { artworkCache.needsExtraction(it) }
                 var done = 0
-                // One budget for the whole pass (as before), however many batches it is split into.
-                withTimeoutOrNull(ArtworkCache.COLD_TIMEOUT_MS) {
-                    for (chunk in todo.chunked(ART_BATCH)) {
-                        val base = done
-                        val found = artworkCache.extractAll(chunk, sources) { d, _ -> onProgress(BackgroundWork.Stage.Artwork, base + d, todo.size) }
-                        done += chunk.size
-                        if (found.isNotEmpty()) onPart(EnrichmentPart.Artwork(found))
-                    }
+                // One budget for the whole pass (as before), checked between batches: a running batch is never
+                // cancelled, so every cover it finished is still persisted before the pass moves on.
+                val deadline = System.nanoTime() + ArtworkCache.COLD_TIMEOUT_MS * 1_000_000L
+                for (chunk in todo.chunked(ART_BATCH)) {
+                    if (System.nanoTime() > deadline) break
+                    val base = done
+                    val found = artworkCache.extractAll(chunk, sources) { d, _ -> onProgress(BackgroundWork.Stage.Artwork, base + d, todo.size) }
+                    done += chunk.size
+                    if (found.isNotEmpty()) onPart(EnrichmentPart.Artwork(found))
                 }
                 runCatching { artworkCache.prune(albumSongs.keys) }
             }

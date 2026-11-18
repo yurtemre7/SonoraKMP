@@ -29,7 +29,7 @@ object TreeWalker {
             val parent = stack.removeLast()
             val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parent)
             try {
-                resolver.query(children, PROJ, null, null, null)?.use { c ->
+                (resolver.query(children, PROJ, null, null, null) ?: run { complete = false; null })?.use { c ->
                     while (c.moveToNext()) {
                         val docId = c.getString(0) ?: continue
                         if (c.getString(1) == DocumentsContract.Document.MIME_TYPE_DIR) { stack.add(docId); continue }

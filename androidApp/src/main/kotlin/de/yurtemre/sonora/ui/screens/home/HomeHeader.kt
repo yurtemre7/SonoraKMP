@@ -144,7 +144,19 @@ fun HomeHeader(
         val tasks by koinInject<LibraryRepository>().backgroundTasks.collectAsStateWithLifecycle()
         BackgroundWorkProgress(tasks, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         // The labelled Scanning stage already covers the foreground scan; keep this bar only until it arrives.
-        if (isSyncing && tasks.none { it.stage == BackgroundWork.Stage.Scanning }) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
+        if (isSyncing && tasks.none { it.stage == BackgroundWork.Stage.Scanning }) {
+            val busyTrack = MaterialTheme.colorScheme.surfaceContainerHighest
+            if (LocalReduceMotion.current) {
+                LinearProgressIndicator(
+                    progress = { 1f },
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    trackColor = busyTrack,
+                    modifier = Modifier.fillMaxWidth().height(2.dp).clearAndSetSemantics { progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate },
+                )
+            } else {
+                LinearProgressIndicator(trackColor = busyTrack, modifier = Modifier.fillMaxWidth().height(2.dp))
+            }
+        } else Spacer(Modifier.height(2.dp))
     }
 }
 
@@ -242,8 +254,6 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
                     stringResource(R.string.progress_also, othersText),
                     style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

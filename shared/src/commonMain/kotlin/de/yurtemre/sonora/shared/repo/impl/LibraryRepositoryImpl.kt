@@ -149,10 +149,12 @@ class LibraryRepositoryImpl(
             finish(Stage.Scanning)
             // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
             // A replacement joins the cancelled pass first, so that pass's cleanup can't clear the new pass's progress.
+            // The wait is non-cancellable, so a pass cancelled before it started still holds the chain until its
+            // predecessor has cleaned up.
             val prevRg = rgJob?.also { it.cancel() }
-            rgJob = scope.launch { prevRg?.join(); fillReplayGain() }
+            rgJob = scope.launch { withContext(NonCancellable) { prevRg?.join() }; fillReplayGain() }
             val prevDur = durationJob?.also { it.cancel() }
-            durationJob = scope.launch { prevDur?.join(); fillDurations() }
+            durationJob = scope.launch { withContext(NonCancellable) { prevDur?.join() }; fillDurations() }
             startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
@@ -179,8 +181,10 @@ class LibraryRepositoryImpl(
 
     /** Background: covers, lyrics flags, artist images (scanner.enrich), then the seed pass. */
     private fun startEnrichment(path: String?, uri: String?, songs: List<Song>) {
-        enrichJob?.cancel()
+        val prev = enrichJob?.also { it.cancel() }
         enrichJob = scope.launch {
+            // Let a cancelled run finish its cleanup first, so it can't clear the stages this run reports.
+            withContext(NonCancellable) { prev?.join() }
             try {
                 // Each part is written (and so shown) the moment it is ready, not after the slowest one.
                 scanner.enrichIncremental(path, uri, songs, { stage, done, total -> report(stage, done, total) }) { part ->
@@ -206,12 +210,14 @@ class LibraryRepositoryImpl(
                 c.immediateTransaction { part.byAlbum.forEach { (album, art) -> songDao.updateArtworkForAlbum(album, art) } }
             }
             is EnrichmentPart.Lyrics -> {
-                val ids = songs.mapTo(HashSet()) { it.id }
-                val current = songDao.getAll().filter { it.id in ids }
-                val gained = current.filter { it.filePath in part.withLyrics && !it.hasLyrics }.map { it.id }
-                val lost = current.filter { it.filePath !in part.withLyrics && it.hasLyrics }.map { it.id }
-                if (gained.isNotEmpty() || lost.isNotEmpty()) db.useWriterConnection { c ->
+                // Read, id/path check and write share one transaction, so an id handed to another file by a
+                // newer sync can't pick up this scan's flag.
+                val scanned = songs.associate { it.id to it.filePath }
+                db.useWriterConnection { c ->
                     c.immediateTransaction {
+                        val current = songDao.getAll().filter { scanned[it.id] == it.filePath }
+                        val gained = current.filter { it.filePath in part.withLyrics && !it.hasLyrics }.map { it.id }
+                        val lost = current.filter { it.filePath !in part.withLyrics && it.hasLyrics }.map { it.id }
                         gained.chunked(DB_CHUNK).forEach { songDao.updateHasLyrics(it, true) }
                         lost.chunked(DB_CHUNK).forEach { songDao.updateHasLyrics(it, false) }
                     }
@@ -245,7 +251,8 @@ class LibraryRepositoryImpl(
                         }
                     }
                 }.awaitAll().filterNotNull()
-                updateReplayGain(done)
+                // A failed batch write leaves those files unscanned (retried next sync) and must not kill the pass.
+                try { updateReplayGain(done) } catch (c: CancellationException) { throw c } catch (_: Throwable) {}
             }
         } finally { finish(Stage.ReplayGain) }
     }
@@ -265,22 +272,25 @@ class LibraryRepositoryImpl(
         val gate = Semaphore(2)
         // Batched writes: corrected lengths show up while the rest is still being measured.
         for (batch in pending.chunked(DURATION_BATCH)) {
-            val corrected = batch.map { s ->
+            // song id → measured length; a failed measurement is absent, so that file stays eligible for a retry.
+            val measured = batch.map { s ->
                 async {
                     gate.withPermit {
                         val ms = runCatching {
                             val src = platform.openByteSource(s.filePath)
                             try { Mp3Duration.measureMs(src) } finally { (src as? AutoCloseable)?.close() }
-                        }.getOrNull()
+                        }.onFailure { if (it is CancellationException) throw it }.getOrNull()
                         advance(Stage.Durations, pending.size)
-                        if (ms != null && abs(ms - s.durationMs) > 1_000) s.id to ms else null
+                        ms?.let { s.id to it }
                     }
                 }
             }.awaitAll().filterNotNull().toMap()
+            val durationById = batch.associate { it.id to it.durationMs }
+            val corrected = measured.filter { (id, ms) -> abs(ms - durationById.getValue(id)) > 1_000 }
             db.useWriterConnection { c ->
                 c.immediateTransaction {
                     corrected.forEach { (id, ms) -> songDao.updateVerifiedDuration(id, ms) }
-                    batch.map { it.id }.filter { it !in corrected }.chunked(DB_CHUNK).forEach { songDao.markDurationVerified(it) }
+                    measured.keys.filter { it !in corrected }.chunked(DB_CHUNK).forEach { songDao.markDurationVerified(it) }
                 }
             }
         }
@@ -363,7 +373,7 @@ class LibraryRepositoryImpl(
             c.immediateTransaction {
                 songs.forEach { s ->
                     val r = s.toEntity()
-                    songDao.updateReplayGain(r.id, r.rgTrackGain, r.rgAlbumGain, r.rgTrackPeak, r.rgAlbumPeak, r.rgScanned)
+                    songDao.updateReplayGain(r.id, r.filePath, r.rgTrackGain, r.rgAlbumGain, r.rgTrackPeak, r.rgAlbumPeak, r.rgScanned)
                 }
             }
         }
