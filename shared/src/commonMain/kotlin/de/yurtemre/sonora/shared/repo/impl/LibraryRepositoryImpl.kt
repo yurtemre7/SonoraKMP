@@ -25,6 +25,7 @@ import de.yurtemre.sonora.shared.repo.api.EnrichmentPart
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
@@ -33,6 +34,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -152,9 +154,9 @@ class LibraryRepositoryImpl(
             // The wait is non-cancellable, so a pass cancelled before it started still holds the chain until its
             // predecessor has cleaned up.
             val prevRg = rgJob?.also { it.cancel() }
-            rgJob = scope.launch { withContext(NonCancellable) { prevRg?.join() }; fillReplayGain() }
+            rgJob = scope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { prevRg?.join() }; fillReplayGain() }
             val prevDur = durationJob?.also { it.cancel() }
-            durationJob = scope.launch { withContext(NonCancellable) { prevDur?.join() }; fillDurations() }
+            durationJob = scope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { prevDur?.join() }; fillDurations() }
             startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
@@ -182,15 +184,19 @@ class LibraryRepositoryImpl(
     /** Background: covers, lyrics flags, artist images (scanner.enrich), then the seed pass. */
     private fun startEnrichment(path: String?, uri: String?, songs: List<Song>) {
         val prev = enrichJob?.also { it.cancel() }
-        enrichJob = scope.launch {
+        // ATOMIC: even if cancelled before dispatch, the run still waits for its predecessor's cleanup, so the next
+        // replacement can't slip past a run that is still stopping.
+        enrichJob = scope.launch(start = CoroutineStart.ATOMIC) {
             // Let a cancelled run finish its cleanup first, so it can't clear the stages this run reports.
             withContext(NonCancellable) { prev?.join() }
+            ensureActive() // a run cancelled while waiting never starts the scanner
             try {
                 // Each part is written (and so shown) the moment it is ready, not after the slowest one.
                 scanner.enrichIncremental(path, uri, songs, { stage, done, total -> report(stage, done, total) }) { part ->
                     applyPart(songs, part)
                     when (part) {
-                        is EnrichmentPart.Artwork -> Unit // more batches may follow; the stage ends with enrichment
+                        is EnrichmentPart.Artwork -> Unit // more batches may follow
+                        is EnrichmentPart.ArtworkFinished -> finish(Stage.Artwork)
                         is EnrichmentPart.Lyrics -> finish(Stage.Lyrics)
                         is EnrichmentPart.ArtistImages -> finish(Stage.ArtistImages)
                     }
@@ -224,6 +230,7 @@ class LibraryRepositoryImpl(
                 }
             }
             is EnrichmentPart.ArtistImages -> replaceArtistImages(part.images)
+            is EnrichmentPart.ArtworkFinished -> Unit
         }
     }
 
@@ -317,7 +324,7 @@ class LibraryRepositoryImpl(
             }
             try {
                 var i = 0
-                report(Stage.Colors, 0, byArt.size)
+                if (byArt.isNotEmpty()) report(Stage.Colors, 0, byArt.size) // no images: no stage (0 would read as "unknown size")
                 for ((art, rows) in byArt) {
                     val c = runCatching { platform.extractSeedColor(art) }
                         .onFailure { if (it is CancellationException) throw it } // a cancelled pass isn't a failed image

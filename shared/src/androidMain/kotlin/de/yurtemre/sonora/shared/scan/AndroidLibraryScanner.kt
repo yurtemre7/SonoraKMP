@@ -168,6 +168,7 @@ class AndroidLibraryScanner(
                 is EnrichmentPart.Artwork -> art += part.byAlbum
                 is EnrichmentPart.Lyrics -> lyrics = part.withLyrics
                 is EnrichmentPart.ArtistImages -> images = part.images
+                is EnrichmentPart.ArtworkFinished -> Unit
             }
         }
         return ScanEnrichment(art, lyrics, images)
@@ -214,6 +215,7 @@ class AndroidLibraryScanner(
                 }
                 runCatching { artworkCache.prune(albumSongs.keys) }
             }
+            onPart(EnrichmentPart.ArtworkFinished) // ends the Artwork stage whether the loop completed or ran out of time
             val index = indexJob.await()
             val lyrics = HashSet<String>()
             songs.forEachIndexed { i, s ->

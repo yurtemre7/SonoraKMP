@@ -50,6 +50,8 @@ interface LibraryScanner {
 sealed interface EnrichmentPart {
     /** albumId → art path for albums whose cover was found since the last part. */
     data class Artwork(val byAlbum: Map<Long, String>) : EnrichmentPart
+    /** The cover pass is over (finished or out of time); no more [Artwork] batches from the extraction queue. */
+    data object ArtworkFinished : EnrichmentPart
     /** Complete set of file paths that have lyrics; every other scanned song has none. */
     data class Lyrics(val withLyrics: Set<String>) : EnrichmentPart
     /** Complete artist nameLower → image path map. */
