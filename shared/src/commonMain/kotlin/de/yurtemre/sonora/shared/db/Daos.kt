@@ -31,6 +31,16 @@ interface SongDao {
     @Query("UPDATE songs SET seed_color = :color WHERE id = :id")
     suspend fun updateSeedColor(id: Long, color: Int?)
 
+    /** Only while the row still has the artwork the colour was computed from and no colour yet. */
+    @Query("UPDATE songs SET seed_color = :color WHERE id = :id AND artwork_path = :artworkPath AND seed_color IS NULL")
+    suspend fun updateSeedColorFor(id: Long, color: Int, artworkPath: String)
+
+    @Query(
+        "UPDATE songs SET rg_track_gain = :trackGain, rg_album_gain = :albumGain, rg_track_peak = :trackPeak, " +
+            "rg_album_peak = :albumPeak, rg_scanned = :scanned WHERE id = :id",
+    )
+    suspend fun updateReplayGain(id: Long, trackGain: Double?, albumGain: Double?, trackPeak: Double?, albumPeak: Double?, scanned: Boolean)
+
     @Query("UPDATE songs SET duration_ms = :durationMs, duration_verified = 1 WHERE id = :id")
     suspend fun updateVerifiedDuration(id: Long, durationMs: Long)
 

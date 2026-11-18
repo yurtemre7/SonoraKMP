@@ -16,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -71,8 +72,10 @@ class AndroidLibraryScanner(
         val key = treeUri.toString()
         treeCache?.takeIf { it.first == key }?.let { return it.second }
         val files = ArrayList<TreeFile>()
-        TreeWalker.walk(resolver, treeUri) { files += it }
-        treeCache = key to files
+        val complete = TreeWalker.walk(resolver, treeUri) { files += it }
+        // A partial listing is good enough for this scan's merge but must not stand in for the sidecar index:
+        // enrichment walks again instead, so a transient provider error can't drop SAF-only lyrics.
+        if (complete) treeCache = key to files
         return files
     }
 
@@ -200,11 +203,14 @@ class AndroidLibraryScanner(
                 // Albums with a cached cover already carry it from the scan; only the rest need an extraction.
                 val todo = albumSongs.keys.filter { artworkCache.needsExtraction(it) }
                 var done = 0
-                for (chunk in todo.chunked(ART_BATCH)) {
-                    val base = done
-                    val found = artworkCache.extractAll(chunk, sources) { d, _ -> onProgress(BackgroundWork.Stage.Artwork, base + d, todo.size) }
-                    done += chunk.size
-                    if (found.isNotEmpty()) onPart(EnrichmentPart.Artwork(found))
+                // One budget for the whole pass (as before), however many batches it is split into.
+                withTimeoutOrNull(ArtworkCache.COLD_TIMEOUT_MS) {
+                    for (chunk in todo.chunked(ART_BATCH)) {
+                        val base = done
+                        val found = artworkCache.extractAll(chunk, sources) { d, _ -> onProgress(BackgroundWork.Stage.Artwork, base + d, todo.size) }
+                        done += chunk.size
+                        if (found.isNotEmpty()) onPart(EnrichmentPart.Artwork(found))
+                    }
                 }
                 runCatching { artworkCache.prune(albumSongs.keys) }
             }

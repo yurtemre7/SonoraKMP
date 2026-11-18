@@ -66,9 +66,12 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -140,7 +143,8 @@ fun HomeHeader(
         }
         val tasks by koinInject<LibraryRepository>().backgroundTasks.collectAsStateWithLifecycle()
         BackgroundWorkProgress(tasks, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
-        if (isSyncing) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
+        // The labelled Scanning stage already covers the foreground scan; keep this bar only until it arrives.
+        if (isSyncing && tasks.none { it.stage == BackgroundWork.Stage.Scanning }) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
     }
 }
 
@@ -186,11 +190,6 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
     ) {
         val w = last.firstOrNull() ?: return@AnimatedVisibility
         val others = last.drop(1)
-        val fraction by animateFloatAsState(
-            if (w.total > 0) w.done.toFloat() / w.total else 0f,
-            MaterialTheme.motionScheme.defaultEffectsSpec(),
-            label = "bgWorkFraction",
-        )
         val label = stageLabel(w.stage)
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -204,20 +203,37 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
                     liveRegion = LiveRegionMode.Polite
                 },
             )
-            val barModifier = Modifier.fillMaxWidth().height(10.dp)
+            val barWidth = Modifier.fillMaxWidth()
             val track = MaterialTheme.colorScheme.surfaceContainerHighest
             if (w.isIndeterminate) {
-                if (reduceMotion) LinearProgressIndicator(modifier = barModifier.height(4.dp), color = MaterialTheme.colorScheme.primary, trackColor = track)
-                else LinearWavyProgressIndicator(modifier = barModifier, color = MaterialTheme.colorScheme.primary, trackColor = track)
+                if (reduceMotion) {
+                    // Static marker: Material's indeterminate sweep follows the animator scale, not our reduce-motion flag.
+                    LinearProgressIndicator(
+                        progress = { 1f },
+                        modifier = barWidth.height(4.dp).clearAndSetSemantics { progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate },
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        trackColor = track,
+                    )
+                } else {
+                    LinearWavyProgressIndicator(modifier = barWidth.height(10.dp), color = MaterialTheme.colorScheme.primary, trackColor = track)
+                }
             } else {
-                LinearWavyProgressIndicator(
-                    progress = { fraction },
-                    modifier = barModifier,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = track,
-                    amplitude = { if (reduceMotion) 0f else 1f },
-                    waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2,
-                )
+                // Keyed by stage: coming back to a stage starts at its own progress instead of animating up from 0.
+                key(w.stage) {
+                    val fraction by animateFloatAsState(
+                        w.done.toFloat() / w.total,
+                        MaterialTheme.motionScheme.defaultEffectsSpec(),
+                        label = "bgWorkFraction",
+                    )
+                    LinearWavyProgressIndicator(
+                        progress = { fraction },
+                        modifier = barWidth.height(10.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = track,
+                        amplitude = { if (reduceMotion) 0f else 1f },
+                        waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2,
+                    )
+                }
             }
             if (others.isNotEmpty()) {
                 // map is inline, so the composable caption call is legal here (joinToString's lambda is not).
@@ -228,7 +244,6 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clearAndSetSemantics {},
                 )
             }
         }

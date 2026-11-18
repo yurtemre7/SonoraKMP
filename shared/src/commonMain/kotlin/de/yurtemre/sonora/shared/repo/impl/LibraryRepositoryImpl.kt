@@ -148,8 +148,11 @@ class LibraryRepositoryImpl(
             settings.recordSync(clock.nowMs(), duration)
             finish(Stage.Scanning)
             // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
-            rgJob?.cancel(); rgJob = scope.launch { fillReplayGain() }
-            durationJob?.cancel(); durationJob = scope.launch { fillDurations() }
+            // A replacement joins the cancelled pass first, so that pass's cleanup can't clear the new pass's progress.
+            val prevRg = rgJob?.also { it.cancel() }
+            rgJob = scope.launch { prevRg?.join(); fillReplayGain() }
+            val prevDur = durationJob?.also { it.cancel() }
+            durationJob = scope.launch { prevDur?.join(); fillDurations() }
             startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
@@ -190,7 +193,7 @@ class LibraryRepositoryImpl(
                 }
             } catch (c: CancellationException) { throw c } catch (_: Throwable) {
             } finally {
-                finish(Stage.Artwork, Stage.Lyrics, Stage.ArtistImages)
+                finish(Stage.Indexing, Stage.Artwork, Stage.Lyrics, Stage.ArtistImages)
             }
             startSeedPass()
         }
@@ -291,19 +294,25 @@ class LibraryRepositoryImpl(
             val colorless = settings.colorlessPaths()
             val todo = songDao.getAll().filter { it.seedColor == null && it.artworkPath != null && it.artworkPath !in colorless }
             val byArt = todo.groupBy { it.artworkPath!! }
-            val found = mutableMapOf<Long, Int>(); val failed = mutableSetOf<String>()
+            // song id → (colour, artwork it was computed from)
+            val found = mutableMapOf<Long, Pair<Int, String>>(); val failed = mutableSetOf<String>()
             // Colours are written every [SEED_BATCH] images (also when cancelled), so the UI tints as they are found.
+            // Entries leave the buffer only once their transaction has committed, so a cancelled flush loses nothing,
+            // and a colour is applied only while the row still has the artwork it was computed from.
             suspend fun flush() {
                 if (found.isEmpty()) return
-                val batch = found.toMap(); found.clear()
-                db.useWriterConnection { t -> t.immediateTransaction { batch.forEach { (id, c) -> songDao.updateSeedColor(id, c) } } }
+                val batch = found.toMap()
+                db.useWriterConnection { t -> t.immediateTransaction { batch.forEach { (id, v) -> songDao.updateSeedColorFor(id, v.first, v.second) } } }
+                batch.keys.forEach { found.remove(it) }
             }
             try {
                 var i = 0
                 report(Stage.Colors, 0, byArt.size)
                 for ((art, rows) in byArt) {
-                    val c = runCatching { platform.extractSeedColor(art) }.getOrNull()
-                    if (c == null) failed += art else rows.forEach { found[it.id] = c }
+                    val c = runCatching { platform.extractSeedColor(art) }
+                        .onFailure { if (it is CancellationException) throw it } // a cancelled pass isn't a failed image
+                        .getOrNull()
+                    if (c == null) failed += art else rows.forEach { found[it.id] = c to art }
                     report(Stage.Colors, ++i, byArt.size)
                     if (i % SEED_BATCH == 0) flush()
                     delay(seedItemDelayMs)
@@ -349,16 +358,13 @@ class LibraryRepositoryImpl(
 
     override suspend fun updateReplayGain(songs: List<Song>) {
         if (songs.isEmpty()) return
+        // Column-only UPDATEs by id: a batch touches just its own rows (ids no longer in the library are no-ops).
         db.useWriterConnection { c ->
             c.immediateTransaction {
-                val current = songDao.getAll().associateBy { it.id }
-                songDao.upsertAll(songs.mapNotNull { s ->
-                    current[s.id]?.let { e ->
-                        val r = s.toEntity()
-                        e.copy(rgTrackGain = r.rgTrackGain, rgAlbumGain = r.rgAlbumGain, rgTrackPeak = r.rgTrackPeak,
-                            rgAlbumPeak = r.rgAlbumPeak, rgScanned = r.rgScanned)
-                    }
-                })
+                songs.forEach { s ->
+                    val r = s.toEntity()
+                    songDao.updateReplayGain(r.id, r.rgTrackGain, r.rgAlbumGain, r.rgTrackPeak, r.rgAlbumPeak, r.rgScanned)
+                }
             }
         }
     }
