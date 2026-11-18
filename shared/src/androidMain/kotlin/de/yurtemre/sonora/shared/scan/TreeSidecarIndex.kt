@@ -65,16 +65,19 @@ class TreeSidecarIndex private constructor(
         /** Blocking; call on IO. Never throws (returns [EMPTY] on failure). */
         fun build(resolver: ContentResolver, treeUri: Uri?): TreeSidecarIndex {
             if (treeUri == null) return EMPTY
+            val files = ArrayList<TreeFile>()
+            try { TreeWalker.walk(resolver, treeUri) { files += it } } catch (e: Exception) { return EMPTY }
+            return build(files)
+        }
+
+        /** Index of an already walked tree, so one walk can serve the scan and the sidecar lookup. */
+        fun build(files: List<TreeFile>): TreeSidecarIndex {
             val lyrics = HashMap<String, Uri>()
             val images = HashMap<String, Uri>()
-            try {
-                TreeWalker.walk(resolver, treeUri) { f ->
-                    when (f.path.substringAfterLast('.', "").lowercase()) {
-                        "lrc", "txt" -> lyrics[f.path] = f.uri
-                        in IMAGE_EXTS -> images[f.path] = f.uri
-                    }
-                }
-            } catch (e: Exception) { return EMPTY }
+            for (f in files) when (f.path.substringAfterLast('.', "").lowercase()) {
+                "lrc", "txt" -> lyrics[f.path] = f.uri
+                in IMAGE_EXTS -> images[f.path] = f.uri
+            }
             return TreeSidecarIndex(lyrics, images)
         }
 

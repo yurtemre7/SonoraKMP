@@ -49,7 +49,8 @@ interface SongDao {
     @Query("UPDATE songs SET has_lyrics = :has WHERE id IN (:ids)")
     suspend fun updateHasLyrics(ids: List<Long>, has: Boolean)
 
-    @Query("UPDATE songs SET artwork_path = :path WHERE album_id = :albumId")
+    /** Rows already holding [path] are skipped, so a repeat write neither touches nor re-emits the table. */
+    @Query("UPDATE songs SET artwork_path = :path WHERE album_id = :albumId AND artwork_path IS NOT :path")
     suspend fun updateArtworkForAlbum(albumId: Long, path: String?)
 
     @Query("DELETE FROM songs")
@@ -187,6 +188,9 @@ interface FavoritesDao {
 interface ArtistImageDao {
     @Query("SELECT * FROM artist_images")
     fun observeAll(): Flow<List<ArtistImageEntity>>
+
+    @Query("SELECT * FROM artist_images")
+    suspend fun getAll(): List<ArtistImageEntity>
 
     @Upsert suspend fun upsertAll(items: List<ArtistImageEntity>)
 

@@ -8,11 +8,14 @@ import de.yurtemre.sonora.shared.library.TrackNumbers
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.platform.TreeUriPaths
 import de.yurtemre.sonora.shared.repo.api.BackgroundWork
+import de.yurtemre.sonora.shared.repo.api.EnrichmentPart
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
 import de.yurtemre.sonora.shared.repo.api.ScanEnrichment
 import de.yurtemre.sonora.shared.repo.api.ScanResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -57,7 +60,31 @@ class AndroidLibraryScanner(
             }
         }
 
+    /**
+     * The SAF tree is walked at most once per sync (one IPC query per directory): [scan] lists it for the unindexed-file
+     * merge and parks the listing here, [enrich] takes it for the sidecar index. Cleared at the start of every scan.
+     */
+    @Volatile private var treeCache: Pair<String, List<TreeFile>>? = null
+
+    private fun sharedTreeFiles(treeUri: Uri?): List<TreeFile>? {
+        if (treeUri == null) return null
+        val key = treeUri.toString()
+        treeCache?.takeIf { it.first == key }?.let { return it.second }
+        val files = ArrayList<TreeFile>()
+        TreeWalker.walk(resolver, treeUri) { files += it }
+        treeCache = key to files
+        return files
+    }
+
+    private fun takeTreeFiles(treeUri: Uri?): List<TreeFile>? {
+        val c = treeCache ?: return null
+        if (treeUri == null || c.first != treeUri.toString()) return null
+        treeCache = null
+        return c.second
+    }
+
     private suspend fun scanInternal(folderPath: String?, folderUri: String?, cached: List<Song>): ScanResult? {
+        treeCache = null
         val treeUri: Uri? = folderUri?.let { runCatching { Uri.parse(it) }.getOrNull() }
         val root = folderPath ?: treeUri?.let { TreeUriPaths.treeUriToPath(it) }
         // Missing/unmounted folder → keep cache (LIB-04). A readable SAF tree counts as present.
@@ -84,7 +111,7 @@ class AndroidLibraryScanner(
             rows.orEmpty().maxOfOrNull { it.id } ?: 0L,
             cached.maxOfOrNull { it.id } ?: 0L,
         ) + 1
-        val dir = directoryScanner.scan(root, treeUri, cached, minNextId) ?: return null
+        val dir = directoryScanner.scan(root, treeUri, cached, minNextId, treeFiles = runCatching { sharedTreeFiles(treeUri) }.getOrNull()) ?: return null
         return ScanResult(dir.songs, null)
     }
 
@@ -97,7 +124,9 @@ class AndroidLibraryScanner(
     private fun mergeUnindexed(indexed: ScanResult, root: String, treeUri: Uri?, cached: List<Song>): ScanResult {
         val known = indexed.songs.mapTo(HashSet()) { DirectoryScanner.pathKey(it.filePath) }
         val minNextId = maxOf(indexed.songs.maxOfOrNull { it.id } ?: 0L, cached.maxOfOrNull { it.id } ?: 0L) + 1
-        val dir = runCatching { directoryScanner.scan(root, treeUri, cached, minNextId, skipPaths = known) }.getOrNull()
+        val dir = runCatching {
+            directoryScanner.scan(root, treeUri, cached, minNextId, skipPaths = known, treeFiles = sharedTreeFiles(treeUri))
+        }.getOrNull()
             ?: return indexed
         val extra = dir.songs.filter { DirectoryScanner.pathKey(it.filePath) !in known }
         if (extra.isEmpty()) return indexed
@@ -128,23 +157,66 @@ class AndroidLibraryScanner(
         folderUri: String?,
         songs: List<Song>,
         onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
-    ): ScanEnrichment? =
-        withContext(Dispatchers.IO) {
-            val treeUri: Uri? = folderUri?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
-            val root = folderPath?.takeIf { it.isNotBlank() } ?: treeUri?.let { TreeUriPaths.treeUriToPath(it) }
-            val index = TreeSidecarIndex.build(resolver, treeUri)
+    ): ScanEnrichment? {
+        val art = HashMap<Long, String>()
+        var lyrics: Set<String> = emptySet()
+        var images: Map<String, String> = emptyMap()
+        enrichIncremental(folderPath, folderUri, songs, onProgress) { part ->
+            when (part) {
+                is EnrichmentPart.Artwork -> art += part.byAlbum
+                is EnrichmentPart.Lyrics -> lyrics = part.withLyrics
+                is EnrichmentPart.ArtistImages -> images = part.images
+            }
+        }
+        return ScanEnrichment(art, lyrics, images)
+    }
+
+    /**
+     * Each part is delivered as soon as it exists: MediaStore covers in small batches (they need no index),
+     * then lyrics, folder covers and artist images once the sidecar index is ready. The index is built
+     * concurrently with the cover extraction.
+     */
+    override suspend fun enrichIncremental(
+        folderPath: String?,
+        folderUri: String?,
+        songs: List<Song>,
+        onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
+        onPart: suspend (EnrichmentPart) -> Unit,
+    ) = withContext(Dispatchers.IO) {
+        val treeUri: Uri? = folderUri?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
+        val root = folderPath?.takeIf { it.isNotBlank() } ?: treeUri?.let { TreeUriPaths.treeUriToPath(it) }
+        coroutineScope {
+            val indexJob = async {
+                // Reuses the listing the scan already walked; walks only if the scan didn't need the tree.
+                val files = takeTreeFiles(treeUri)
+                if (files != null) TreeSidecarIndex.build(files) else TreeSidecarIndex.build(resolver, treeUri)
+            }
             val albumSongs = songs.filter { (it.albumId ?: 0) > 0 }.groupBy { it.albumId!! }
-            val art = if (albumSongs.isEmpty()) emptyMap() else {
+            if (albumSongs.isNotEmpty()) {
                 val sources = albumSongs.mapValues { (_, s) -> s.first().let { ArtworkCache.Source(it.filePath, it.id) } }
-                artworkCache.extractAll(albumSongs.keys, sources) { d, t -> onProgress(BackgroundWork.Stage.Artwork, d, t) }.also { runCatching { artworkCache.prune(albumSongs.keys) } }
-            } + folderCovers(albumSongs, index)
+                // Albums with a cached cover already carry it from the scan; only the rest need an extraction.
+                val todo = albumSongs.keys.filter { artworkCache.needsExtraction(it) }
+                var done = 0
+                for (chunk in todo.chunked(ART_BATCH)) {
+                    val base = done
+                    val found = artworkCache.extractAll(chunk, sources) { d, _ -> onProgress(BackgroundWork.Stage.Artwork, base + d, todo.size) }
+                    done += chunk.size
+                    if (found.isNotEmpty()) onPart(EnrichmentPart.Artwork(found))
+                }
+                runCatching { artworkCache.prune(albumSongs.keys) }
+            }
+            val index = indexJob.await()
             val lyrics = HashSet<String>()
             songs.forEachIndexed { i, s ->
                 if (LyricsLocator.hasLyrics(s.filePath, index)) lyrics += s.filePath
                 onProgress(BackgroundWork.Stage.Lyrics, i + 1, songs.size)
             }
-            ScanEnrichment(art, lyrics, artistImages(songs, root, index) { d, t -> onProgress(BackgroundWork.Stage.ArtistImages, d, t) })
+            onPart(EnrichmentPart.Lyrics(lyrics))
+            val covers = folderCovers(albumSongs, index)
+            if (covers.isNotEmpty()) onPart(EnrichmentPart.Artwork(covers))
+            onPart(EnrichmentPart.ArtistImages(artistImages(songs, root, index) { d, t -> onProgress(BackgroundWork.Stage.ArtistImages, d, t) }))
         }
+    }
 
     /**
      * Albums MediaStore has no art for (e.g. Opus without an embedded picture) take a `cover.*` / `folder.*`
@@ -253,6 +325,9 @@ class AndroidLibraryScanner(
     } catch (e: Exception) { null }
 
     private companion object {
+        /** Albums extracted per DB write, so covers appear in the UI while the rest is still being extracted. */
+        const val ART_BATCH = 32
+
         /** Tree (SAF) paths match case-insensitively; plain File paths need the exact spelling, hence both cases. */
         val FOLDER_COVER_NAMES = listOf("cover.jpg", "cover.png", "cover.webp", "Cover.jpg", "folder.jpg", "Folder.jpg")
     }

@@ -26,6 +26,34 @@ interface LibraryScanner {
         songs: List<Song>,
         onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
     ): ScanEnrichment? = enrich(folderPath, folderUri, songs)
+
+    /**
+     * [enrich] that hands every result over as soon as it is ready (covers in batches, then lyrics, then artist
+     * images) so the repository can persist and show each one without waiting for the slowest. Default: one
+     * [enrich] call, parts delivered at the end.
+     */
+    suspend fun enrichIncremental(
+        folderPath: String?,
+        folderUri: String?,
+        songs: List<Song>,
+        onProgress: (BackgroundWork.Stage, Int, Int) -> Unit,
+        onPart: suspend (EnrichmentPart) -> Unit,
+    ) {
+        val e = enrich(folderPath, folderUri, songs, onProgress) ?: return
+        onPart(EnrichmentPart.Artwork(e.artworkByAlbum))
+        onPart(EnrichmentPart.Lyrics(e.lyricsPaths))
+        onPart(EnrichmentPart.ArtistImages(e.artistImages))
+    }
+}
+
+/** One finished piece of [LibraryScanner.enrichIncremental]. Artwork parts are additive and may repeat. */
+sealed interface EnrichmentPart {
+    /** albumId → art path for albums whose cover was found since the last part. */
+    data class Artwork(val byAlbum: Map<Long, String>) : EnrichmentPart
+    /** Complete set of file paths that have lyrics; every other scanned song has none. */
+    data class Lyrics(val withLyrics: Set<String>) : EnrichmentPart
+    /** Complete artist nameLower → image path map. */
+    data class ArtistImages(val images: Map<String, String>) : EnrichmentPart
 }
 
 data class ScanEnrichment(
