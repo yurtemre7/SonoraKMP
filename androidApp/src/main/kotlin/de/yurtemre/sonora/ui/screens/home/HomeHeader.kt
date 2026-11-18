@@ -220,8 +220,10 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
                 )
             }
             if (others.isNotEmpty()) {
+                // map is inline, so the composable caption call is legal here (joinToString's lambda is not).
+                val othersText = others.map { stageCaption(it) }.joinToString(" · ")
                 Text(
-                    stringResource(R.string.progress_also, others.joinToString(" · ") { stageCaption(it) }),
+                    stringResource(R.string.progress_also, othersText),
                     style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
