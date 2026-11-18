@@ -3,6 +3,7 @@ package de.yurtemre.sonora.shared.repo.api
 import de.yurtemre.sonora.shared.library.TagEdit
 import de.yurtemre.sonora.shared.model.Song
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** Song library cache in Room `songs` (SPEC §5.2, LIB-03..07). */
@@ -14,6 +15,8 @@ interface LibraryRepository {
     val isSyncing: Flow<Boolean>
     /** Progress of the background enrichment after a sync (artwork, lyrics, …); null when idle. */
     val backgroundWork: StateFlow<BackgroundWork?>
+    /** Every stage running right now (several run in parallel), lowest stage first; empty when idle. */
+    val backgroundTasks: StateFlow<List<BackgroundWork>> get() = MutableStateFlow(emptyList())
 
     suspend fun getSong(id: Long): Song?
     suspend fun getSongByPath(filePath: String): Song?
@@ -41,7 +44,13 @@ sealed interface SyncOutcome {
     data class Failed(val error: Throwable) : SyncOutcome
 }
 
-/** One running background enrichment stage with item progress ([done] of [total]). */
+/**
+ * One running stage with item progress ([done] of [total]); `total == 0` means the amount is unknown
+ * (indeterminate), e.g. while the folder is being listed.
+ */
 data class BackgroundWork(val stage: Stage, val done: Int, val total: Int) {
-    enum class Stage { Artwork, Lyrics, ArtistImages, ReplayGain, Durations, Colors }
+    val isIndeterminate: Boolean get() = total <= 0
+
+    /** Declaration order is the display priority: the first running stage is the headline. */
+    enum class Stage { Scanning, Indexing, Artwork, Lyrics, ArtistImages, ReplayGain, Durations, Colors }
 }

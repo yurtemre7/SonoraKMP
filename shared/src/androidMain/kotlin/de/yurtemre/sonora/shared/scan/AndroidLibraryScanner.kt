@@ -188,8 +188,11 @@ class AndroidLibraryScanner(
         coroutineScope {
             val indexJob = async {
                 // Reuses the listing the scan already walked; walks only if the scan didn't need the tree.
+                onProgress(BackgroundWork.Stage.Indexing, 0, 0)
                 val files = takeTreeFiles(treeUri)
-                if (files != null) TreeSidecarIndex.build(files) else TreeSidecarIndex.build(resolver, treeUri)
+                val built = if (files != null) TreeSidecarIndex.build(files) else TreeSidecarIndex.build(resolver, treeUri)
+                onProgress(BackgroundWork.Stage.Indexing, 1, 1) // closes the indeterminate stage
+                built
             }
             val albumSongs = songs.filter { (it.albumId ?: 0) > 0 }.groupBy { it.albumId!! }
             if (albumSongs.isNotEmpty()) {

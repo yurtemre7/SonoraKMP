@@ -78,10 +78,14 @@ class LibraryRepositoryImpl(
     private val activeWork = MutableStateFlow<Map<Stage, BackgroundWork>>(emptyMap())
     private val _backgroundWork = MutableStateFlow<BackgroundWork?>(null)
     override val backgroundWork: StateFlow<BackgroundWork?> = _backgroundWork.asStateFlow()
+    private val _backgroundTasks = MutableStateFlow<List<BackgroundWork>>(emptyList())
+    override val backgroundTasks: StateFlow<List<BackgroundWork>> = _backgroundTasks.asStateFlow()
 
+    /** `total <= 0` = amount unknown (indeterminate). Indexing has no items: it ends with its closing report. */
     private fun report(stage: Stage, done: Int, total: Int) {
-        if (total <= 0) return
-        activeWork.update { it + (stage to BackgroundWork(stage, done.coerceIn(0, total), total)) }
+        if (stage == Stage.Indexing && total > 0 && done >= total) return finish(Stage.Indexing)
+        if (total <= 0) activeWork.update { it + (stage to BackgroundWork(stage, 0, 0)) }
+        else activeWork.update { it + (stage to BackgroundWork(stage, done.coerceIn(0, total), total)) }
     }
     private fun advance(stage: Stage, total: Int) =
         activeWork.update { m -> m + (stage to BackgroundWork(stage, ((m[stage]?.done ?: 0) + 1).coerceAtMost(total), total)) }
@@ -97,7 +101,8 @@ class LibraryRepositoryImpl(
         // StateFlow collection is conflated, so the delay throttles emissions to >= 150 ms apart.
         scope.launch {
             activeWork.collect { m ->
-                _backgroundWork.value = m.values.minByOrNull { it.stage.ordinal }
+                _backgroundTasks.value = m.values.sortedBy { it.stage.ordinal }
+                _backgroundWork.value = _backgroundTasks.value.firstOrNull()
                 delay(PROGRESS_THROTTLE_MS)
             }
         }
@@ -110,6 +115,7 @@ class LibraryRepositoryImpl(
 
     override suspend fun sync(): SyncOutcome = syncMutex.withLock {
         _isSyncing.value = true
+        report(Stage.Scanning, 0, 0)
         val start = clock.nowMs()
         try {
             val cachedEntities = songDao.getAll()
@@ -140,6 +146,7 @@ class LibraryRepositoryImpl(
             }
             val duration = clock.nowMs() - start
             settings.recordSync(clock.nowMs(), duration)
+            finish(Stage.Scanning)
             // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
             rgJob?.cancel(); rgJob = scope.launch { fillReplayGain() }
             durationJob?.cancel(); durationJob = scope.launch { fillDurations() }
@@ -148,6 +155,7 @@ class LibraryRepositoryImpl(
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
             SyncOutcome.Failed(t)
         } finally {
+            finish(Stage.Scanning)
             _isSyncing.value = false
         }
     }

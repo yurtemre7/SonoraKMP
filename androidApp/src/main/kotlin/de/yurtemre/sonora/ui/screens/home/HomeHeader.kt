@@ -138,8 +138,8 @@ fun HomeHeader(
                 }
             }
         }
-        val work by koinInject<LibraryRepository>().backgroundWork.collectAsStateWithLifecycle()
-        BackgroundWorkProgress(work, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
+        val tasks by koinInject<LibraryRepository>().backgroundTasks.collectAsStateWithLifecycle()
+        BackgroundWorkProgress(tasks, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         if (isSyncing) LinearProgressIndicator(trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth().height(2.dp)) else Spacer(Modifier.height(2.dp))
     }
 }
@@ -148,6 +148,8 @@ fun HomeHeader(
 @Composable
 internal fun stageLabel(stage: BackgroundWork.Stage): String = stringResource(
     when (stage) {
+        BackgroundWork.Stage.Scanning -> R.string.progress_stage_scanning
+        BackgroundWork.Stage.Indexing -> R.string.progress_stage_indexing
         BackgroundWork.Stage.Artwork -> R.string.progress_stage_artwork
         BackgroundWork.Stage.Lyrics -> R.string.progress_stage_lyrics
         BackgroundWork.Stage.ArtistImages -> R.string.progress_stage_artist_images
@@ -157,24 +159,33 @@ internal fun stageLabel(stage: BackgroundWork.Stage): String = stringResource(
     },
 )
 
+/** "Getting artwork 120 of 583", or just the stage name when its size isn't known yet. */
+@Composable
+private fun stageCaption(w: BackgroundWork): String =
+    if (w.isIndeterminate) stageLabel(w.stage) + "…"
+    else stringResource(R.string.progress_stage_count, stageLabel(w.stage), w.done, w.total)
+
 /**
- * Slim determinate wavy bar + caption ("Getting artwork 120 of 583") for background enrichment. Expands
- * and fades in while [work] is non-null and collapses when it finishes; TalkBack announces only stage
- * changes (polite live region on the stage name, not the count).
+ * Slim wavy bar + caption ("Getting artwork 120 of 583") for the running library work. The first of [tasks]
+ * is the headline (determinate, or indeterminate while its size is unknown); the other stages running in
+ * parallel are listed on a second line so nothing looks stalled. Expands and fades in while [tasks] is
+ * non-empty and collapses when it finishes; TalkBack announces only stage changes (polite live region on
+ * the headline stage name, not the count).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun BackgroundWorkProgress(work: BackgroundWork?, modifier: Modifier = Modifier) {
-    var last by remember { mutableStateOf(work) }
-    if (work != null) last = work
+internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modifier = Modifier) {
+    var last by remember { mutableStateOf(tasks) }
+    if (tasks.isNotEmpty()) last = tasks
     val reduceMotion = LocalReduceMotion.current
     AnimatedVisibility(
-        visible = work != null,
+        visible = tasks.isNotEmpty(),
         enter = expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
         exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
         label = "bgWork",
     ) {
-        val w = last ?: return@AnimatedVisibility
+        val w = last.firstOrNull() ?: return@AnimatedVisibility
+        val others = last.drop(1)
         val fraction by animateFloatAsState(
             if (w.total > 0) w.done.toFloat() / w.total else 0f,
             MaterialTheme.motionScheme.defaultEffectsSpec(),
@@ -183,7 +194,7 @@ internal fun BackgroundWorkProgress(work: BackgroundWork?, modifier: Modifier = 
         val label = stageLabel(w.stage)
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                stringResource(R.string.progress_stage_count, label, w.done, w.total),
+                stageCaption(w),
                 style = MaterialTheme.typography.labelMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -193,14 +204,31 @@ internal fun BackgroundWorkProgress(work: BackgroundWork?, modifier: Modifier = 
                     liveRegion = LiveRegionMode.Polite
                 },
             )
-            LinearWavyProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier.fillMaxWidth().height(10.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                amplitude = { if (reduceMotion) 0f else 1f },
-                waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2,
-            )
+            val barModifier = Modifier.fillMaxWidth().height(10.dp)
+            val track = MaterialTheme.colorScheme.surfaceContainerHighest
+            if (w.isIndeterminate) {
+                if (reduceMotion) LinearProgressIndicator(modifier = barModifier.height(4.dp), color = MaterialTheme.colorScheme.primary, trackColor = track)
+                else LinearWavyProgressIndicator(modifier = barModifier, color = MaterialTheme.colorScheme.primary, trackColor = track)
+            } else {
+                LinearWavyProgressIndicator(
+                    progress = { fraction },
+                    modifier = barModifier,
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = track,
+                    amplitude = { if (reduceMotion) 0f else 1f },
+                    waveSpeed = if (reduceMotion) 0.dp else WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2,
+                )
+            }
+            if (others.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.progress_also, others.joinToString(" · ") { stageCaption(it) }),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+            }
         }
     }
 }

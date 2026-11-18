@@ -84,8 +84,8 @@ fun LibrarySyncCard(
                 color = cs.onSurfaceVariant,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
-            val work by koinInject<LibraryRepository>().backgroundWork.collectAsStateWithLifecycle()
-            BackgroundWorkProgress(work)
+            val tasks by koinInject<LibraryRepository>().backgroundTasks.collectAsStateWithLifecycle()
+            BackgroundWorkProgress(tasks)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onChangeFolder, enabled = !syncing, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(if (folderPath == null) R.string.settings_library_choose_folder else R.string.settings_library_change_folder))
