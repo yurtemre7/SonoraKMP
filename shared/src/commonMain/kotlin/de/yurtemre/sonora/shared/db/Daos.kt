@@ -31,6 +31,17 @@ interface SongDao {
     @Query("UPDATE songs SET seed_color = :color WHERE id = :id")
     suspend fun updateSeedColor(id: Long, color: Int?)
 
+    /** Only while the row still has the artwork the colour was computed from and no colour yet. */
+    @Query("UPDATE songs SET seed_color = :color WHERE id = :id AND artwork_path = :artworkPath AND seed_color IS NULL")
+    suspend fun updateSeedColorFor(id: Long, color: Int, artworkPath: String)
+
+    @Query(
+        "UPDATE songs SET rg_track_gain = :trackGain, rg_album_gain = :albumGain, rg_track_peak = :trackPeak, " +
+            "rg_album_peak = :albumPeak, rg_scanned = :scanned WHERE id = :id AND file_path = :filePath",
+    )
+    /** Guarded by path: if a sync gave this id to another file meanwhile, the stale result is dropped. */
+    suspend fun updateReplayGain(id: Long, filePath: String, trackGain: Double?, albumGain: Double?, trackPeak: Double?, albumPeak: Double?, scanned: Boolean)
+
     @Query("UPDATE songs SET duration_ms = :durationMs, duration_verified = 1 WHERE id = :id")
     suspend fun updateVerifiedDuration(id: Long, durationMs: Long)
 
@@ -49,7 +60,8 @@ interface SongDao {
     @Query("UPDATE songs SET has_lyrics = :has WHERE id IN (:ids)")
     suspend fun updateHasLyrics(ids: List<Long>, has: Boolean)
 
-    @Query("UPDATE songs SET artwork_path = :path WHERE album_id = :albumId")
+    /** Rows already holding [path] are skipped, so a repeat write neither touches nor re-emits the table. */
+    @Query("UPDATE songs SET artwork_path = :path WHERE album_id = :albumId AND artwork_path IS NOT :path")
     suspend fun updateArtworkForAlbum(albumId: Long, path: String?)
 
     @Query("DELETE FROM songs")
@@ -187,6 +199,9 @@ interface FavoritesDao {
 interface ArtistImageDao {
     @Query("SELECT * FROM artist_images")
     fun observeAll(): Flow<List<ArtistImageEntity>>
+
+    @Query("SELECT * FROM artist_images")
+    suspend fun getAll(): List<ArtistImageEntity>
 
     @Upsert suspend fun upsertAll(items: List<ArtistImageEntity>)
 

@@ -21,17 +21,20 @@ import de.yurtemre.sonora.shared.repo.api.BackgroundWork.Stage
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryScanner
-import de.yurtemre.sonora.shared.repo.api.ScanEnrichment
+import de.yurtemre.sonora.shared.repo.api.EnrichmentPart
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +65,8 @@ class LibraryRepositoryImpl(
     private val _isSyncing = MutableStateFlow(false)
     private var seedJob: Job? = null
     private var enrichJob: Job? = null
+    private var rgJob: Job? = null
+    private var durationJob: Job? = null
 
     override val songs: Flow<List<Song>> = combine(songDao.observeAll(), db.favoritesDao().observeSongs()) { rows, favs ->
         val byId = favs.associateBy { it.songId }
@@ -75,10 +80,14 @@ class LibraryRepositoryImpl(
     private val activeWork = MutableStateFlow<Map<Stage, BackgroundWork>>(emptyMap())
     private val _backgroundWork = MutableStateFlow<BackgroundWork?>(null)
     override val backgroundWork: StateFlow<BackgroundWork?> = _backgroundWork.asStateFlow()
+    private val _backgroundTasks = MutableStateFlow<List<BackgroundWork>>(emptyList())
+    override val backgroundTasks: StateFlow<List<BackgroundWork>> = _backgroundTasks.asStateFlow()
 
+    /** `total <= 0` = amount unknown (indeterminate). Indexing has no items: it ends with its closing report. */
     private fun report(stage: Stage, done: Int, total: Int) {
-        if (total <= 0) return
-        activeWork.update { it + (stage to BackgroundWork(stage, done.coerceIn(0, total), total)) }
+        if (stage == Stage.Indexing && total > 0 && done >= total) return finish(Stage.Indexing)
+        if (total <= 0) activeWork.update { it + (stage to BackgroundWork(stage, 0, 0)) }
+        else activeWork.update { it + (stage to BackgroundWork(stage, done.coerceIn(0, total), total)) }
     }
     private fun advance(stage: Stage, total: Int) =
         activeWork.update { m -> m + (stage to BackgroundWork(stage, ((m[stage]?.done ?: 0) + 1).coerceAtMost(total), total)) }
@@ -94,7 +103,8 @@ class LibraryRepositoryImpl(
         // StateFlow collection is conflated, so the delay throttles emissions to >= 150 ms apart.
         scope.launch {
             activeWork.collect { m ->
-                _backgroundWork.value = m.values.minByOrNull { it.stage.ordinal }
+                _backgroundTasks.value = m.values.sortedBy { it.stage.ordinal }
+                _backgroundWork.value = _backgroundTasks.value.firstOrNull()
                 delay(PROGRESS_THROTTLE_MS)
             }
         }
@@ -107,9 +117,11 @@ class LibraryRepositoryImpl(
 
     override suspend fun sync(): SyncOutcome = syncMutex.withLock {
         _isSyncing.value = true
+        report(Stage.Scanning, 0, 0)
         val start = clock.nowMs()
         try {
-            val cached = songDao.getAll().map { it.toModel() }
+            val cachedEntities = songDao.getAll()
+            val cached = cachedEntities.map { it.toModel() }
             val (path, uri) = settings.scanFolder()
             val result = try {
                 scanner.scan(path, uri, cached)
@@ -117,25 +129,40 @@ class LibraryRepositoryImpl(
                 return SyncOutcome.Failed(t) // D-19: cache untouched
             } ?: return SyncOutcome.FolderMissing
             val merged = merge(cached, result.songs)
+            val next = merged.map { it.toEntity() }
+            // Write only the difference: an unchanged library issues no write, so nothing re-emits and nothing is relinked.
+            val oldById = cachedEntities.associateBy { it.id }
+            val nextById = next.associateBy { it.id }
+            // Rows gone or moved to another path go first, so a reused path can't hit the unique file_path index.
+            val stale = cachedEntities.filter { nextById[it.id]?.filePath != it.filePath }.map { it.id }
+            val changed = next.filter { oldById[it.id] != it }
             val idRemap = db.useWriterConnection { c ->
                 c.immediateTransaction {
+                    stale.chunked(DB_CHUNK).forEach { songDao.deleteByIds(it) }
+                    if (changed.isNotEmpty()) songDao.upsertAll(changed)
+                    result.artistImages?.let { m -> replaceArtistImages(m) }
+                    if (stale.isNotEmpty() || changed.isNotEmpty()) db.relinkDao().relinkAll() // D-49
                     val oldIdByPath = cached.associate { it.filePath to it.id }
-                    songDao.replaceAll(merged.map { it.toEntity() })
-                    result.artistImages?.let { m -> db.artistImageDao().replaceAll(m.map { ArtistImageEntity(it.key, it.value) }) }
-                    db.relinkDao().relinkAll() // D-49
                     merged.mapNotNull { s -> oldIdByPath[s.filePath]?.takeIf { it != s.id }?.let { it to s.id } }.toMap()
                 }
             }
             val duration = clock.nowMs() - start
             settings.recordSync(clock.nowMs(), duration)
+            finish(Stage.Scanning)
             // Only MediaStore rows + one DB write block; everything slow runs after the songs are shown.
-            scope.launch { fillReplayGain() }
-            scope.launch { fillDurations() }
+            // A replacement joins the cancelled pass first, so that pass's cleanup can't clear the new pass's progress.
+            // The wait is non-cancellable, so a pass cancelled before it started still holds the chain until its
+            // predecessor has cleaned up.
+            val prevRg = rgJob?.also { it.cancel() }
+            rgJob = scope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { prevRg?.join() }; fillReplayGain() }
+            val prevDur = durationJob?.also { it.cancel() }
+            durationJob = scope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { prevDur?.join() }; fillDurations() }
             startEnrichment(path, uri, merged)
             SyncOutcome.Success(merged.size, duration, idRemap)
         } catch (c: CancellationException) { throw c } catch (t: Throwable) {
             SyncOutcome.Failed(t)
         } finally {
+            finish(Stage.Scanning)
             _isSyncing.value = false
         }
     }
@@ -156,50 +183,84 @@ class LibraryRepositoryImpl(
 
     /** Background: covers, lyrics flags, artist images (scanner.enrich), then the seed pass. */
     private fun startEnrichment(path: String?, uri: String?, songs: List<Song>) {
-        enrichJob?.cancel()
-        enrichJob = scope.launch {
-            val e = try {
-                scanner.enrich(path, uri, songs) { stage, done, total -> report(stage, done, total) }
-            } catch (c: CancellationException) { throw c } catch (t: Throwable) { null } finally {
-                finish(Stage.Artwork, Stage.Lyrics, Stage.ArtistImages)
+        val prev = enrichJob?.also { it.cancel() }
+        // ATOMIC: even if cancelled before dispatch, the run still waits for its predecessor's cleanup, so the next
+        // replacement can't slip past a run that is still stopping.
+        enrichJob = scope.launch(start = CoroutineStart.ATOMIC) {
+            // Let a cancelled run finish its cleanup first, so it can't clear the stages this run reports.
+            withContext(NonCancellable) { prev?.join() }
+            ensureActive() // a run cancelled while waiting never starts the scanner
+            try {
+                // Each part is written (and so shown) the moment it is ready, not after the slowest one.
+                scanner.enrichIncremental(path, uri, songs, { stage, done, total -> report(stage, done, total) }) { part ->
+                    applyPart(songs, part)
+                    when (part) {
+                        is EnrichmentPart.Artwork -> Unit // more batches may follow
+                        is EnrichmentPart.ArtworkFinished -> finish(Stage.Artwork)
+                        is EnrichmentPart.Lyrics -> finish(Stage.Lyrics)
+                        is EnrichmentPart.ArtistImages -> finish(Stage.ArtistImages)
+                    }
+                }
+            } catch (c: CancellationException) { throw c } catch (_: Throwable) {
+            } finally {
+                finish(Stage.Indexing, Stage.Artwork, Stage.Lyrics, Stage.ArtistImages)
             }
-            if (e != null) applyEnrichment(songs, e)
             startSeedPass()
         }
     }
 
-    private suspend fun applyEnrichment(songs: List<Song>, e: ScanEnrichment) {
-        db.useWriterConnection { c ->
-            c.immediateTransaction {
-                val current = songDao.getAll().associateBy { it.id }
-                e.artworkByAlbum.forEach { (album, art) ->
-                    if (songs.any { it.albumId == album && current[it.id]?.artworkPath != art }) songDao.updateArtworkForAlbum(album, art)
-                }
-                val (with, without) = songs.mapNotNull { current[it.id] }.partition { it.filePath in e.lyricsPaths }
-                with.filter { !it.hasLyrics }.map { it.id }.takeIf { it.isNotEmpty() }?.let { songDao.updateHasLyrics(it, true) }
-                without.filter { it.hasLyrics }.map { it.id }.takeIf { it.isNotEmpty() }?.let { songDao.updateHasLyrics(it, false) }
-                db.artistImageDao().replaceAll(e.artistImages.map { ArtistImageEntity(it.key, it.value) })
+    private suspend fun applyPart(songs: List<Song>, part: EnrichmentPart) {
+        when (part) {
+            is EnrichmentPart.Artwork -> if (part.byAlbum.isNotEmpty()) db.useWriterConnection { c ->
+                // The DAO skips rows that already hold the path, so repeats are free.
+                c.immediateTransaction { part.byAlbum.forEach { (album, art) -> songDao.updateArtworkForAlbum(album, art) } }
             }
+            is EnrichmentPart.Lyrics -> {
+                // Read, id/path check and write share one transaction, so an id handed to another file by a
+                // newer sync can't pick up this scan's flag.
+                val scanned = songs.associate { it.id to it.filePath }
+                db.useWriterConnection { c ->
+                    c.immediateTransaction {
+                        val current = songDao.getAll().filter { scanned[it.id] == it.filePath }
+                        val gained = current.filter { it.filePath in part.withLyrics && !it.hasLyrics }.map { it.id }
+                        val lost = current.filter { it.filePath !in part.withLyrics && it.hasLyrics }.map { it.id }
+                        gained.chunked(DB_CHUNK).forEach { songDao.updateHasLyrics(it, true) }
+                        lost.chunked(DB_CHUNK).forEach { songDao.updateHasLyrics(it, false) }
+                    }
+                }
+            }
+            is EnrichmentPart.ArtistImages -> replaceArtistImages(part.images)
+            is EnrichmentPart.ArtworkFinished -> Unit
         }
     }
 
-    /** LIB-08: fan-out 4; IO failure stays unscanned. */
+    /** Replaces the artist images only when they differ, so an unchanged scan doesn't re-emit the table. */
+    private suspend fun replaceArtistImages(images: Map<String, String>) {
+        val dao = db.artistImageDao()
+        if (dao.getAll().associate { it.artistKey to it.path } == images) return
+        dao.replaceAll(images.map { ArtistImageEntity(it.key, it.value) })
+    }
+
+    /** LIB-08: fan-out 4; IO failure stays unscanned. Written in batches so progress survives cancellation. */
     suspend fun fillReplayGain() = withContext(Dispatchers.IO) {
         val pending = songDao.getAll().filter { !it.rgScanned }.map { it.toModel() }
         if (pending.isEmpty()) return@withContext
         report(Stage.ReplayGain, 0, pending.size)
         try {
             val gate = Semaphore(4)
-            val done = pending.map { s ->
-                async {
-                    gate.withPermit {
-                        val r = ReplayGainReader.tryRead { platform.openByteSource(s.filePath) }
-                        advance(Stage.ReplayGain, pending.size)
-                        if (r.failed) null else s.copy(replayGain = r.info, replayGainScanned = true)
+            for (batch in pending.chunked(RG_BATCH)) {
+                val done = batch.map { s ->
+                    async {
+                        gate.withPermit {
+                            val r = ReplayGainReader.tryRead { platform.openByteSource(s.filePath) }
+                            advance(Stage.ReplayGain, pending.size)
+                            if (r.failed) null else s.copy(replayGain = r.info, replayGainScanned = true)
+                        }
                     }
-                }
-            }.awaitAll().filterNotNull()
-            updateReplayGain(done)
+                }.awaitAll().filterNotNull()
+                // A failed batch write leaves those files unscanned (retried next sync) and must not kill the pass.
+                try { updateReplayGain(done) } catch (c: CancellationException) { throw c } catch (_: Throwable) {}
+            }
         } finally { finish(Stage.ReplayGain) }
     }
 
@@ -216,22 +277,28 @@ class LibraryRepositoryImpl(
 
     private suspend fun fillDurations(pending: List<de.yurtemre.sonora.shared.db.SongEntity>) = coroutineScope {
         val gate = Semaphore(2)
-        val corrected = pending.map { s ->
-            async {
-                gate.withPermit {
-                    val ms = runCatching {
-                        val src = platform.openByteSource(s.filePath)
-                        try { Mp3Duration.measureMs(src) } finally { (src as? AutoCloseable)?.close() }
-                    }.getOrNull()
-                    advance(Stage.Durations, pending.size)
-                    if (ms != null && abs(ms - s.durationMs) > 1_000) s.id to ms else null
+        // Batched writes: corrected lengths show up while the rest is still being measured.
+        for (batch in pending.chunked(DURATION_BATCH)) {
+            // song id → measured length; a failed measurement is absent, so that file stays eligible for a retry.
+            val measured = batch.map { s ->
+                async {
+                    gate.withPermit {
+                        val ms = runCatching {
+                            val src = platform.openByteSource(s.filePath)
+                            try { Mp3Duration.measureMs(src) } finally { (src as? AutoCloseable)?.close() }
+                        }.onFailure { if (it is CancellationException) throw it }.getOrNull()
+                        advance(Stage.Durations, pending.size)
+                        ms?.let { s.id to it }
+                    }
                 }
-            }
-        }.awaitAll().filterNotNull().toMap()
-        db.useWriterConnection { c ->
-            c.immediateTransaction {
-                corrected.forEach { (id, ms) -> songDao.updateVerifiedDuration(id, ms) }
-                pending.map { it.id }.filter { it !in corrected }.chunked(500).forEach { songDao.markDurationVerified(it) }
+            }.awaitAll().filterNotNull().toMap()
+            val durationById = batch.associate { it.id to it.durationMs }
+            val corrected = measured.filter { (id, ms) -> abs(ms - durationById.getValue(id)) > 1_000 }
+            db.useWriterConnection { c ->
+                c.immediateTransaction {
+                    corrected.forEach { (id, ms) -> songDao.updateVerifiedDuration(id, ms) }
+                    measured.keys.filter { it !in corrected }.chunked(DB_CHUNK).forEach { songDao.markDurationVerified(it) }
+                }
             }
         }
     }
@@ -244,19 +311,33 @@ class LibraryRepositoryImpl(
             val colorless = settings.colorlessPaths()
             val todo = songDao.getAll().filter { it.seedColor == null && it.artworkPath != null && it.artworkPath !in colorless }
             val byArt = todo.groupBy { it.artworkPath!! }
-            val found = mutableMapOf<Long, Int>(); val failed = mutableSetOf<String>()
+            // song id → (colour, artwork it was computed from)
+            val found = mutableMapOf<Long, Pair<Int, String>>(); val failed = mutableSetOf<String>()
+            // Colours are written every [SEED_BATCH] images (also when cancelled), so the UI tints as they are found.
+            // Entries leave the buffer only once their transaction has committed, so a cancelled flush loses nothing,
+            // and a colour is applied only while the row still has the artwork it was computed from.
+            suspend fun flush() {
+                if (found.isEmpty()) return
+                val batch = found.toMap()
+                db.useWriterConnection { t -> t.immediateTransaction { batch.forEach { (id, v) -> songDao.updateSeedColorFor(id, v.first, v.second) } } }
+                batch.keys.forEach { found.remove(it) }
+            }
             try {
                 var i = 0
-                report(Stage.Colors, 0, byArt.size)
+                if (byArt.isNotEmpty()) report(Stage.Colors, 0, byArt.size) // no images: no stage (0 would read as "unknown size")
                 for ((art, rows) in byArt) {
-                    val c = runCatching { platform.extractSeedColor(art) }.getOrNull()
-                    if (c == null) failed += art else rows.forEach { found[it.id] = c }
+                    val c = runCatching { platform.extractSeedColor(art) }
+                        .onFailure { if (it is CancellationException) throw it } // a cancelled pass isn't a failed image
+                        .getOrNull()
+                    if (c == null) failed += art else rows.forEach { found[it.id] = c to art }
                     report(Stage.Colors, ++i, byArt.size)
+                    if (i % SEED_BATCH == 0) flush()
                     delay(seedItemDelayMs)
                 }
-            } finally { finish(Stage.Colors) }
-            if (found.isNotEmpty()) db.useWriterConnection { t -> t.immediateTransaction { found.forEach { (id, c) -> songDao.updateSeedColor(id, c) } } }
-            settings.addColorless(failed)
+            } finally {
+                finish(Stage.Colors)
+                withContext(NonCancellable) { flush(); if (failed.isNotEmpty()) settings.addColorless(failed) }
+            }
         }
     }
 
@@ -294,16 +375,13 @@ class LibraryRepositoryImpl(
 
     override suspend fun updateReplayGain(songs: List<Song>) {
         if (songs.isEmpty()) return
+        // Column-only UPDATEs by id: a batch touches just its own rows (ids no longer in the library are no-ops).
         db.useWriterConnection { c ->
             c.immediateTransaction {
-                val current = songDao.getAll().associateBy { it.id }
-                songDao.upsertAll(songs.mapNotNull { s ->
-                    current[s.id]?.let { e ->
-                        val r = s.toEntity()
-                        e.copy(rgTrackGain = r.rgTrackGain, rgAlbumGain = r.rgAlbumGain, rgTrackPeak = r.rgTrackPeak,
-                            rgAlbumPeak = r.rgAlbumPeak, rgScanned = r.rgScanned)
-                    }
-                })
+                songs.forEach { s ->
+                    val r = s.toEntity()
+                    songDao.updateReplayGain(r.id, r.filePath, r.rgTrackGain, r.rgAlbumGain, r.rgTrackPeak, r.rgAlbumPeak, r.rgScanned)
+                }
             }
         }
     }
@@ -314,6 +392,10 @@ class LibraryRepositoryImpl(
 
     companion object {
         const val PROGRESS_THROTTLE_MS = 150L
+        private const val DB_CHUNK = 500
+        private const val RG_BATCH = 200
+        private const val DURATION_BATCH = 50
+        private const val SEED_BATCH = 20
         const val REMINDER_MS = 30L * 24 * 60 * 60 * 1000
     }
 }

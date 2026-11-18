@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="progress_stage_scanning">Scanning your music folder</string>
+    <string name="progress_stage_indexing">Reading folder contents</string>
     <string name="progress_stage_artwork">Getting artwork</string>
     <string name="progress_stage_lyrics">Looking for lyrics</string>
     <string name="progress_stage_artist_images">Finding artist images</string>
@@ -8,4 +10,6 @@
     <string name="progress_stage_colors">Picking cover colours</string>
     <!-- %1$s stage, %2$d done, %3$d total -->
     <string name="progress_stage_count">%1$s %2$d of %3$d</string>
+    <!-- %1$s other running stages, already formatted -->
+    <string name="progress_also">Also: %1$s</string>
 </resources>

@@ -20,14 +20,16 @@ object TreeWalker {
         DocumentsContract.Document.COLUMN_SIZE,
     )
 
-    fun walk(resolver: ContentResolver, treeUri: Uri, onFile: (TreeFile) -> Unit) {
-        val rootDocId = try { DocumentsContract.getTreeDocumentId(treeUri) } catch (e: Exception) { return }
+    /** Returns false when part of the tree could not be listed (the files seen so far were still delivered). */
+    fun walk(resolver: ContentResolver, treeUri: Uri, onFile: (TreeFile) -> Unit): Boolean {
+        var complete = true
+        val rootDocId = try { DocumentsContract.getTreeDocumentId(treeUri) } catch (e: Exception) { return false }
         val stack = ArrayDeque<String>().apply { add(rootDocId) }
         while (stack.isNotEmpty()) {
             val parent = stack.removeLast()
             val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parent)
             try {
-                resolver.query(children, PROJ, null, null, null)?.use { c ->
+                (resolver.query(children, PROJ, null, null, null) ?: run { complete = false; null })?.use { c ->
                     while (c.moveToNext()) {
                         val docId = c.getString(0) ?: continue
                         if (c.getString(1) == DocumentsContract.Document.MIME_TYPE_DIR) { stack.add(docId); continue }
@@ -36,8 +38,9 @@ object TreeWalker {
                             if (c.isNull(2)) 0L else c.getLong(2), if (c.isNull(3)) 0L else c.getLong(3)))
                     }
                 }
-            } catch (e: Exception) { /* partial listing, like the original */ }
+            } catch (e: Exception) { complete = false /* partial listing, like the original */ }
         }
+        return complete
     }
 }
 
@@ -67,15 +70,24 @@ class TreeSidecarIndex private constructor(
             if (treeUri == null) return EMPTY
             val lyrics = HashMap<String, Uri>()
             val images = HashMap<String, Uri>()
-            try {
-                TreeWalker.walk(resolver, treeUri) { f ->
-                    when (f.path.substringAfterLast('.', "").lowercase()) {
-                        "lrc", "txt" -> lyrics[f.path] = f.uri
-                        in IMAGE_EXTS -> images[f.path] = f.uri
-                    }
-                }
-            } catch (e: Exception) { return EMPTY }
+            // Streams into the index: only sidecars are kept, not an entry per audio file.
+            try { TreeWalker.walk(resolver, treeUri) { add(lyrics, images, it) } } catch (e: Exception) { return EMPTY }
             return TreeSidecarIndex(lyrics, images)
+        }
+
+        /** Index of an already walked tree, so one walk can serve the scan and the sidecar lookup. */
+        fun build(files: List<TreeFile>): TreeSidecarIndex {
+            val lyrics = HashMap<String, Uri>()
+            val images = HashMap<String, Uri>()
+            files.forEach { add(lyrics, images, it) }
+            return TreeSidecarIndex(lyrics, images)
+        }
+
+        private fun add(lyrics: MutableMap<String, Uri>, images: MutableMap<String, Uri>, f: TreeFile) {
+            when (f.path.substringAfterLast('.', "").lowercase()) {
+                "lrc", "txt" -> lyrics[f.path] = f.uri
+                in IMAGE_EXTS -> images[f.path] = f.uri
+            }
         }
 
         fun build(resolver: ContentResolver, treeUri: String?): TreeSidecarIndex =

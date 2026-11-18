@@ -29,6 +29,7 @@ class DirectoryScanner(private val context: Context) {
      *   never collide with MediaStore `_ID`s (audit §2.6).
      * @param skipPaths [pathKey]s of files to leave out of the result (already indexed by MediaStore): they are neither parsed
      *   nor returned, so a merge with a MediaStore result only pays for the unindexed files.
+     * @param treeFiles an already walked listing of [treeUri]; null = walk it here.
      * @return null when the folder is unreachable (cache must stay untouched).
      */
     fun scan(
@@ -37,11 +38,14 @@ class DirectoryScanner(private val context: Context) {
         existing: List<Song>,
         minNextId: Long = 1,
         skipPaths: Set<String> = emptySet(),
+        treeFiles: List<TreeFile>? = null,
     ): DirectoryScanResult? {
         val root = rootPath.trimEnd('/')
         val listing = Listing()
         if (treeUri != null) {
-            TreeWalker.walk(context.contentResolver, treeUri) { f -> classify(listing, f.path, f, f.lastModifiedMs, f.size) }
+            val add = { f: TreeFile -> classify(listing, f.path, f, f.lastModifiedMs, f.size) }
+            // A listing walked earlier in the same sync is reused instead of querying the whole tree again.
+            if (treeFiles != null) treeFiles.forEach(add) else TreeWalker.walk(context.contentResolver, treeUri, add)
         }
         if (listing.audio.isEmpty()) {
             val dir = File(root)
