@@ -74,8 +74,11 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
 
     private class Term(val text: String, val squashed: String)
 
-    private fun terms(query: String): List<Term> =
-        normalizeForSearch(query.trim()).split(WHITESPACE).filter { it.isNotEmpty() }.map { Term(it, squash(it)) }
+    /** Whitespace terms of [query]; punctuation-only terms ("love - story") are dropped unless nothing else is left. */
+    private fun terms(query: String): List<Term> {
+        val all = normalizeForSearch(query.trim()).split(WHITESPACE).filter { it.isNotEmpty() }.map { Term(it, squash(it)) }
+        return all.filter { it.squashed.isNotEmpty() }.ifEmpty { all }
+    }
 
     /** 0 = some term matched no field; otherwise the summed best field score of every term. */
     private fun score(terms: List<Term>, fields: List<Field>): Int {
@@ -98,7 +101,10 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
             f.text.startsWith(t.text) -> 6
             wordStart(f.text, t.text) -> 4
             f.text.contains(t.text) -> 2
-            t.squashed.isNotEmpty() && f.squashed.contains(t.squashed) -> 1
+            t.squashed.isEmpty() -> return 0
+            f.squashed == t.squashed -> 7
+            f.squashed.startsWith(t.squashed) -> 5
+            f.squashed.contains(t.squashed) -> 1
             else -> return 0
         }
         return base * f.weight

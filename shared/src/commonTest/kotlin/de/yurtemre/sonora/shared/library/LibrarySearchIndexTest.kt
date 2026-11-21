@@ -53,4 +53,15 @@ class LibrarySearchIndexTest {
         )
         assertEquals(listOf("Tyler, The Creator"), LibrarySearchIndex().searchArtists(artists, "creator tyler").map { it.name })
     }
+
+    @Test fun punctuationOnlyTermsAreOptional() {
+        val idx = LibrarySearchIndex(listOf(song(1, "Love Story")))
+        assertEquals(listOf(1L), idx.searchSongs("love - story").map { it.id })
+    }
+
+    @Test fun punctuationInsensitiveWholeFieldOutranksSubstring() {
+        val idx = LibrarySearchIndex(listOf(song(1, "Xacdc"), song(2, "AC/DC")))
+        assertEquals(listOf(2L, 1L), idx.searchSongs("acdc").map { it.id })
+        assertEquals(listOf(2L), idx.searchSongs("ac/dc").map { it.id })
+    }
 }
