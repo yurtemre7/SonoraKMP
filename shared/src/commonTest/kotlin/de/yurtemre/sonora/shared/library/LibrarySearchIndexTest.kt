@@ -62,6 +62,6 @@ class LibrarySearchIndexTest {
     @Test fun punctuationInsensitiveWholeFieldOutranksSubstring() {
         val idx = LibrarySearchIndex(listOf(song(1, "Xacdc"), song(2, "AC/DC")))
         assertEquals(listOf(2L, 1L), idx.searchSongs("acdc").map { it.id })
-        assertEquals(listOf(2L), idx.searchSongs("ac/dc").map { it.id })
+        assertEquals(listOf(2L, 1L), idx.searchSongs("ac/dc").map { it.id })
     }
 }
