@@ -9,13 +9,15 @@ import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.model.SongSort
 
 /**
- * Library search (LIB-13, audit/data §6). Songs: AND of whitespace terms, substring of
- * title/artist/album; results ordered by the chosen sort. Not thread-safe.
+ * Library search (LIB-13, audit/data §6). AND of whitespace terms; each term matches as a substring of a field,
+ * ignoring case, accents, kana type and punctuation ("acdc" finds "AC/DC"). Songs search title, artist, album,
+ * album artist and genre. With a query, results are ranked by relevance (whole field > word start > inside a
+ * word, title > artist > album) and the chosen sort only orders equally relevant results. Not thread-safe.
  */
 class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     private var songs: List<Song> = songs
     private val sortedCache = HashMap<String, List<Song>>()
-    private val folded = HashMap<Long, Triple<String, String, String>>()
+    private val folded = HashMap<Long, List<Field>>()
 
     fun build(songs: List<Song>) {
         this.songs = songs
@@ -27,31 +29,88 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
         sortedCache.getOrPut("${sort.storageName}_$ascending") { LibrarySorter.sortSongs(songs, sort, ascending) }
 
     fun searchSongs(query: String, sort: SongSort = SongSort.Title, ascending: Boolean = true): List<Song> {
-        val q = normalizeForSearch(query.trim())
-        if (q.isEmpty()) return getSortedSongs(sort, ascending)
-        val terms = q.split(WHITESPACE).filter { it.isNotEmpty() }
+        val terms = terms(query)
+        if (terms.isEmpty()) return getSortedSongs(sort, ascending)
+        val scored = HashMap<Long, Int>()
         val matches = songs.filter { s ->
-            val fields = folded.getOrPut(s.id) { Triple(normalizeForSearch(s.title), normalizeForSearch(s.artist), normalizeForSearch(s.album)) }
-            terms.all { t -> fields.first.contains(t) || fields.second.contains(t) || fields.third.contains(t) }
+            val fields = folded.getOrPut(s.id) {
+                listOf(
+                    Field(s.title, 3), Field(s.artist, 2), Field(s.album, 1),
+                    Field(s.albumArtist.orEmpty(), 1), Field(s.genre.orEmpty(), 1),
+                )
+            }
+            val score = score(terms, fields)
+            if (score > 0) scored[s.id] = score
+            score > 0
         }
-        return LibrarySorter.sortSongs(matches, sort, ascending)
+        return LibrarySorter.sortSongs(matches, sort, ascending).sortedByDescending { scored[it.id] ?: 0 }
     }
 
     fun searchAlbums(albums: List<AlbumGroup>, query: String, sort: AlbumSort = AlbumSort.Name, ascending: Boolean = true): List<AlbumGroup> {
-        val q = normalizeForSearch(query.trim())
-        val terms = q.split(WHITESPACE).filter { it.isNotEmpty() }
-        val filtered = if (terms.isEmpty()) albums else albums.filter { a ->
-            val name = normalizeForSearch(a.name)
-            val artist = normalizeForSearch(a.artist)
-            terms.all { t -> name.contains(t) || artist.contains(t) }
-        }
-        return LibrarySorter.sortAlbums(filtered, sort, ascending)
+        val terms = terms(query)
+        if (terms.isEmpty()) return LibrarySorter.sortAlbums(albums, sort, ascending)
+        val scored = albums.mapNotNull { a ->
+            val sc = score(terms, listOf(Field(a.name, 2), Field(a.artist, 1)))
+            if (sc > 0) a to sc else null
+        }.toMap(HashMap())
+        return LibrarySorter.sortAlbums(scored.keys.toList(), sort, ascending).sortedByDescending { scored[it] ?: 0 }
     }
 
     fun searchArtists(artists: List<ArtistGroup>, query: String, sort: ArtistSort = ArtistSort.Name, ascending: Boolean = true): List<ArtistGroup> {
-        val q = normalizeForSearch(query.trim())
-        val filtered = if (q.isEmpty()) artists else artists.filter { normalizeForSearch(it.name).contains(q) }
-        return LibrarySorter.sortArtists(filtered, sort, ascending)
+        val terms = terms(query)
+        if (terms.isEmpty()) return LibrarySorter.sortArtists(artists, sort, ascending)
+        val scored = artists.mapNotNull { a ->
+            val sc = score(terms, listOf(Field(a.name, 1)))
+            if (sc > 0) a to sc else null
+        }.toMap(HashMap())
+        return LibrarySorter.sortArtists(scored.keys.toList(), sort, ascending).sortedByDescending { scored[it] ?: 0 }
+    }
+
+    /** A searchable value: folded text, the same text without punctuation/spaces, and its ranking weight. */
+    private class Field(raw: String, val weight: Int) {
+        val text = normalizeForSearch(raw)
+        val squashed = squash(text)
+    }
+
+    private class Term(val text: String, val squashed: String)
+
+    private fun terms(query: String): List<Term> =
+        normalizeForSearch(query.trim()).split(WHITESPACE).filter { it.isNotEmpty() }.map { Term(it, squash(it)) }
+
+    /** 0 = some term matched no field; otherwise the summed best field score of every term. */
+    private fun score(terms: List<Term>, fields: List<Field>): Int {
+        var total = 0
+        for (t in terms) {
+            var best = 0
+            for (f in fields) {
+                val s = termScore(t, f)
+                if (s > best) best = s
+            }
+            if (best == 0) return 0
+            total += best
+        }
+        return total
+    }
+
+    private fun termScore(t: Term, f: Field): Int {
+        val base = when {
+            f.text == t.text -> 8
+            f.text.startsWith(t.text) -> 6
+            wordStart(f.text, t.text) -> 4
+            f.text.contains(t.text) -> 2
+            t.squashed.isNotEmpty() && f.squashed.contains(t.squashed) -> 1
+            else -> return 0
+        }
+        return base * f.weight
+    }
+
+    private fun wordStart(text: String, term: String): Boolean {
+        var i = text.indexOf(term)
+        while (i >= 0) {
+            if (i == 0 || !text[i - 1].isLetterOrDigit()) return true
+            i = text.indexOf(term, i + 1)
+        }
+        return false
     }
 
     companion object {
@@ -63,3 +122,5 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
         }
     }
 }
+
+private fun squash(s: String): String = s.filter { it.isLetterOrDigit() }
