@@ -28,7 +28,16 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     fun getSortedSongs(sort: SongSort, ascending: Boolean): List<Song> =
         sortedCache.getOrPut("${sort.storageName}_$ascending") { LibrarySorter.sortSongs(songs, sort, ascending) }
 
-    fun searchSongs(query: String, sort: SongSort = SongSort.Title, ascending: Boolean = true): List<Song> {
+    /**
+     * [order] replaces the plain sort for ordering the matches before the (stable) relevance ranking, for sorts that
+     * need outside data such as play counts; it only decides between equally relevant songs.
+     */
+    fun searchSongs(
+        query: String,
+        sort: SongSort = SongSort.Title,
+        ascending: Boolean = true,
+        order: ((List<Song>) -> List<Song>)? = null,
+    ): List<Song> {
         val terms = terms(query)
         if (terms.isEmpty()) return getSortedSongs(sort, ascending)
         val scored = HashMap<Long, Int>()
@@ -43,7 +52,7 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
             if (score > 0) scored[s.id] = score
             score > 0
         }
-        return LibrarySorter.sortSongs(matches, sort, ascending).sortedByDescending { scored[it.id] ?: 0 }
+        return (order?.invoke(matches) ?: LibrarySorter.sortSongs(matches, sort, ascending)).sortedByDescending { scored[it.id] ?: 0 }
     }
 
     fun searchAlbums(albums: List<AlbumGroup>, query: String, sort: AlbumSort = AlbumSort.Name, ascending: Boolean = true): List<AlbumGroup> {

@@ -103,10 +103,12 @@ class HomeViewModel(
         val ts = s.getValue(LibraryTab.Songs)
         val sort = SongSort.fromStorage(ts.key)
         val res = if (sort == SongSort.Plays) {
-            // Plays sort goes through the stats activity view (audit/data §6.3), not the title fallback.
-            LibrarySorter.sortSongs(l.index.searchSongs(q), sort, ts.ascending) { list, view ->
-                StatsAggregates.applyActivityView(snap, list, view)
+            // Plays sort goes through the stats activity view (audit/data §6.3), not the title fallback. With a
+            // query, relevance stays the primary order and plays only order equally relevant songs.
+            val byPlays = { list: List<Song> ->
+                LibrarySorter.sortSongs(list, sort, ts.ascending) { l2, view -> StatsAggregates.applyActivityView(snap, l2, view) }
             }
+            if (q.isBlank()) byPlays(l.index.searchSongs(q)) else l.index.searchSongs(q, sort, ts.ascending, byPlays)
         } else l.index.searchSongs(q, sort, ts.ascending)
         val counts = if (sort == SongSort.Plays) snap.songs.mapValues { it.value.plays } else emptyMap()
         HomeTabState(LibraryTab.Songs, q, ts, songs = res, totalCount = l.songs.size, loaded = true, playCounts = counts)
