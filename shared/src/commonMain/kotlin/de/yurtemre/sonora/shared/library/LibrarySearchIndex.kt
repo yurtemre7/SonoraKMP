@@ -122,7 +122,7 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     private fun wordStart(text: String, term: String): Boolean {
         var i = text.indexOf(term)
         while (i >= 0) {
-            if (i == 0 || !text[i - 1].isWordChar()) return true
+            if (i == 0 || !isWordCodePoint(codePointBefore(text, i))) return true
             i = text.indexOf(term, i + 1)
         }
         return false
@@ -138,10 +138,24 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     }
 }
 
-/**
- * Letters and digits count as word characters. Surrogate halves count too: `Char.isLetterOrDigit()` is false for
- * them, which would drop supplementary-plane letters (e.g. rare CJK such as 𠮷) as if they were punctuation.
- */
-private fun Char.isWordChar(): Boolean = isLetterOrDigit() || isSurrogate()
+/** The code point that ends right before [index], joining a surrogate pair into one code point. */
+private fun codePointBefore(text: String, index: Int): Int {
+    val low = text[index - 1]
+    if (low.isLowSurrogate() && index >= 2 && text[index - 2].isHighSurrogate()) {
+        return 0x10000 + ((text[index - 2].code - 0xD800) shl 10) + (low.code - 0xDC00)
+    }
+    return low.code
+}
 
-private fun squash(s: String): String = s.filter { it.isWordChar() }
+/** [s] without punctuation, symbols and spaces; classified per code point so supplementary letters (𠮷) stay. */
+private fun squash(s: String): String = buildString(s.length) {
+    var i = 0
+    while (i < s.length) {
+        val c = s[i]
+        val pair = c.isHighSurrogate() && i + 1 < s.length && s[i + 1].isLowSurrogate()
+        val cp = if (pair) 0x10000 + ((c.code - 0xD800) shl 10) + (s[i + 1].code - 0xDC00) else c.code
+        val len = if (pair) 2 else 1
+        if (isWordCodePoint(cp)) append(s, i, i + len)
+        i += len
+    }
+}

@@ -9,3 +9,5 @@ actual fun normalizeForSearch(s: String): String {
     val stripped = Normalizer.normalize(nfkc, Normalizer.Form.NFD).replace(COMBINING, "")
     return foldKana(Normalizer.normalize(stripped, Normalizer.Form.NFC))
 }
+
+internal actual fun isWordCodePoint(codePoint: Int): Boolean = Character.isLetterOrDigit(codePoint)

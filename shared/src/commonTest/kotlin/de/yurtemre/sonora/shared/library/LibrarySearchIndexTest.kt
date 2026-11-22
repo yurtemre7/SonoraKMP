@@ -69,4 +69,11 @@ class LibrarySearchIndexTest {
         val idx = LibrarySearchIndex(listOf(song(1, "Love"), song(2, "\uD842\uDFB7 Love")))
         assertEquals(listOf(2L), idx.searchSongs("\uD842\uDFB7 love").map { it.id })
     }
+
+    @Test fun emojiAreSeparatorsLikePunctuation() {
+        val idx = LibrarySearchIndex(listOf(song(1, "AC\uD83C\uDFB8DC"), song(2, "Other")))
+        assertEquals(listOf(1L), idx.searchSongs("acdc").map { it.id })
+        val story = LibrarySearchIndex(listOf(song(3, "Love Story")))
+        assertEquals(listOf(3L), story.searchSongs("love \uD83C\uDFB8 story").map { it.id })
+    }
 }
