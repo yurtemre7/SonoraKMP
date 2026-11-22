@@ -7,3 +7,6 @@ expect fun normalizeForSearch(s: String): String
 internal fun foldKana(s: String): String = buildString(s.length) {
     for (c in s) append(if (c in '\u30A1'..'\u30F6') c - 0x60 else c)
 }
+
+/** True for letters and digits (any plane); punctuation, symbols such as emoji, and spaces are separators. */
+internal expect fun isWordCodePoint(codePoint: Int): Boolean
