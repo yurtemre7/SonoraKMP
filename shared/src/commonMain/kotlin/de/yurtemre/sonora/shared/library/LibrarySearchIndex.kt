@@ -122,7 +122,7 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     private fun wordStart(text: String, term: String): Boolean {
         var i = text.indexOf(term)
         while (i >= 0) {
-            if (i == 0 || !text[i - 1].isLetterOrDigit()) return true
+            if (i == 0 || !text[i - 1].isWordChar()) return true
             i = text.indexOf(term, i + 1)
         }
         return false
@@ -138,4 +138,10 @@ class LibrarySearchIndex(songs: List<Song> = emptyList()) {
     }
 }
 
-private fun squash(s: String): String = s.filter { it.isLetterOrDigit() }
+/**
+ * Letters and digits count as word characters. Surrogate halves count too: `Char.isLetterOrDigit()` is false for
+ * them, which would drop supplementary-plane letters (e.g. rare CJK such as 𠮷) as if they were punctuation.
+ */
+private fun Char.isWordChar(): Boolean = isLetterOrDigit() || isSurrogate()
+
+private fun squash(s: String): String = s.filter { it.isWordChar() }

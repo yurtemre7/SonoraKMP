@@ -64,4 +64,9 @@ class LibrarySearchIndexTest {
         assertEquals(listOf(2L, 1L), idx.searchSongs("acdc").map { it.id })
         assertEquals(listOf(2L, 1L), idx.searchSongs("ac/dc").map { it.id })
     }
+
+    @Test fun supplementaryPlaneLettersStayRequiredTerms() {
+        val idx = LibrarySearchIndex(listOf(song(1, "Love"), song(2, "\uD842\uDFB7 Love")))
+        assertEquals(listOf(2L), idx.searchSongs("\uD842\uDFB7 love").map { it.id })
+    }
 }
