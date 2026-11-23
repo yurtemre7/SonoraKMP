@@ -144,9 +144,14 @@ Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
   the Jam continues. (A later round may fetch it via device sync.)
 - **Clock sync**: NTP-style ping/pong over the channel, taking the lowest-RTT
   samples of the first 8, re-measured every 30 s. Playback events carry host
-  time; a guest converts to its own clock and schedules the start. Late
-  correction: if the guest is off by more than 40 ms it nudges playback speed by
-  up to ±2% instead of an audible seek; more than 800 ms triggers a seek.
+  time; a guest converts to its own clock and starts when its clock reaches that
+  time. **Sound quality beats exact sync** (decided by the user): the guest's
+  speed and pitch are never changed to chase the host, and there are no
+  audible jumps mid-song. A guest may trail the host by a fraction of a second
+  and that is fine. The only correction: if a guest drifts more than 2 s, it
+  seeks once, at the next pause or song change, never in the middle of playback.
+  Play, pause and skip are the Jam's core actions and must always be reliable.
+
 - **Per-device latency**: a "Speaker delay" setting (−500..+500 ms, default 0)
   for Bluetooth speakers, remembered per device.
 - **Permissions in a Jam**: the host chooses "Guests can add songs" (default on)
@@ -172,11 +177,11 @@ Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
   its own `JamServer` with one `SecureChannel` per guest, reusing `JpakeHandshake`,
   `PairingCode` and `SecureChannel` unchanged. Frame types are added to a separate
   Jam codec, not to the sync one.
-- **Player risk**: speed control (`setCustomSpeed`) exists. Precisely timed starts
-  are the main technical risk, so the Jam begins with a spike on two real phones.
-  Target: within 100 ms on Wi-Fi with wired or built-in speakers; the 40 ms
-  correction threshold is a tuning value, not a promise. The speaker-delay setting
-  handles Bluetooth.
+- **Player risk**: starting on a shared clock time is the one technical unknown,
+  so the Jam begins with a spike on two real phones. The goal is "close enough,
+  and clean": a gap under about half a second is fine, a larger one is tolerated.
+  Quality is never traded for it. The speaker-delay setting still lets people
+  line up Bluetooth speakers by hand.
 - **Guest queue**: the mirrored Jam queue is not persisted. If the app is killed
   mid-Jam, the guest's previous queue comes back. In a Jam the guest's seek,
   reorder, remove, shuffle, repeat and sleep-timer controls are hidden or map to a
