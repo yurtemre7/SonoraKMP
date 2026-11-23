@@ -130,7 +130,7 @@ Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
   mix). It advertises `_sonora-jam._tcp` on its own port (it can run next to device
   sync) and shows a fresh 6-digit code for each Jam. Guests pick the Jam from the
   discovered list and type the code; manual IP:port works when mDNS is blocked.
-  QR joining is pending a decision (see "Open decision").
+  No QR joining (decided by the user): the 6-digit code is the way in.
   Pairing reuses the J-PAKE flow and `SecureChannel` from device sync. A wrong
   code, a full Jam, or a different protocol version gives a clear error. The host
   can end the Jam or remove a guest.
@@ -192,18 +192,13 @@ Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
   host does not count as a skip on the guest; the guest's own skip does.
 - **Naming**: the saved playlist's date uses the locale's short date format.
 
-## Open decision
-
-QR joining needs a camera permission and a scanning library; the app has neither
-today. Recommendation: leave QR out of the first version (list plus code is
-enough in a room) and add it later with a free scanner library.
-
 ## Decisions made by the user
 
 - Smart shuffle is a togglable setting.
 - Weekly mix: up to 50 songs, includes new/unheard songs, can be saved as a copy,
   changes at the week's end, with a countdown; Monday 08:00.
 - Jam via synchronized local playback (approach B), no streaming in this round.
+- Jam joins with the 6-digit code only; no QR code, no camera permission.
 
 ## Left to the builder
 
