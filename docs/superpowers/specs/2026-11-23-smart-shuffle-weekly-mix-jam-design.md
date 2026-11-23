@@ -127,9 +127,10 @@ library or stats change).
 Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
 
 - **Joining**: the host starts a Jam (from Now Playing, the queue, or the weekly
-  mix). It advertises `_sonora-jam._tcp` and shows a 6-digit code and a QR
-  carrying `host:port` and the code. Guests scan the QR or pick the Jam from the
+  mix). It advertises `_sonora-jam._tcp` on its own port (it can run next to device
+  sync) and shows a fresh 6-digit code for each Jam. Guests pick the Jam from the
   discovered list and type the code; manual IP:port works when mDNS is blocked.
+  QR joining is pending a decision (see "Open decision").
   Pairing reuses the J-PAKE flow and `SecureChannel` from device sync. A wrong
   code, a full Jam, or a different protocol version gives a clear error. The host
   can end the Jam or remove a guest.
@@ -160,6 +161,42 @@ Roles: one **host**, up to 7 **guests** (my call, 8 phones total).
   then stop with a "Jam ended" message; a screen lock or Wi-Fi change ends the
   guest's connection cleanly and shows a rejoin button.
 - **Stats**: songs played in a Jam count as normal plays on each device.
+
+## Calls made while checking the design (mine, not yet confirmed)
+
+- **Jam security**: the code is new for every Jam and ephemeral; nothing is
+  stored as a trusted device. Each guest runs its own J-PAKE round against the host
+  with that code. The existing lockout (3 wrong codes, then a timed lock) is reused.
+  A guest that drops reconnects with a per-session key, valid for 30 s.
+- **Transport**: `DeviceSyncServer` serves one peer on a random port. The Jam adds
+  its own `JamServer` with one `SecureChannel` per guest, reusing `JpakeHandshake`,
+  `PairingCode` and `SecureChannel` unchanged. Frame types are added to a separate
+  Jam codec, not to the sync one.
+- **Player risk**: speed control (`setCustomSpeed`) exists. Precisely timed starts
+  are the main technical risk, so the Jam begins with a spike on two real phones.
+  Target: within 100 ms on Wi-Fi with wired or built-in speakers; the 40 ms
+  correction threshold is a tuning value, not a promise. The speaker-delay setting
+  handles Bluetooth.
+- **Guest queue**: the mirrored Jam queue is not persisted. If the app is killed
+  mid-Jam, the guest's previous queue comes back. In a Jam the guest's seek,
+  reorder, remove, shuffle, repeat and sleep-timer controls are hidden or map to a
+  request to the host.
+- **Smart shuffle in a Jam**: the host orders the queue (its own setting); guests
+  only mirror it. The weekly mix and playlist shuffles go through `quickShuffle`,
+  so they follow the same setting.
+- **Weekly-mix data**: `dateAddedMs` is already on `Song` and `lastPlayedAtMs` is
+  epoch milliseconds, so no migration. Score for "known and liked":
+  plays + 2 for a favourite, × recency decay (half-life 30 days), × 0.5 when the
+  skip rate is at least 50%.
+- **Jam stats**: a song a guest lacks is not counted at all. A skip caused by the
+  host does not count as a skip on the guest; the guest's own skip does.
+- **Naming**: the saved playlist's date uses the locale's short date format.
+
+## Open decision
+
+QR joining needs a camera permission and a scanning library; the app has neither
+today. Recommendation: leave QR out of the first version (list plus code is
+enough in a room) and add it later with a free scanner library.
 
 ## Decisions made by the user
 
