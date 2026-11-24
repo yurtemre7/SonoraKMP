@@ -122,6 +122,15 @@ class JamServerTest {
     }
 
     @Test
+    fun aSecondStartThrowsAndKeepsTheLiveCode() = test {
+        val server = server()
+        val port = server.start(code)
+        assertFailsWith<IllegalStateException> { server.start("135790") }
+        expectError(JamError.WrongCode) { join(port, "Mallory", code = "135790") }
+        join(port, "Ana")
+    }
+
+    @Test
     fun wrongCodeThreeTimesLocksOut() = test {
         val server = server()
         val port = server.start(code)

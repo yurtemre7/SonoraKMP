@@ -25,7 +25,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 internal class JamJoinGate(clock: () -> Long, private val maxInHandshake: Int) {
     private val lockout = PairingLockout(clock)
     private val lock = Any()
-    private val turn = Mutex()
+    internal val turn = Mutex() // internal for tests
     private var code = ""
     /** Wrong codes against [code] in total (the timed lock resets its own count, this one only on [replaceCode]). */
     private var failures = 0
@@ -41,6 +41,7 @@ internal class JamJoinGate(clock: () -> Long, private val maxInHandshake: Int) {
 
     fun start(code: String) = synchronized(lock) {
         requireCode(code)
+        check(this.code.isEmpty()) { "Already started" }
         this.code = code
     }
 
@@ -68,12 +69,19 @@ internal class JamJoinGate(clock: () -> Long, private val maxInHandshake: Int) {
             return null
         }
         try {
-            // Only the wait for the turn is a suspension point; it alone is bounded by a coroutine timeout.
-            withTimeoutOrNull(waitMs.coerceAtLeast(0)) { turn.lock() } ?: return null
+            // Only the wait for the turn is a suspension point; it alone is bounded by a coroutine timeout. The
+            // timeout can fire after lock() succeeded but before the block returns, discarding its result, so
+            // ownership is tracked separately: a turn that was taken is always given back.
+            var owned = false
             try {
+                withTimeoutOrNull(waitMs.coerceAtLeast(0)) {
+                    turn.lock()
+                    owned = true
+                }
+                if (!owned) return null
                 return pairInTurn(input, output)
             } finally {
-                turn.unlock()
+                if (owned) turn.unlock()
             }
         } finally {
             synchronized(lock) { _inHandshake.value-- }
@@ -105,7 +113,7 @@ internal class JamJoinGate(clock: () -> Long, private val maxInHandshake: Int) {
         if (++failures >= MAX_WRONG_CODES) _exhausted.value = true
     }
 
-    private fun requireCode(code: String) =
+    fun requireCode(code: String) =
         require(code.length == PairingCode.LENGTH && code.all { it in '0'..'9' }) { "Bad Jam code" }
 
     companion object {

@@ -148,14 +148,15 @@ class JamServer(
 
     /** Binds a free port on all interfaces, starts accepting guests who know [code] and returns the port. */
     suspend fun start(code: String): Int {
-        gate.start(code)
+        gate.requireCode(code)
         val socket = withContext(dispatcher) { ServerSocket(0) }
         synchronized(lock) {
             if (serverSocket != null || stopped) {
                 runCatching { socket.close() }
-                error("JamServer is single-use")
+                error("JamServer is single-use") // checked before the code is touched: the live code stays
             }
             serverSocket = socket
+            gate.start(code)
         }
         scope.launch { acceptLoop(socket) }
         return socket.localPort
@@ -355,9 +356,9 @@ class JamServer(
 
     /** Serves a registered guest until it leaves, drops, or (kicked / stopped) has read its [JamEnd] and closed. */
     private suspend fun run(guest: Guest) = coroutineScope {
-        guest.socket.soTimeout = idleTimeoutMs
         val writer = launch { JamWire.drain(guest.outbox, guest.channel, guest.socket, sendTimeoutMs) }
         val left = try {
+            guest.socket.soTimeout = idleTimeoutMs // inside the try: a closed socket throws here, detach still runs
             readLoop(guest)
         } catch (e: CancellationException) {
             throw e
