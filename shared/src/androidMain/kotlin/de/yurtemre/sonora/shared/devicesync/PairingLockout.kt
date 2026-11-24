@@ -32,6 +32,13 @@ internal class PairingLockout(
         return (clock() + coolDownMs).also { _lockedUntilMs.value = it }
     }
 
+    /** Forgets failures and lifts any cool-down (the Jam host replaced its code). */
+    @Synchronized
+    fun clear() {
+        failures = 0
+        _lockedUntilMs.value = 0L
+    }
+
     /** Forgets earlier failures (device sync: the code was replaced, so they were against an old code). */
     @Synchronized
     fun resetFailures() {

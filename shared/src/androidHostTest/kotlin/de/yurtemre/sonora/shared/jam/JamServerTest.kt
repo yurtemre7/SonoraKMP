@@ -23,6 +23,9 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
@@ -52,7 +55,13 @@ class JamServerTest {
     private fun server(
         sendQueueCapacity: Int = JamServer.SEND_QUEUE_CAPACITY,
         sendTimeoutMs: Long = JamServer.SEND_TIMEOUT_MS,
-    ) = JamServer(hostClock, sendQueueCapacity = sendQueueCapacity, sendTimeoutMs = sendTimeoutMs).also { servers += it }
+        pairingTimeoutMs: Int = JamServer.PAIRING_TIMEOUT_MS,
+    ) = JamServer(
+        hostClock,
+        pairingTimeoutMs = pairingTimeoutMs,
+        sendQueueCapacity = sendQueueCapacity,
+        sendTimeoutMs = sendTimeoutMs,
+    ).also { servers += it }
 
     private fun client(protocol: Int = JAM_PROTOCOL_VERSION) = JamClient(guestClock, protocol = protocol)
 
@@ -60,9 +69,14 @@ class JamServerTest {
         client().join(host, port, code, name).also { connections += it }
 
     @AfterTest
-    fun tearDown() {
+    fun tearDown() = runBlocking {
         connections.forEach { it.abort() }
-        servers.forEach { it.stop() }
+        withTimeout(30_000) {
+            servers.forEach {
+                it.stop()
+                it.awaitTermination()
+            }
+        }
     }
 
     // Generous ceiling: cold-JIT J-PAKE rounds can take seconds on a loaded runner; tests wait on events, not time.
@@ -90,6 +104,7 @@ class JamServerTest {
         val input = DataInputStream(socket.getInputStream().buffered())
         val output = DataOutputStream(socket.getOutputStream().buffered())
         JamWire.writePreamble(output, JamWire.MODE_JOIN)
+        assertEquals(JamWire.STATUS_OK, input.readUnsignedByte())
         val keyingMaterial = JpakeHandshake.run(input, output, code, Role.Receiver, "guest")
         val channel = SecureChannel(input, output, keyingMaterial, Role.Receiver)
         JamWire.send(channel, JamHello(JAM_PROTOCOL_VERSION, name))
@@ -110,13 +125,138 @@ class JamServerTest {
     fun wrongCodeThreeTimesLocksOut() = test {
         val server = server()
         val port = server.start(code)
+        val dropped = join(port, "Bea")
         repeat(3) { expectError(JamError.WrongCode) { join(port, "Mallory", code = "000000") } }
         server.lockedUntilMs.first { it > hostClock.now }
         // Locked: even the right code is refused, and that does not count as an attempt.
         expectError(JamError.Locked) { join(port, "Ana") }
+        // The lock is about the code: a dropped guest still gets back in with its key.
+        dropped.abort()
+        server.await<JamEvent.GuestLeft> { it.id == dropped.guestId }
+        client().reconnect(loopback, port, dropped.reconnectTicket, "Bea").also { connections += it }
         hostClock.now = server.lockedUntilMs.value
         val guest = join(port, "Ana")
-        assertEquals(guest.guestId, server.await<JamEvent.GuestJoined>().id)
+        assertEquals(guest.guestId, server.await<JamEvent.GuestJoined> { it.name == "Ana" }.id)
+    }
+
+    @Test
+    fun parallelWrongCodesGetAtMostThreeGuessesPerCoolDown() = test {
+        val server = server()
+        val port = server.start(code)
+        val errors = (1..JamServer.MAX_JOIN_HANDSHAKES).map {
+            async(Dispatchers.IO) { assertFailsWith<JamException> { client().join(loopback, port, "000000", "Mallory $it") }.error }
+        }.awaitAll()
+        assertEquals(3, errors.count { it == JamError.WrongCode }, "counted guesses: $errors")
+        assertTrue(errors.all { it == JamError.WrongCode || it == JamError.Locked }, "$errors")
+    }
+
+    @Test
+    fun tenWrongCodesExhaustTheCodeUntilTheHostReplacesIt() = test {
+        val server = server()
+        val port = server.start(code)
+        val stay = join(port, "Stay")
+        var wrong = 0
+        while (wrong < JamServer.MAX_WRONG_CODES) {
+            val e = assertFailsWith<JamException> { join(port, "Mallory", code = "000000") }
+            when (e.error) {
+                JamError.WrongCode -> wrong++
+                JamError.Locked -> hostClock.now = server.lockedUntilMs.value // wait out the cool-down
+                else -> error("unexpected ${e.error}")
+            }
+        }
+        server.codeExhausted.first { it }
+        hostClock.now = server.lockedUntilMs.value + 1
+        // Past the timed lock, the code is still dead.
+        expectError(JamError.CodeExhausted) { join(port, "Ana") }
+
+        // Reconnects do not need the code.
+        stay.abort()
+        server.await<JamEvent.GuestLeft> { it.id == stay.guestId }
+        client().reconnect(loopback, port, stay.reconnectTicket, "Stay").also { connections += it }
+
+        server.replaceCode("135790")
+        assertFalse(server.codeExhausted.value)
+        expectError(JamError.WrongCode) { join(port, "Ana") } // the old code is just a wrong one now
+        val guest = join(port, "Ana", code = "135790")
+        assertEquals(guest.guestId, server.await<JamEvent.GuestJoined> { it.name == "Ana" }.id)
+    }
+
+    /** Pairs-to-be that send the join preamble and a J-PAKE length, then one byte every 100 ms. */
+    private fun CoroutineScope.trickler(port: Int): Socket {
+        val socket = Socket(loopback, port)
+        val output = DataOutputStream(socket.getOutputStream())
+        JamWire.writePreamble(output, JamWire.MODE_JOIN)
+        output.writeInt(1_000)
+        output.flush()
+        launch(Dispatchers.IO) {
+            runCatching {
+                while (true) {
+                    output.write(0)
+                    output.flush()
+                    delay(100)
+                }
+            }
+        }
+        return socket
+    }
+
+    @Test
+    fun slowHandshakesLoseTheirSlotAtTheDeadlineAndReconnectsKeepASlot() = test {
+        val server = server(pairingTimeoutMs = 1_500)
+        val port = server.start(code)
+        val dropped = join(port, "Ana")
+        dropped.abort()
+        server.await<JamEvent.GuestLeft>()
+
+        coroutineScope {
+            val tricklers = (1..JamServer.MAX_JOIN_HANDSHAKES).map { trickler(port) }
+            server.joinHandshakes.first { it == JamServer.MAX_JOIN_HANDSHAKES }
+            // Joins are saturated: a newcomer is told to try again, a returning guest still gets in.
+            expectError(JamError.Locked) { join(port, "Late") }
+            client().reconnect(loopback, port, dropped.reconnectTicket, "Ana").also { connections += it }
+            // Each trickler is closed by the total deadline although it never stops sending.
+            tricklers.forEach { assertEquals(-1, withContext(Dispatchers.IO) { readOrEof(it.getInputStream()) }) }
+            tricklers.forEach { it.close() }
+        }
+        server.joinHandshakes.first { it == 0 }
+        join(port, "Late")
+    }
+
+    @Test
+    fun broadcastRacingStopStillDeliversJamEnd() = test {
+        val server = server()
+        val port = server.start(code)
+        val guests = (1..3).map { join(port, "Guest $it") }
+        server.beforeDeliver = { server.stop() } // stop lands between the broadcast's snapshot and its sends
+        server.broadcast(state(0))
+        guests.forEach { assertEquals(listOf<JamFrame>(JamEnd(JamServer.REASON_HOST_ENDED)), it.frames.toList()) }
+    }
+
+    @Test
+    fun aWrongReconnectKeyDoesNotBurnTheTicket() = test {
+        val server = server()
+        val port = server.start(code)
+        val guest = join(port, "Ana")
+        val ticket = guest.reconnectTicket
+        guest.abort()
+        server.await<JamEvent.GuestLeft>()
+        val forged = JamReconnectTicket(ticket.guestId, ByteArray(JamWire.KEY_SIZE))
+        expectError(JamError.ReconnectRefused) { client().reconnect(loopback, port, forged, "Eve") }
+        val back = client().reconnect(loopback, port, ticket, "Ana").also { connections += it }
+        assertEquals(guest.guestId, back.guestId)
+    }
+
+    @Test
+    fun aGuestFloodingRequestsIsRateLimited() = test {
+        val server = server()
+        val port = server.start(code)
+        val guest = join(port, "Ana")
+        // 2× the limit: with the ping burst and the final JamEnd this still fits the client's 64-frame outbox.
+        repeat(JamServer.MAX_REQUESTS_PER_SECOND * 2) { guest.send(JamAddRequest(song)) }
+        guest.close()
+        val events = mutableListOf<JamEvent>()
+        server.events.first { events += it; it is JamEvent.GuestLeft }
+        assertEquals(JamServer.MAX_REQUESTS_PER_SECOND, events.count { it is JamEvent.AddRequest })
     }
 
     @Test

@@ -37,7 +37,7 @@ class JamReconnectTicket internal constructor(val guestId: String, internal val 
 /**
  * The guest side of a Jam. [join] pairs with the host's code (its own J-PAKE round); [reconnect] comes back after a
  * drop with the connection's [JamConnection.reconnectTicket], without the code. Failures are [JamException]s:
- * [JamError.WrongCode], [JamError.Locked], [JamError.Full], [JamError.VersionMismatch], [JamError.HostGone],
+ * [JamError.WrongCode], [JamError.Locked], [JamError.CodeExhausted], [JamError.Full], [JamError.VersionMismatch], [JamError.HostGone],
  * [JamError.ReconnectRefused].
  *
  * [clock] stamps pings for [ClockSync]; blocking IO runs on [dispatcher] (must allow blocking in parallel).
@@ -56,6 +56,13 @@ class JamClient(
     suspend fun join(host: String, port: Int, code: String, name: String): JamConnection =
         connect(host, port, name) { input, output ->
             JamWire.writePreamble(output, JamWire.MODE_JOIN)
+            when (input.readUnsignedByte()) {
+                JamWire.STATUS_OK -> Unit
+                // Busy (joins saturated) is reported like the cool-down: try again shortly.
+                JamWire.STATUS_LOCKED, JamWire.STATUS_BUSY -> throw JamException(JamError.Locked)
+                JamWire.STATUS_EXHAUSTED -> throw JamException(JamError.CodeExhausted)
+                else -> throw JamException(JamError.HostGone)
+            }
             val keyingMaterial = try {
                 JpakeHandshake.run(input, output, code, Role.Receiver, "jam-guest")
             } catch (e: DeviceSyncAuthException) {

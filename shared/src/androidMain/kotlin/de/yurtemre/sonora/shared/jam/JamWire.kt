@@ -23,8 +23,11 @@ import org.bouncycastle.crypto.params.KeyParameter
  *
  * - **Preamble** (clear, before anything else): `"SJAM"` + mode byte, [MODE_JOIN] or [MODE_RECONNECT]. A device
  *   sync client (or anything else) that connects is closed on the bad magic.
- * - **Join**: then the unchanged [de.yurtemre.sonora.shared.devicesync.JpakeHandshake] with the Jam code (host =
- *   `Role.Sender`, guest = `Role.Receiver`) and a [SecureChannel] on its keying material.
+ * - **Join**: host → `[status:u8]`: [STATUS_OK], or a refusal before any guess ([STATUS_BUSY] too many joins in
+ *   their handshake, [STATUS_LOCKED] cool-down, [STATUS_EXHAUSTED] the code took too many wrong guesses); the guest
+ *   waits for it before writing anything else. On OK the unchanged
+ *   [de.yurtemre.sonora.shared.devicesync.JpakeHandshake] with the Jam code (host = `Role.Sender`, guest =
+ *   `Role.Receiver`) and a [SecureChannel] on its keying material.
  * - **Reconnect**: guest → `[idLen:u16][guestId UTF-8][clientNonce:32]`; host → `[status:u8]` and, on [STATUS_OK],
  *   `[serverNonce:32]`; both then open a [SecureChannel] on [reconnectKeyingMaterial]. The guest proves the key by
  *   its first record (an AES-GCM tag that only the key holder can produce), the host by its answer.
@@ -36,6 +39,9 @@ internal object JamWire {
     const val MODE_RECONNECT = 2
     const val STATUS_OK = 0
     const val STATUS_REFUSED = 1
+    const val STATUS_LOCKED = 2
+    const val STATUS_BUSY = 3
+    const val STATUS_EXHAUSTED = 4
     const val NONCE_SIZE = 32
     const val KEY_SIZE = 16
     private const val MAX_ID_BYTES = 64
@@ -55,6 +61,11 @@ internal object JamWire {
         val mode = input.readUnsignedByte()
         if (mode != MODE_JOIN && mode != MODE_RECONNECT) throw DeviceSyncProtocolException("Unknown Jam mode $mode")
         return mode
+    }
+
+    fun writeStatus(output: DataOutputStream, status: Int) {
+        output.writeByte(status)
+        output.flush()
     }
 
     fun writeReconnectRequest(output: DataOutputStream, guestId: String, clientNonce: ByteArray) {

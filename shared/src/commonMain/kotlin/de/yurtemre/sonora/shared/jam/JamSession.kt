@@ -23,6 +23,9 @@ enum class JamError {
     /** Too many wrong codes: the host refuses new joins for a short cool-down. */
     Locked,
 
+    /** Too many wrong codes in total: no more joins until the host shows a new code. */
+    CodeExhausted,
+
     /** The host could not be reached or the connection broke without a [JamEnd]. */
     HostGone,
 
