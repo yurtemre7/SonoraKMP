@@ -68,12 +68,16 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         trimmed = wasTrimmed
     }
 
-    /** Leaves only the song [view] plays in the player (it plays on, gapless); nothing follows it. */
-    fun trimToCurrent(view: LocalView) {
+    /**
+     * Leaves only the song [view] plays in the player (it plays on, gapless); nothing follows it, and it no longer
+     * loops: a looping song would never end, so neither the end of a Jam nor a host skip could be waited out.
+     */
+    fun trimToCurrent(view: LocalView, keepLoop: Boolean = false) {
         // Not reported yet: the player's position may still be the guest's own song's; the next frame decides.
         val position = view.positionMs ?: return
         val song = run.firstOrNull { it.id == view.songId } ?: return
-        if (run.map { it.id } != listOf(song.id)) load(listOf(song), 0, position, view.playing)
+        val loop = keepLoop && repeatOne
+        if (run.map { it.id } != listOf(song.id) || repeatOne != loop) load(listOf(song), 0, position, view.playing, repeatOne = loop)
         trimmed = true
     }
 

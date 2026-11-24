@@ -1,6 +1,8 @@
 package de.yurtemre.sonora.jam
 
+import de.yurtemre.sonora.shared.jam.JamEnd
 import de.yurtemre.sonora.shared.jam.JamRepeat
+import de.yurtemre.sonora.shared.jam.JamServer
 import de.yurtemre.sonora.shared.jam.JamStateFrame
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -81,5 +83,37 @@ class JamRepeatTest : JamControllerTestBase() {
         runCurrent()
         assertEquals(a, playback.player.value.currentSong)
         assertTrue(playback.player.value.isPlaying)
+    }
+
+    @Test fun hostEndingTheJamOnRepeatOneStopsTheLoopSoTheSongCanFinish() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, repeat = JamRepeat.One)))
+        runCurrent()
+        advanceTimeBy(1_000)
+        link.deliver(JamEnd(JamServer.REASON_HOST_ENDED))
+        runCurrent()
+        val load = playback.mirrorLoads.last()
+        assertEquals(listOf(a.id), load.songIds)
+        assertEquals("a looping song would never end", false, load.repeatOne)
+        assertEquals(JamSyncState.Ending, (jam.state.value as JamUiState.Joined).sync)
+        playback.finishSong()
+        runCurrent()
+        assertEquals(JamUiState.Ended(JamEndReason.HostEnded), jam.state.value)
+    }
+
+    @Test fun hostSkippingInTheTailOnRepeatOneLetsTheOldSongFinishInsteadOfLooping() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, repeat = JamRepeat.One)))
+        runCurrent()
+        advanceTimeBy(a.durationMs - 5_000)
+        playback.position = a.durationMs - 5_000
+        link.deliver(JamStateFrame(state(a, b, index = 1, positionMs = 0, repeat = JamRepeat.One)))
+        runCurrent()
+        val load = playback.mirrorLoads.last()
+        assertEquals(listOf(a.id), load.songIds)
+        assertEquals("it must be able to end", false, load.repeatOne)
+        assertEquals(a, playback.player.value.currentSong)
     }
 }

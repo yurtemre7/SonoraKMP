@@ -105,7 +105,7 @@ internal class JamGuestPlayer(
             if (v.playing) {
                 if (plan.seekOnNextBoundary) {
                     pendingSeek = true // never mid-song: the seek waits for the next pause
-                    mirror.trimToCurrent(v) // and the next song waits for the host
+                    mirror.trimToCurrent(v, keepLoop = true) // and the next song waits for the host
                     mirror.setRepeatOne(v, s.repeat == JamRepeat.One)
                 } else {
                     refreshRun(s, v)
