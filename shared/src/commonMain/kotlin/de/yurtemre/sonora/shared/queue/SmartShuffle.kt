@@ -2,7 +2,7 @@ package de.yurtemre.sonora.shared.queue
 
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.SongStats
-import kotlin.math.pow
+import kotlin.math.ln
 import kotlin.random.Random
 
 private const val DAY_MS = 24L * 60 * 60 * 1000
@@ -24,7 +24,8 @@ fun smartWeight(song: Song, stats: SongStats?, nowMs: Long): Double {
 
 object SmartShuffle {
     /**
-     * Weighted shuffle (Efraimidis-Spirakis keys `u^(1/w)`, descending), followed by a pass that
+     * Weighted shuffle (Efraimidis-Spirakis keys `u^(1/w)`, descending, taken in log space as `ln(u) / w` so tiny
+     * weights never underflow to ties), followed by a pass that
      * separates back-to-back songs of the same artist where possible.
      */
     fun order(
@@ -38,7 +39,7 @@ object SmartShuffle {
             .map { s ->
                 val w = smartWeight(s, stats[s.id], nowMs)
                 val u = 1.0 - random.nextDouble() // (0, 1]
-                s to u.pow(1.0 / w)
+                s to ln(u) / w
             }
             .sortedByDescending { it.second }
             .map { it.first }

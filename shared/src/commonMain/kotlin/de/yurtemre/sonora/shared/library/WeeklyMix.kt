@@ -9,6 +9,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -78,7 +79,9 @@ object WeeklyMix {
             if (n <= 0) return
             val ordered = pool.mapNotNull { s ->
                 val w = weight(s)
-                if (w <= 0.0) null else s to (1.0 - random.nextDouble()).pow(1.0 / w) // Efraimidis-Spirakis
+                // Efraimidis-Spirakis key u^(1/w) in log space (ln(u) / w, same order): never underflows to a tie
+                // for tiny weights, which would pick those songs in library order every week.
+                if (w <= 0.0) null else s to ln(1.0 - random.nextDouble()) / w
             }.sortedByDescending { it.second }
             var left = n
             for ((s, _) in ordered) {

@@ -181,4 +181,15 @@ class WeeklyMixTest {
         assertEquals(a, b)
         assertNotEquals(a, c)
     }
+    @Test
+    fun buildPicksTinyWeightSongsRandomlyNotInLibraryOrder() {
+        // Played long ago: liked scores around 1e-11, where u^(1/w) underflows to 0 and every key ties.
+        val songs = (1L..100L).map { mk(it) }
+        val stats = songs.associate { it.id to played(5, last = now - 3 * 365 * dayMs) }
+        val firstThirty = (1L..30L).toSet()
+        repeat(10) { seed ->
+            val ids = WeeklyMix.build(songs, stats, now, Random(seed)).map { it.id }.toSet()
+            assertTrue(!ids.containsAll(firstThirty), "seed $seed picked the first 30 library songs: $ids")
+        }
+    }
 }
