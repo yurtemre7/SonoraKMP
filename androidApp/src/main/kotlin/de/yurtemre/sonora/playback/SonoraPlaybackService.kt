@@ -35,6 +35,7 @@ import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.RepeatMode
+import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.queue.add
 import de.yurtemre.sonora.shared.queue.cleared
 import de.yurtemre.sonora.shared.queue.currentEntry
@@ -46,9 +47,11 @@ import de.yurtemre.sonora.shared.queue.move
 import de.yurtemre.sonora.shared.queue.playNext
 import de.yurtemre.sonora.shared.queue.quickShuffle
 import de.yurtemre.sonora.shared.queue.removeByUid
+import de.yurtemre.sonora.shared.queue.SmartShuffle
 import de.yurtemre.sonora.shared.queue.skipTo
 import de.yurtemre.sonora.shared.queue.toggleShuffle
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.settings.PlaybackStateStore
 import de.yurtemre.sonora.shared.settings.SavedPlaybackState
@@ -65,6 +68,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -94,6 +99,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private lateinit var sleepTimer: SleepTimer
     private var session: MediaLibrarySession? = null
     private var settings = AppSettings()
+    private var songIndexState: StateFlow<Map<Long, Song>?> = MutableStateFlow(null)
+    private var statsState: StateFlow<Map<Long, SongStats>?> = MutableStateFlow(null)
     private var restoreJob: Job? = null
     /** A user load happened; a pending restore must not override it. */
     private var userLoaded = false
@@ -138,6 +145,9 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         val songIndex = library.songs.map { l -> l.associateBy { it.id } }
             .flowOn(Dispatchers.Default)
             .stateIn(scope, SharingStarted.Eagerly, null)
+        songIndexState = songIndex
+        // Latest stats snapshot for smart shuffle; handle() is not suspending, so it reads the cached value.
+        statsState = stats.snapshot.map { it.songs }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Eagerly, null)
         queue = QueueController(player, scope, songs = { ids ->
             val index = songIndex.filterNotNull().first()
             buildMap { ids.forEach { id -> index[id]?.let { put(id, it) } } }
@@ -313,7 +323,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 userLoaded = true
                 val ns = if (a.getBoolean(C.ARG_SHUFFLE)) {
                     recorder.onShuffleSessionStarted()
-                    s.quickShuffle(ids, playlistContext = playlist)
+                    s.quickShuffle(ids, playlistContext = playlist, reorder = smartReorder())
                 } else {
                     s.load(ids, a.getLong(C.ARG_START_SONG, -1L).takeIf { it >= 0 }, playlist)
                 }
@@ -385,8 +395,27 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         }
     }
 
+    /**
+     * Smart shuffle ordering for upcoming entries, or null (plain shuffle) when the setting is off.
+     * Entries whose song is not in the library keep their relative order at the end.
+     */
+    private fun smartReorder(): ((List<QueueEntry>) -> List<QueueEntry>)? {
+        if (!settings.smartShuffle) return null
+        return { entries ->
+            val index = songIndexState.value.orEmpty()
+            val known = entries.filter { it.songId in index }
+            val unknown = entries.filter { it.songId !in index }
+            val order = SmartShuffle.order(
+                known.map { index.getValue(it.songId) }, statsState.value.orEmpty(), System.currentTimeMillis(),
+            )
+            // A song can appear several times in a queue: hand out its entries in order.
+            val bySong = known.groupBy { it.songId }.mapValues { it.value.toMutableList() }
+            order.map { bySong.getValue(it.id).removeAt(0) } + unknown
+        }
+    }
+
     private fun toggleShuffle(s: QueueState) {
-        val ns = s.toggleShuffle()
+        val ns = s.toggleShuffle(reorder = smartReorder())
         if (ns.isShuffled) recorder.onShuffleSessionStarted()
         queue.applyEdit(ns)
     }

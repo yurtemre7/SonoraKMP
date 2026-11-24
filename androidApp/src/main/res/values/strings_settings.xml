@@ -120,6 +120,8 @@
     <string name="settings_section_startup">Start-up</string>
     <string name="settings_skip_silence">Skip silence</string>
     <string name="settings_skip_silence_subtitle">Jump over silent passages in songs</string>
+    <string name="settings_smart_shuffle">Smart shuffle</string>
+    <string name="settings_smart_shuffle_subtitle">Plays songs you skip less, favourites more, and avoids the same artist twice in a row</string>
     <string name="settings_fade_songs">Fade between songs</string>
     <string name="settings_fade_songs_subtitle">Fade the end of a song out and the next one in. Songs do not overlap.</string>
     <string name="settings_keep_playing">Keep playing when closed</string>

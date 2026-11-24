@@ -39,6 +39,7 @@ object SettingsKeys {
     val SLEEP_TIMER_FINISH_SONG = booleanPreferencesKey("sleep_timer_finish_song")
     /** Native-only. */
     val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
+    val SMART_SHUFFLE = booleanPreferencesKey("smart_shuffle")
     /** Native-only. */
     val FADE_BETWEEN_SONGS_SECONDS = intPreferencesKey("fade_between_songs_seconds")
     /** Native-only: persisted repeat mode (`off`/`all`/`one`). */

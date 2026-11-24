@@ -1,14 +1,22 @@
 package de.yurtemre.sonora.shared.queue
 
+import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.RepeatMode
 import kotlin.random.Random
 
-/** PLAY-03: history + current stay; only upcoming entries are shuffled. No-op without a current entry. */
-fun QueueState.shuffleOn(random: Random = Random): QueueState {
+/**
+ * PLAY-03: history + current stay; only upcoming entries are shuffled. No-op without a current entry.
+ * A non-null [reorder] replaces the plain shuffle of the upcoming entries (smart shuffle).
+ */
+fun QueueState.shuffleOn(
+    random: Random = Random,
+    reorder: ((List<QueueEntry>) -> List<QueueEntry>)? = null,
+): QueueState {
     if (currentEntry == null || isShuffled) return this
     val head = entries.subList(0, currentIndex + 1)
-    val upcoming = entries.subList(currentIndex + 1, entries.size).shuffled(random)
+    val rest = entries.subList(currentIndex + 1, entries.size)
+    val upcoming = reorder?.invoke(rest) ?: rest.shuffled(random)
     return copy(entries = head + upcoming, isShuffled = true)
 }
 
@@ -21,14 +29,22 @@ fun QueueState.shuffleOff(): QueueState {
     return copy(entries = original, currentIndex = idx, isShuffled = false)
 }
 
-fun QueueState.toggleShuffle(random: Random = Random): QueueState =
-    if (isShuffled) shuffleOff() else shuffleOn(random)
+fun QueueState.toggleShuffle(
+    random: Random = Random,
+    reorder: ((List<QueueEntry>) -> List<QueueEntry>)? = null,
+): QueueState =
+    if (isShuffled) shuffleOff() else shuffleOn(random, reorder)
 
 /** PLAY-03: shuffled copy of [songIds] starting at its first entry; original = unshuffled list. */
-fun QueueState.quickShuffle(songIds: List<Long>, random: Random = Random, playlistContext: String? = null): QueueState {
+fun QueueState.quickShuffle(
+    songIds: List<Long>,
+    random: Random = Random,
+    playlistContext: String? = null,
+    reorder: ((List<QueueEntry>) -> List<QueueEntry>)? = null,
+): QueueState {
     val loaded = load(songIds, playlistContext = playlistContext)
     if (loaded.entries.isEmpty()) return loaded
-    return loaded.copy(entries = loaded.entries.shuffled(random), currentIndex = 0, isShuffled = true)
+    return loaded.copy(entries = reorder?.invoke(loaded.entries) ?: loaded.entries.shuffled(random), currentIndex = 0, isShuffled = true)
 }
 
 /** PLAY-04: off → all → one → off. */

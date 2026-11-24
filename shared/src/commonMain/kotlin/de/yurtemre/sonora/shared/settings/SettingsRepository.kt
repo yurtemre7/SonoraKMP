@@ -52,6 +52,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSleepTimerFadeOutSeconds(v: Int) = put { it[K.SLEEP_TIMER_FADE_OUT_SECONDS] = v }
     suspend fun setSleepTimerFinishSong(v: Boolean) = put { it[K.SLEEP_TIMER_FINISH_SONG] = v }
     suspend fun setSkipSilence(v: Boolean) = put { it[K.SKIP_SILENCE] = v }
+    suspend fun setSmartShuffle(v: Boolean) = put { it[K.SMART_SHUFFLE] = v }
     suspend fun setFadeBetweenSongsSeconds(v: Int) = put { it[K.FADE_BETWEEN_SONGS_SECONDS] = v }
     suspend fun setRepeatMode(v: RepeatMode) = put { it[K.REPEAT_MODE] = v.storageName }
     suspend fun setVolume(v: Double) = put { it[K.VOLUME] = v }
@@ -171,6 +172,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                     ?.let { AppSettings.nearestOption(AppSettings.SLEEP_TIMER_FADE_OPTIONS, it) } ?: d.sleepTimerFadeOutSeconds,
                 sleepTimerFinishSong = p[K.SLEEP_TIMER_FINISH_SONG] ?: d.sleepTimerFinishSong,
                 skipSilence = p[K.SKIP_SILENCE] ?: d.skipSilence,
+                smartShuffle = p[K.SMART_SHUFFLE] ?: d.smartShuffle,
                 fadeBetweenSongsSeconds = p[K.FADE_BETWEEN_SONGS_SECONDS]
                     ?.let { AppSettings.nearestOption(TransitionFade.OPTIONS_SECONDS, it) } ?: d.fadeBetweenSongsSeconds,
                 repeatMode = RepeatMode.fromStorage(p[K.REPEAT_MODE]),
