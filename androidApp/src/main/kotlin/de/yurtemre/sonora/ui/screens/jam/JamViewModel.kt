@@ -100,7 +100,10 @@ class JamViewModel(
     val confirm: StateFlow<JamConfirm?> = _confirm.asStateFlow()
 
     private var discoveryJob: Job? = null
-    private var hostRequested = false
+    private val _starting = MutableStateFlow(false)
+    /** A [startHosting] is under way (the server is starting). */
+    val starting: StateFlow<Boolean> = _starting.asStateFlow()
+    private var lastSettings = JamSettings()
 
     val screen: StateFlow<JamScreen> = combine(jam.state, joinOpen) { s, open ->
         when (s) {
@@ -153,6 +156,19 @@ class JamViewModel(
     // ---- join -------------------------------------------------------------------------------------------------------
 
     fun openJoin() { joinOpen.value = true }
+
+    /** Back from the join form to the start screen (an error or a rejoin target is dropped). */
+    fun closeJoin() {
+        stopDiscovery()
+        joinOpen.value = false
+        form = JoinForm()
+        if (jam.state.value is JamUiState.Error) jam.dismiss()
+    }
+
+    /** Stops a join that is still connecting; the form stays. */
+    fun cancelJoin() {
+        if (jam.state.value == JamUiState.Joining) jam.leave()
+    }
 
     /** Starts (or restarts) LAN discovery and the search timer that opens the manual address field. */
     fun startDiscovery() {
@@ -253,8 +269,9 @@ class JamViewModel(
 
     /** Starts hosting once per screen (a recreated screen does not start a second Jam); failure shows HostFailed. */
     fun startHosting(settings: JamSettings) {
-        if (hostRequested || jam.state.value is JamUiState.Hosting) return
-        hostRequested = true
+        if (_starting.value || jam.state.value is JamUiState.Hosting) return
+        _starting.value = true
+        lastSettings = settings
         viewModelScope.launch {
             try {
                 jam.host(settings)
@@ -263,9 +280,15 @@ class JamViewModel(
             } catch (_: IOException) {
                 // The state is HostFailed; the screen offers to try again.
             } finally {
-                hostRequested = false
+                _starting.value = false
             }
         }
+    }
+
+    /** After [JamUiState.HostFailed]: the same permissions again. */
+    fun retryHosting() {
+        jam.dismiss()
+        startHosting(lastSettings)
     }
 
     fun setGuestsCanAdd(allowed: Boolean) = jam.setGuestsCanAdd(allowed)

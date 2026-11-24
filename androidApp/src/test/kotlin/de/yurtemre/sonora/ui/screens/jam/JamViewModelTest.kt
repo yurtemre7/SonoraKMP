@@ -313,9 +313,15 @@ class JamViewModelTest {
     @Test fun hostingThatCannotStartShowsTheFailure() = runTest(dispatcher) {
         jam.hostFails = true
         val vm = vm()
-        vm.startHosting(JamSettings())
+        val settings = JamSettings(guestsCanAdd = false)
+        vm.startHosting(settings)
         runCurrent()
         assertEquals(JamScreen.HostFailed, vm.screen.value)
+        jam.hostFails = false
+        vm.retryHosting()
+        runCurrent()
+        assertEquals(listOf(settings, settings), jam.hosts)
+        assertEquals(JamScreen.Host, vm.screen.value)
     }
 
     private fun hosting(vararg guests: JamGuestUi, exhausted: Boolean = false) =
