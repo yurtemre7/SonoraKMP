@@ -36,12 +36,54 @@ class ClockSyncTest {
         assertEquals(50L, c.offsetMs())
     }
 
-    @Test fun resetKeepsOffsetUntilNewSample() {
+    private fun full(c: ClockSync) = repeat(8) { c.addSample(0, 100, 100) } // offset 50
+
+    @Test fun worseFirstSampleAfterResetKeepsOffset() {
         val c = ClockSync()
-        repeat(8) { c.addSample(0, 100, 100) }
+        full(c)
         c.reset()
         assertEquals(50L, c.offsetMs())
-        c.addSample(0, 1000, 400) // new window, worse rtt than before still replaces
+        c.addSample(0, 1000, 400)
+        assertEquals(50L, c.offsetMs())
+    }
+
+    @Test fun offsetSwitchesWhenEighthSampleArrives() {
+        val c = ClockSync()
+        full(c)
+        c.reset()
+        c.addSample(0, 1000, 400) // offset 800
+        repeat(6) { c.addSample(0, 1000, 20) } // best offset 990
+        assertEquals(50L, c.offsetMs())
+        c.addSample(0, 1000, 20)
+        assertEquals(990L, c.offsetMs())
+    }
+
+    @Test fun commitAppliesBestOfPending() {
+        val c = ClockSync()
+        full(c)
+        c.reset()
+        c.addSample(0, 1000, 400)
+        c.addSample(0, 1000, 20)
+        c.addSample(0, 1000, 100)
+        assertEquals(50L, c.offsetMs())
+        c.commit()
+        assertEquals(990L, c.offsetMs())
+    }
+
+    @Test fun commitWithNoPendingIsNoOp() {
+        val c = ClockSync()
+        full(c)
+        c.reset()
+        c.commit()
+        assertEquals(50L, c.offsetMs())
+        val fresh = ClockSync()
+        fresh.commit()
+        assertNull(fresh.offsetMs())
+    }
+
+    @Test fun firstWindowPublishesAfterOneSampleAndImproves() {
+        val c = ClockSync()
+        c.addSample(0, 1000, 400)
         assertEquals(800L, c.offsetMs())
         c.addSample(0, 1000, 20)
         assertEquals(990L, c.offsetMs())

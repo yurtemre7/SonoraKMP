@@ -23,7 +23,7 @@ data class JamState(
 enum class JamAction { Play, Pause, Next, Previous }
 
 @Serializable
-data class JamHelloPayload(val protocol: Int, val name: String)
+internal data class JamHelloPayload(val protocol: Int, val name: String)
 
 sealed interface JamFrame
 data class JamHello(val protocol: Int, val name: String) : JamFrame

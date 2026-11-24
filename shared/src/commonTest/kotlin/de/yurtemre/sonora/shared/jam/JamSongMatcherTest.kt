@@ -22,8 +22,8 @@ class JamSongMatcherTest {
     }
 
     @Test fun caseAndUnicodeInsensitive() {
-        val j = JamSong("  ÄÖÜ straße ", "ÉMILIE", "", 1000)
-        assertEquals(5L, JamSongMatcher.match(j, listOf(song(5, title = "äöü Straße".replace("ß", "ß"), artist = "émilie", dur = 1000)))?.id)
+        val j = JamSong("  ÄÖÜ Straße ", "ÉMILIE", "", 1000)
+        assertEquals(5L, JamSongMatcher.match(j, listOf(song(5, title = "äöü straße", artist = "émilie", dur = 1000)))?.id)
     }
 
     @Test fun tieBreakPrefersAlbumThenDurationThenPath() {
