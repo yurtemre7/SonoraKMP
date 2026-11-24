@@ -192,6 +192,7 @@ class PlaybackConnectionImpl(
             hasPrevious = cur != null && (curIndex > 0 || wraps),
             userVolume = c?.volume ?: settings.volume.toFloat(),
             playlistContext = qs.playlistContext,
+            systemPauseId = extras.systemPauseId,
         )
         if (itemsFor?.first !== qs.entries || itemsFor?.second !== songs) {
             items = qs.entries.mapNotNull { e -> songs[e.songId]?.let { QueueItemUi(e.uid, it) } }

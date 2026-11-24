@@ -24,6 +24,11 @@ data class PlayerUiState(
     /** In-app user volume 0..1 (PLAY-11). */
     val userVolume: Float = 1f,
     val playlistContext: String? = null,
+    /**
+     * Bumped each time the service paused playback by itself for the audio route: headphones unplugged (becoming
+     * noisy) or audio focus lost for good. A Jam guest then stays paused until the user resumes.
+     */
+    val systemPauseId: Long = 0,
 )
 
 data class QueueItemUi(val entryUid: Long, val song: Song)

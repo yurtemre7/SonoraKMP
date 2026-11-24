@@ -34,6 +34,16 @@ fun externalPlayerCommands(base: Player.Commands, mirroring: Boolean): Player.Co
 fun isExternalController(controllerPackage: String, ownPackage: String, isNotificationController: Boolean): Boolean =
     controllerPackage != ownPackage || isNotificationController
 
+/**
+ * Whether ExoPlayer's own pause ([Player.Listener.onPlayWhenReadyChanged]) was made for the audio route (focus lost
+ * for good, or becoming noisy): a Jam guest then stays paused until the user resumes.
+ */
+fun isSystemPause(playWhenReady: Boolean, reason: Int): Boolean =
+    !playWhenReady && (
+        reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS ||
+            reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+        )
+
 /** What the session does with a player command from a controller while a Jam guest may be mirroring. */
 enum class ExternalCommand { Allow, RequestPlayPause, Reject }
 

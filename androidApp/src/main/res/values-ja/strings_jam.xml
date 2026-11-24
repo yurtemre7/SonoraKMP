@@ -105,6 +105,7 @@
     <string name="jam_status_syncing">同期中…</string>
     <string name="jam_status_in_sync">同期済み</string>
     <string name="jam_status_reconnecting">再接続中…</string>
+    <string name="jam_status_paused_by_system">一時停止中。再生をタップすると戻ります</string>
     <string name="jam_status_ending">この曲が終わると Jam は終了します</string>
 
     <!-- Ended -->

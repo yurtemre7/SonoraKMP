@@ -29,6 +29,8 @@ class NoisyAndReconnectHandler(
     private val scope: CoroutineScope,
     /** Optional faded play (PLAY-19); defaults to plain play(). */
     private val resume: () -> Unit = { player.play() },
+    /** Called after a becoming-noisy pause (headphones unplugged): a Jam guest stays paused. */
+    private val onPausedByDisconnect: () -> Unit = {},
 ) {
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val handler = Handler(Looper.getMainLooper())
@@ -44,6 +46,7 @@ class NoisyAndReconnectHandler(
             if (!current.pauseOnDisconnect || !player.isPlaying) return
             wasPlayingBeforeDisconnect = true
             player.pause()
+            onPausedByDisconnect()
         }
     }
 

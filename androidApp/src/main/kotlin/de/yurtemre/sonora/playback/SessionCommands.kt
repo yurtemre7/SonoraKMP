@@ -2,6 +2,7 @@ package de.yurtemre.sonora.playback
 
 import android.os.Bundle
 import androidx.media3.session.SessionCommand
+import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.model.QueueState
 import kotlinx.serialization.json.Json
@@ -89,6 +90,7 @@ object SessionCommands {
     private const val X_ERR_SONG = "x.err.song"
     private const val X_ERR_CODE = "x.err.code"
     private const val X_ERR_STOPPED = "x.err.stopped"
+    private const val X_SYSTEM_PAUSE = "x.pause.system"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -103,6 +105,8 @@ object SessionCommands {
         val eq: AudioEffects.EqInfo? = null,
         /** Last unplayable-item event; a new [PlaybackErrorEvent.id] means "show once". */
         val playbackError: PlaybackErrorEvent? = null,
+        /** Count of pauses the service made for the audio route ([PlayerUiState.systemPauseId]). */
+        val systemPauseId: Long = 0,
     )
 
     /**
@@ -133,6 +137,7 @@ object SessionCommands {
                 putInt(X_SLEEP_TRACKS, s.remaining); putInt(X_SLEEP_FADE, s.fadeSeconds)
             }
         }
+        putLong(X_SYSTEM_PAUSE, e.systemPauseId)
         putBoolean(X_EQ_SUPPORTED, e.eqSupported)
         e.eq?.let {
             putIntArray(X_EQ_CENTERS, it.centersHz.toIntArray()); putInt(X_EQ_MIN, it.minMb); putInt(X_EQ_MAX, it.maxMb)
@@ -153,6 +158,6 @@ object SessionCommands {
             b.getLong(X_ERR_ID), if (b.containsKey(X_ERR_SONG)) b.getLong(X_ERR_SONG) else null,
             b.getInt(X_ERR_CODE), b.getBoolean(X_ERR_STOPPED),
         ) else null
-        return Extras(sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err)
+        return Extras(sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err, b.getLong(X_SYSTEM_PAUSE, 0L))
     }
 }

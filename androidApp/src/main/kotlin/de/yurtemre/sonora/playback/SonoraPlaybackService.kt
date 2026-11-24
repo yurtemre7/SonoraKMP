@@ -114,6 +114,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     /** Jam guest mode: a mirrored queue is loaded (see [setMirror]); never persisted. */
     private lateinit var mirrorMode: JamMirrorMode
     private val mirroring: Boolean get() = mirrorMode.active
+    /** Pauses made for the audio route (unplugged, focus lost); published so a Jam guest stays paused. */
+    private var systemPauses = 0L
 
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
@@ -140,6 +142,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         override fun onPlayerError(error: PlaybackException) = handlePlayerError(error)
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) noisy.clearDisconnectFlag()
+            if (isSystemPause(playWhenReady, reason)) onSystemPause() // Media3's own focus handling
         }
     }
 
@@ -192,9 +195,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
         mirrorMode = JamMirrorMode(persistence, setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
-        focus = AudioFocusController(this, exo, settingsRepo.settings, scope).also { it.start() }
-        noisy = NoisyAndReconnectHandler(this, exo, settingsRepo.settings, scope, resume = { player.play() })
+        focus = AudioFocusController(this, exo, settingsRepo.settings, scope, onPermanentLoss = ::onSystemPause)
             .also { it.start() }
+        noisy = NoisyAndReconnectHandler(
+            this, exo, settingsRepo.settings, scope, resume = { player.play() }, onPausedByDisconnect = ::onSystemPause,
+        ).also { it.start() }
         widget = WidgetUpdater(this, player)
         sleepTimer = SleepTimer(scope, host, SleepTimerNotifier(this, ComponentName(this, SonoraPlaybackService::class.java)))
 
@@ -563,13 +568,19 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         session?.setMediaButtonPreferences(NotificationButtons.build(this, timerActive))
     }
 
+    /** The player paused for the audio route: tell controllers (a Jam guest must not be restarted by the host). */
+    private fun onSystemPause() {
+        systemPauses++
+        publishExtras()
+    }
+
     private fun publishExtras() {
         val s = session ?: return
         s.setSessionExtras(
             C.toBundle(
                 C.Extras(
                     sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value,
-                    lastError,
+                    lastError, systemPauses,
                 ),
             ),
         )

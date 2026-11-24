@@ -20,6 +20,9 @@ interface JamControls {
     fun kick(guestId: String)
     fun newCode()
 
+    /** A guest's play after a system pause (headphones unplugged, focus lost): only this phone resumes. */
+    fun resumeAfterSystemPause()
+
     fun requestPlay()
     fun requestPause()
     fun requestNext()

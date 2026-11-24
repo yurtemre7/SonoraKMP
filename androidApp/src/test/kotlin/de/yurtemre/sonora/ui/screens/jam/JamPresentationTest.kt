@@ -197,6 +197,17 @@ class JamPresentationTest {
         assertFalse(miniPlayerControls(JamPlayerUi.None).canSkipNext(hasNext = false))
     }
 
+    @Test fun aSystemPauseShowsPlayAndSaysHowToRejoin() {
+        val ui = jamPlayerUi(joined(canControl = false).copy(pausedBySystem = true))
+        assertEquals(JamStatus.PausedBySystem, ui.status)
+        assertEquals(R.string.jam_status_paused_by_system, jamStatusText(JamStatus.PausedBySystem))
+        assertTrue(ui.showPlayPause, "play resumes this phone only: no host permission needed")
+        assertFalse(ui.showSkip)
+        val mini = miniPlayerControls(ui)
+        assertTrue(mini.showPlayPause)
+        assertFalse(mini.hostOnlyHint)
+    }
+
     @Test fun endReasonsHaveMessages() {
         assertEquals(R.string.jam_ended_host_gone, jamEndMessage(JamEndReason.HostGone))
         assertEquals(R.string.jam_ended_host_ended, jamEndMessage(JamEndReason.HostEnded))

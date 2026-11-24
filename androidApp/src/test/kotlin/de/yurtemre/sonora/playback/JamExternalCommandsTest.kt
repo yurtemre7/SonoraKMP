@@ -52,4 +52,11 @@ class JamExternalCommandsTest {
         assertTrue(isExternalController("de.yurtemre.sonora", "de.yurtemre.sonora", isNotificationController = true))
         assertTrue(isExternalController("com.android.systemui", "de.yurtemre.sonora", isNotificationController = false))
     }
+
+    @Test fun onlyAFocusLossPauseCountsAsASystemPause() {
+        assertTrue(isSystemPause(playWhenReady = false, reason = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS))
+        assertTrue(isSystemPause(playWhenReady = false, reason = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY))
+        assertFalse(isSystemPause(playWhenReady = false, reason = Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST))
+        assertFalse(isSystemPause(playWhenReady = true, reason = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS))
+    }
 }

@@ -42,6 +42,7 @@ class FakeJamControls : JamControls {
     override fun setGuestsCanControl(allowed: Boolean) { calls += "canControl=$allowed" }
     override fun kick(guestId: String) { calls += "kick=$guestId" }
     override fun newCode() { calls += "newCode" }
+    override fun resumeAfterSystemPause() { calls += "resume" }
     override fun requestPlay() { calls += "play" }
     override fun requestPause() { calls += "pause" }
     override fun requestNext() { calls += "next" }

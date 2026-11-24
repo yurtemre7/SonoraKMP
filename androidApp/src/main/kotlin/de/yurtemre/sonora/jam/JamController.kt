@@ -164,6 +164,7 @@ class JamController(
 
     // ---- guest ------------------------------------------------------------------------------------------------------
 
+    override fun resumeAfterSystemPause() { guestSession?.resumeAfterSystemPause() }
     override fun requestPlay() { guestSession?.request(JamAction.Play) }
     override fun requestPause() { guestSession?.request(JamAction.Pause) }
     override fun requestNext() { guestSession?.request(JamAction.Next) }

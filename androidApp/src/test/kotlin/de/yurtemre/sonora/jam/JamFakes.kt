@@ -75,6 +75,16 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
         position = positionMs
     }
 
+    /** The service paused for a system reason (headphones unplugged, audio focus lost) and says so. */
+    fun systemPause() {
+        val pos = position
+        player.value = player.value.copy(isPlaying = false, systemPauseId = player.value.systemPauseId + 1)
+        position = pos
+    }
+
+    /** The player started by itself (e.g. resume when headphones come back). */
+    fun resumeBySystem() { setPlaying(true) }
+
     /** The current song ended by itself (end of the mirror queue). */
     fun finishSong() {
         position = player.value.durationMs

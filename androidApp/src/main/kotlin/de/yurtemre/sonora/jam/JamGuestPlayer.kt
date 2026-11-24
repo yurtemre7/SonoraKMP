@@ -27,6 +27,11 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The host's Repeat One is mirrored by a run of just the current song that the guest's player loops by itself, so the
  * host's "same song, position 0" frame at each loop is no change (never a reload or cut); with Repeat All the song
  * before the first is the last one, so the host's wrap-around lets the guest's last song finish like any other.
+ *
+ * A pause the phone made by itself for the audio route ([onSystemPause]: headphones unplugged, audio focus lost for
+ * good) latches [pausedBySystem]: while it is set, host frames never start the player (a new song is only cued), so
+ * music never comes out of the speaker by surprise. The user's play ([resumeFromSystemPause]) or the player starting
+ * by itself on a safe output ([clearSystemPause]) ends it.
  */
 internal class JamGuestPlayer(
     private val scope: CoroutineScope,
@@ -43,6 +48,30 @@ internal class JamGuestPlayer(
     private var startJob: Job? = null
     /** Waits for this phone's song to end before the next one starts (trailing or trimmed). */
     private var tailJob: Job? = null
+
+    /** This phone paused itself for the audio route: host frames do not start it again (see the class doc). */
+    var pausedBySystem = false
+        private set
+
+    /** The service paused for the audio route: stay paused (a delayed start waiting to play is dropped too). */
+    fun onSystemPause() {
+        if (!mirror.active) return
+        pausedBySystem = true
+        startJob?.cancel()
+        mirror.onSystemPause()
+    }
+
+    /** The user pressed play: rejoin where the host is now (a seek while still paused, then the start). */
+    fun resumeFromSystemPause() {
+        if (!pausedBySystem) return
+        pausedBySystem = false
+        latest?.let(::onState)
+    }
+
+    /** The player started by itself (e.g. headphones back with "resume on connect"): nothing to hold any more. */
+    fun clearSystemPause() {
+        pausedBySystem = false
+    }
 
     fun cancel() {
         startJob?.cancel()
@@ -83,6 +112,10 @@ internal class JamGuestPlayer(
                 }
                 return
             }
+            if (pausedBySystem) { // never started by the host: the user resumes (or the phone, on a safe output)
+                refreshRun(s, v)
+                return
+            }
             val start = jamStart(plan, now, env.speakerDelayMs())
             if (plan.seekOnNextBoundary || pendingSeek) playback.seekTo(start.positionMs) // paused: inaudible
             pendingSeek = false
@@ -114,7 +147,7 @@ internal class JamGuestPlayer(
         pendingSeek = false
         val run = runFor(s, s.index)
         val repeatOne = s.repeat == JamRepeat.One
-        if (!s.playing) {
+        if (!s.playing || pausedBySystem) { // after a system pause the new song is only cued
             mirror.load(run, 0, plan.positionMs, play = false, repeatOne)
             return
         }

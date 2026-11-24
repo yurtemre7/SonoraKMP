@@ -101,7 +101,12 @@ fun jamEndMessage(reason: JamEndReason): Int = when (reason) {
 enum class JamRole { None, Host, Guest }
 
 /** The guest's connection, in plain words. */
-enum class JamStatus { Syncing, InSync, Reconnecting, EndingAfterSong }
+enum class JamStatus {
+    Syncing, InSync, Reconnecting, EndingAfterSong,
+
+    /** This phone paused itself (headphones unplugged, audio focus lost): play rejoins. */
+    PausedBySystem,
+}
 
 @StringRes
 fun jamStatusText(status: JamStatus): Int = when (status) {
@@ -109,6 +114,7 @@ fun jamStatusText(status: JamStatus): Int = when (status) {
     JamStatus.InSync -> R.string.jam_status_in_sync
     JamStatus.Reconnecting -> R.string.jam_status_reconnecting
     JamStatus.EndingAfterSong -> R.string.jam_status_ending
+    JamStatus.PausedBySystem -> R.string.jam_status_paused_by_system
 }
 
 /**
@@ -147,9 +153,10 @@ fun jamPlayerUi(state: JamUiState): JamPlayerUi = when (state) {
         showShuffleRepeat = false,
         showSleepTimer = false,
         showSkip = state.canControl,
-        showPlayPause = state.canControl,
+        // After a system pause play only resumes this phone, so it shows even without host control.
+        showPlayPause = state.canControl || state.pausedBySystem,
         showAddSong = state.canAdd,
-        status = when (state.sync) {
+        status = if (state.pausedBySystem && state.sync != JamSyncState.Ending) JamStatus.PausedBySystem else when (state.sync) {
             JamSyncState.Syncing -> JamStatus.Syncing
             JamSyncState.InSync -> JamStatus.InSync
             JamSyncState.Reconnecting -> JamStatus.Reconnecting

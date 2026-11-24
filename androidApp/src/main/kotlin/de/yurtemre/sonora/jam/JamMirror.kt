@@ -88,6 +88,12 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         playback.play()
     }
 
+    /** The service paused the player by itself (audio route): what it plays now is no longer what was asked. */
+    fun onSystemPause() {
+        intendedPlaying = false
+        confirmed = false
+    }
+
     fun pause() {
         intendedPlaying = false
         confirmed = false

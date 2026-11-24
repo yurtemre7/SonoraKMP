@@ -107,6 +107,7 @@
     <string name="jam_status_syncing">Syncing…</string>
     <string name="jam_status_in_sync">In sync</string>
     <string name="jam_status_reconnecting">Reconnecting…</string>
+    <string name="jam_status_paused_by_system">Paused. Tap play to rejoin</string>
     <string name="jam_status_ending">The Jam ends after this song</string>
 
     <!-- Ended -->

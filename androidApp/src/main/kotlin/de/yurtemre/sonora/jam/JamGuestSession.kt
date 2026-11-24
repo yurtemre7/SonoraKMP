@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.jam
 
 import de.yurtemre.sonora.playback.api.PlaybackConnection
+import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.shared.jam.ClockSync
 import de.yurtemre.sonora.shared.jam.JamAction
 import de.yurtemre.sonora.shared.jam.JamControl
@@ -49,6 +50,7 @@ internal class JamGuestSession(
     private var state: JamState? = null
     private var sync = JamSyncState.Syncing
     private var closeWatch: Job? = null
+    private var systemPauseWatch: Job? = null
     private var clockJob: Job? = null
     private var clockJobFor: ClockSync? = null
     private var job: Job? = null
@@ -60,6 +62,14 @@ internal class JamGuestSession(
         publishJoined()
         job = scope.launch { run() }
         closeWatch = watchClose()
+        systemPauseWatch = watchSystemPause()
+    }
+
+    /** The user's play after [JamUiState.Joined.pausedBySystem]: this phone rejoins the host (no request is sent). */
+    fun resumeAfterSystemPause() {
+        if (left || !player.pausedBySystem) return
+        player.resumeFromSystemPause()
+        publishJoined()
     }
 
     /** Leaves at once: the connection closes, the guest's own queue comes back. */
@@ -69,6 +79,7 @@ internal class JamGuestSession(
         player.cancel()
         clockJob?.cancel()
         closeWatch?.cancel()
+        systemPauseWatch?.cancel()
         link.close()
         mirror.restore()
     }
@@ -169,6 +180,7 @@ internal class JamGuestSession(
         }
         mirror.restore()
         closeWatch?.cancel()
+        systemPauseWatch?.cancel()
         publish(JamUiState.Ended(reason, rejoin = target.takeIf { reason == JamEndReason.NetworkChanged }))
     }
 
@@ -211,6 +223,34 @@ internal class JamGuestSession(
         }
     }
 
+    /**
+     * The service reports a pause it made for the audio route ([PlayerUiState.systemPauseId] goes up): latch it in
+     * the player. Once paused, the player playing again by itself (resume on connect) ends the latch.
+     */
+    private fun watchSystemPause() = scope.launch {
+        var last = playback.player.value.systemPauseId
+        var sawPaused = false
+        playback.player.collect { p ->
+            if (p.systemPauseId > last) {
+                last = p.systemPauseId
+                if (mirror.active && !player.pausedBySystem) {
+                    player.onSystemPause()
+                    sawPaused = !p.isPlaying
+                    publishJoined()
+                }
+                return@collect
+            }
+            last = p.systemPauseId // a restarted service counts from 0 again
+            if (!player.pausedBySystem) return@collect
+            if (!p.isPlaying) {
+                sawPaused = true
+            } else if (sawPaused) {
+                player.clearSystemPause()
+                publishJoined()
+            }
+        }
+    }
+
     /** "Close" on the player (notification or app) empties the mirrored queue: that leaves the Jam. */
     private fun watchClose() = scope.launch {
         var loaded = false
@@ -235,6 +275,7 @@ internal class JamGuestSession(
                 canAdd = s?.guestsCanAdd ?: false,
                 canControl = s?.guestsCanControl ?: false,
                 sync = sync,
+                pausedBySystem = player.pausedBySystem,
             ),
         )
     }

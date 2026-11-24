@@ -27,6 +27,9 @@ sealed interface JamUiState {
     /**
      * This phone is a guest of [hostName]'s Jam. [queue] is the host's queue; a song with `available = false` is not
      * on this phone and is skipped silently. [canAdd] / [canControl] are the host's permissions for guests.
+     * [pausedBySystem]: this phone paused itself (headphones unplugged, audio focus lost); the host's frames do not
+     * start it again until the user taps play ([JamControls.resumeAfterSystemPause], allowed without host control)
+     * or the phone resumes by itself on a safe output.
      */
     data class Joined(
         val hostName: String,
@@ -36,6 +39,7 @@ sealed interface JamUiState {
         val canAdd: Boolean,
         val canControl: Boolean,
         val sync: JamSyncState,
+        val pausedBySystem: Boolean = false,
     ) : JamUiState
 
     /** The Jam is over; [rejoin] is set when the guest can join the same host again (with the code). */

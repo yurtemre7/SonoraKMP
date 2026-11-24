@@ -9,15 +9,18 @@ import kotlinx.coroutines.launch
 
 /**
  * A guest's transport, mapped to requests to the host. Every call checks the host's current permission, so a
- * stale button can never act on the guest's own (mirrored) player.
+ * stale button can never act on the guest's own (mirrored) player. The one exception: after a system pause
+ * ([JamUiState.Joined.pausedBySystem]) play only resumes this phone's own output, which needs no permission.
  */
 class JamGuestActions(private val jam: JamControls) {
     fun playPause(state: JamUiState.Joined) {
+        if (state.pausedBySystem) return jam.resumeAfterSystemPause()
         if (!state.canControl) return
         if (state.playing) jam.requestPause() else jam.requestPlay()
     }
 
     fun play(state: JamUiState.Joined) {
+        if (state.pausedBySystem) return jam.resumeAfterSystemPause()
         if (state.canControl) jam.requestPlay()
     }
 
