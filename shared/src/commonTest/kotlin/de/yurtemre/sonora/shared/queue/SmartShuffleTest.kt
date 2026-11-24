@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.shared.queue
 
+import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.SongStats
 import kotlin.random.Random
@@ -160,5 +161,27 @@ class SmartShuffleTest {
             assertEquals(songs.map { it.id }.toSet(), out.map { it.id }.toSet())
             assertEquals(3, out.zipWithNext().count { (a, b) -> a.artist == b.artist }, "seed $seed: ${out.map { it.artist }}")
         }
+    }
+    // ---- queue entries ----
+
+    @Test
+    fun entriesFollowTheSongOrderAndKeepDuplicatesInOrder() {
+        val songs = listOf(song(1, "A"), song(2, "B"), song(3, "C"))
+        val index = songs.associateBy { it.id }
+        // Song 2 is queued twice; song 9 is not in the library.
+        val entries = listOf(QueueEntry(10, 1), QueueEntry(11, 2), QueueEntry(12, 9), QueueEntry(13, 3), QueueEntry(14, 2))
+        val out = SmartShuffle.reorderEntries(entries, index, emptyMap(), now, Random(3))
+        assertEquals(entries.toSet(), out.toSet())
+        assertEquals(QueueEntry(12, 9), out.last()) // unknown songs keep their order at the end
+        val twos = out.filter { it.songId == 2L }.map { it.uid }
+        assertEquals(listOf(11L, 14L), twos) // a song's entries are handed out in queue order
+    }
+
+    @Test
+    fun entriesArePlainShuffledWhileTheSongIndexIsNotLoaded() {
+        val entries = (1L..30L).map { QueueEntry(100 + it, it) }
+        val out = SmartShuffle.reorderEntries(entries, null, emptyMap(), now, Random(5))
+        assertEquals(entries.toSet(), out.toSet())
+        assertTrue(out != entries, "cold start kept the original order")
     }
 }

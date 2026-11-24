@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.shared.queue
 
+import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.SongStats
 import kotlin.math.ln
@@ -46,6 +47,27 @@ object SmartShuffle {
             .toMutableList()
         separateArtists(out)
         return out
+    }
+
+    /**
+     * Smart shuffle of queue [entries] by their songs ([index]: id -> song). Entries whose song is not in [index]
+     * keep their relative order at the end; a song queued several times hands out its entries in queue order.
+     * A null [index] (the library is not loaded yet, e.g. right after a cold start) gives a plain shuffle instead
+     * of keeping the original order.
+     */
+    fun reorderEntries(
+        entries: List<QueueEntry>,
+        index: Map<Long, Song>?,
+        stats: Map<Long, SongStats>,
+        nowMs: Long,
+        random: Random = Random,
+    ): List<QueueEntry> {
+        if (index == null) return entries.shuffled(random)
+        val known = entries.filter { it.songId in index }
+        val unknown = entries.filter { it.songId !in index }
+        val order = order(known.map { index.getValue(it.songId) }, stats, nowMs, random)
+        val bySong = known.groupBy { it.songId }.mapValues { ArrayDeque(it.value) }
+        return order.map { bySong.getValue(it.id).removeFirst() } + unknown
     }
 
     private fun separateArtists(l: MutableList<Song>) {

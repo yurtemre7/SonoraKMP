@@ -457,21 +457,13 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     }
 
     /**
-     * Smart shuffle ordering for upcoming entries, or null (plain shuffle) when the setting is off.
-     * Entries whose song is not in the library keep their relative order at the end.
+     * Smart shuffle ordering for upcoming entries, or null (plain shuffle) when the setting is off. Before the song
+     * index has loaded (cold start) it is a plain shuffle too ([SmartShuffle.reorderEntries]).
      */
     private fun smartReorder(): ((List<QueueEntry>) -> List<QueueEntry>)? {
         if (!settings.smartShuffle) return null
         return { entries ->
-            val index = songIndexState.value.orEmpty()
-            val known = entries.filter { it.songId in index }
-            val unknown = entries.filter { it.songId !in index }
-            val order = SmartShuffle.order(
-                known.map { index.getValue(it.songId) }, statsState.value.orEmpty(), System.currentTimeMillis(),
-            )
-            // A song can appear several times in a queue: hand out its entries in order.
-            val bySong = known.groupBy { it.songId }.mapValues { it.value.toMutableList() }
-            order.map { bySong.getValue(it.id).removeAt(0) } + unknown
+            SmartShuffle.reorderEntries(entries, songIndexState.value, statsState.value.orEmpty(), System.currentTimeMillis())
         }
     }
 
