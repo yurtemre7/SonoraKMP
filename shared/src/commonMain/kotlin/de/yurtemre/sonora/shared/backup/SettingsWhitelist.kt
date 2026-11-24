@@ -63,6 +63,10 @@ object SettingsWhitelist {
         "mfx_isNightcore", "eq_current_preset", "eq_custom_gains", "eq_enabled",
     )
 
+    // Deliberately absent: native-only keys such as `skip_silence`, `fade_between_songs_seconds` and the Jam's
+    // `jam_speaker_delay_ms`. The speaker delay depends on this phone's speaker or headphones, so restoring it on
+    // another device would be wrong.
+
     /** Keys KMP writes on export (backup types); Flutter ignores the KMP-only [THEME_COLOR_SOURCE], [UPDATE_CHANNEL] and [SMART_SHUFFLE] as unknown. */
     val exportKeys: Map<String, PrefType> =
         flutterKeys.filterKeys { it !in importOnlyKeys } + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (SMART_SHUFFLE to B)

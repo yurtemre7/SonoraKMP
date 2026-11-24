@@ -123,6 +123,13 @@ class BackupCodecTest {
         assertTrue(SettingsWhitelist.fromBackup(wrong).isEmpty())
     }
 
+    @Test fun jamSpeakerDelayIsNotBackedUp() {
+        // Per device (it depends on this phone's speaker or headphones): never exported, never restored.
+        val delay = mapOf("jam_speaker_delay_ms" to SettingValue.Int(200L))
+        assertTrue(SettingsWhitelist.toBackup(delay).isEmpty())
+        assertTrue(SettingsWhitelist.fromBackup(delay).isEmpty())
+    }
+
     private fun song(id: Long, fav: Boolean = false) = Song(
         id = id, title = "T$id", artist = "A", album = "B", durationMs = 1000L * id,
         filePath = "/m/$id.mp3", isFavorite = fav, favoriteDateMs = if (fav) 77L else null,

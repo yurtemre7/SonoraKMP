@@ -38,6 +38,11 @@ data class AppSettings(
     val smartShuffle: Boolean = false,
     /** Fade out and in around song changes, in seconds; 0 = off (native-only, not in backups). */
     val fadeBetweenSongsSeconds: Int = 0,
+    /**
+     * Jam guest "speaker delay" in ms ([JAM_SPEAKER_DELAY_RANGE_MS], 0 = none): shifts this phone's start time in a Jam
+     * to line up a Bluetooth speaker by hand. Per device (native-only, deliberately not in backups).
+     */
+    val jamSpeakerDelayMs: Int = 0,
     val repeatMode: RepeatMode = RepeatMode.Off,
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,
@@ -76,6 +81,9 @@ data class AppSettings(
     val updateRateLimitResetMs: Long = 0,
 ) {
     companion object {
+        /** Allowed [jamSpeakerDelayMs] values. */
+        val JAM_SPEAKER_DELAY_RANGE_MS = -500..500
+
         /** Sleep timer quick presets; also the choices for the default duration. */
         val SLEEP_TIMER_MINUTES_OPTIONS = listOf(5, 10, 15, 20, 30, 60)
         /** Custom sleep timer duration range in minutes. */
