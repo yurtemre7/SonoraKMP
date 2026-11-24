@@ -16,7 +16,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * The host's side of a Jam. The host's own player is the truth: its queue and transport changes (debounced, so one
@@ -56,6 +58,8 @@ internal class JamHostSession(
                 .collect { broadcastState() }
         }
         jobs += scope.launch { transport.events.collect(::onEvent) }
+        jobs += scope.launch { playback.mfx.collect { publishUi() } }
+        jobs += scope.launch { watchSeeks() }
         jobs += scope.launch {
             transport.codeExhausted.collect {
                 codeExhausted = it
@@ -104,6 +108,20 @@ internal class JamHostSession(
         return s.apply(JamEvent.HostAction(action))
     }
 
+    /**
+     * A seek changes neither the queue nor play/pause, so the snapshot flow misses it: every [SEEK_CHECK_MS] the
+     * player's position is compared with the last broadcast's extrapolation and a jump goes out as a new state.
+     */
+    private suspend fun watchSeeks() {
+        while (true) {
+            delay(SEEK_CHECK_MS)
+            val s = hostState.state
+            if (!s.playing || !playback.player.value.isPlaying || playback.queue.value.currentIndex != s.index) continue
+            val expected = s.positionMs + (env.nowMs() - s.hostTimeMs)
+            if (abs(playback.currentPositionMs() - expected) > SEEK_TOLERANCE_MS) broadcastState()
+        }
+    }
+
     private fun broadcastState() {
         hostState = synced()
         transport.broadcast(JamStateFrame(hostState.state))
@@ -149,6 +167,14 @@ internal class JamHostSession(
             guests = hostState.guests.map { (id, info) -> JamGuestUi(id, info.name) },
             settings = hostState.settings,
             codeExhausted = codeExhausted,
+            hostSpeedEffectActive = playback.mfx.value.isSpeedChanged,
         ),
     )
+
+    companion object {
+        /** How often the host checks for a seek (a position jump without a queue or transport change). */
+        const val SEEK_CHECK_MS = 2_000L
+        /** A position this far from the extrapolated one is a seek (well above player jitter). */
+        const val SEEK_TOLERANCE_MS = 1_000L
+    }
 }

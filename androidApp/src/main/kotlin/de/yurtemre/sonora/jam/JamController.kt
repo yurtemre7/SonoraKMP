@@ -57,6 +57,8 @@ class JamController(
 
     private var hostSession: JamHostSession? = null
     private var guestSession: JamGuestSession? = null
+    /** Bumped by [leave]: a [host] or [join] still suspended from before may not come back as a session. */
+    private var generation = 0
 
     /**
      * Starts hosting with [settings]: a fresh code, a server on a free port, advertised on the LAN.
@@ -64,6 +66,7 @@ class JamController(
      */
     suspend fun host(settings: JamSettings = JamSettings()): HostSession {
         leave()
+        val gen = generation
         val transport = env.hostTransport()
         val code = env.newCode()
         val port = try {
@@ -73,8 +76,12 @@ class JamController(
             throw e
         } catch (e: Exception) {
             transport.stop()
-            _state.value = JamUiState.HostFailed
+            if (gen == generation) _state.value = JamUiState.HostFailed
             throw IOException("Jam server did not start", e)
+        }
+        if (gen != generation) { // left (or joined) while the server started
+            transport.stop()
+            throw CancellationException("The Jam was left while it started")
         }
         lateinit var session: JamHostSession
         session = JamHostSession(scope, playback, env, transport, code, port, settings) { ui ->
@@ -89,22 +96,26 @@ class JamController(
     /** Joins the Jam at [host]:[port] with [code]; a failure leaves [JamUiState.Error] (typed) and the player as it was. */
     suspend fun join(host: String, port: Int, code: String, hostName: String) {
         leave()
+        val gen = generation
         _state.value = JamUiState.Joining
         val link = try {
             env.connector.join(host, port, code, env.deviceName())
         } catch (e: CancellationException) {
             throw e
-        } catch (e: JamException) {
-            _state.value = JamUiState.Error(e.error)
-            return
         } catch (e: Exception) {
-            _state.value = JamUiState.Error(JamError.HostGone)
+            if (gen == generation) _state.value = JamUiState.Error((e as? JamException)?.error ?: JamError.HostGone)
+            return
+        }
+        if (gen != generation) { // left (or started hosting) while connecting
+            link.close()
             return
         }
         lateinit var session: JamGuestSession
-        session = JamGuestSession(scope, playback, env, JamRejoin(host, port, hostName), env.deviceName(), link) { ui ->
-            if (guestSession === session) _state.value = ui
-        }
+        session = JamGuestSession(
+            scope, playback, env, JamRejoin(host, port, hostName), env.deviceName(), link,
+            publish = { ui -> if (guestSession === session) _state.value = ui },
+            onLocalClose = { if (guestSession === session) leave() },
+        )
         guestSession = session
         session.start()
         env.startService()
@@ -112,6 +123,7 @@ class JamController(
 
     /** Ends hosting (for everyone) or leaves as a guest (own queue back). Idempotent. */
     fun leave() {
+        generation++
         hostSession?.let {
             hostSession = null
             it.end()

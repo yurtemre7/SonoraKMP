@@ -8,13 +8,18 @@ import de.yurtemre.sonora.shared.jam.JamSong
 sealed interface JamUiState {
     data object Idle : JamUiState
 
-    /** This phone hosts a Jam: guests join at [port] with [code]. [codeExhausted]: offer [JamController.newCode]. */
+    /**
+     * This phone hosts a Jam: guests join at [port] with [code]. [codeExhausted]: offer [JamController.newCode].
+     * [hostSpeedEffectActive]: the host plays at a speed other than 1x (an MFX effect). Guests always play at 1x and
+     * drift until the next song change, so the Jam screen can suggest turning the effect off; it is never forced.
+     */
     data class Hosting(
         val code: String,
         val port: Int,
         val guests: List<JamGuestUi>,
         val settings: JamSettings,
         val codeExhausted: Boolean = false,
+        val hostSpeedEffectActive: Boolean = false,
     ) : JamUiState
 
     data object Joining : JamUiState

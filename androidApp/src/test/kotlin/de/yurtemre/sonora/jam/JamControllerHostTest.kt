@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.jam
 
+import de.yurtemre.sonora.playback.api.MfxUiState
 import de.yurtemre.sonora.shared.jam.JamAction
 import de.yurtemre.sonora.shared.jam.JamEvent
 import de.yurtemre.sonora.shared.jam.JamSettings
@@ -9,6 +10,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -110,5 +112,30 @@ class JamControllerHostTest : JamControllerTestBase() {
         assertTrue(transport.stopped)
         assertEquals(JamUiState.Idle, jam.state.value)
         assertTrue("the host's own queue is untouched", playback.mirrorLoads.isEmpty() && playback.restored.isEmpty())
+    }
+
+    @Test fun aSeekOnTheHostIsBroadcast() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        advanceTimeBy(10_000)
+        assertTrue("normal playback sends nothing", transport.broadcasts.isEmpty())
+        playback.position = 120_000 // the host seeks: no queue or transport change
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS + 1)
+        val s = (transport.broadcasts.single() as JamStateFrame).state
+        assertTrue(s.positionMs in 120_000..120_000 + JamHostSession.SEEK_CHECK_MS)
+    }
+
+    @Test fun hostSpeedEffectIsShown() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        playback.mfx.value = MfxUiState(customSpeed = 1.25f)
+        runCurrent()
+        assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        assertNoEffects()
     }
 }

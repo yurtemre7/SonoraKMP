@@ -17,6 +17,7 @@ import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.Song
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,16 +83,27 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
 
     override fun currentPositionMs(): Long = position
     override fun queueSnapshot(): QueueSnapshot? { snapshotCalls++; calls += "queueSnapshot"; return snapshot }
+    /**
+     * Like the playback service: the playing entry is kept only when the player already plays it (then a requested
+     * play is honoured); otherwise the mirror loads at the given position. With [deferPlayer] the player reports
+     * changes only on [catchUp], as the real MediaController does a moment later.
+     */
     override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean) {
         calls += "setMirrorQueue"
         mirrorLoads += MirrorLoad(songs.map { it.id }, index, positionMs, playWhenReady)
-        val keep = player.value.currentSong?.id == songs.getOrNull(index)?.id && mirrorSongs.isNotEmpty()
+        val keep = pending.isEmpty() && mirrorSongs.isNotEmpty() && player.value.currentSong?.id == songs.getOrNull(index)?.id
         mirrorSongs = songs
+        queue.value = QueueUiState(songs.mapIndexed { i, s -> QueueItemUi(100L + i, s) }, index)
         val song = songs.getOrNull(index)
-        if (keep) return
-        player.value = player.value.copy(currentSong = song, durationMs = song?.durationMs ?: 0, isCompleted = false)
-        position = positionMs
-        setPlaying(playWhenReady && song != null)
+        if (keep) {
+            if (playWhenReady) apply { setPlaying(true) }
+            return
+        }
+        apply {
+            player.value = player.value.copy(currentSong = song, durationMs = song?.durationMs ?: 0, isCompleted = false)
+            position = positionMs
+            setPlaying(playWhenReady && song != null)
+        }
     }
     override fun endMirror(snapshot: QueueSnapshot?) {
         calls += "endMirror"
@@ -100,8 +112,19 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
         setPlaying(false)
     }
 
-    override fun play() { calls += "play"; playAt += nowMs(); setPlaying(true) }
-    override fun pause() { calls += "pause"; setPlaying(false) }
+    var deferPlayer = false
+    private val pending = mutableListOf<() -> Unit>()
+    private fun apply(change: () -> Unit) { if (deferPlayer) pending += change else change() }
+
+    /** The player reports what was asked of it. */
+    fun catchUp() {
+        val changes = pending.toList()
+        pending.clear()
+        changes.forEach { it() }
+    }
+
+    override fun play() { calls += "play"; playAt += nowMs(); apply { setPlaying(true) } }
+    override fun pause() { calls += "pause"; apply { setPlaying(false) } }
     override fun seekTo(positionMs: Long) { calls += "seekTo"; seeks += positionMs; position = positionMs }
     override fun togglePlayPause() { calls += "togglePlayPause" }
     override fun skipToNext() { calls += "skipToNext" }
@@ -130,7 +153,12 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
     override fun setCustomEqBandGain(band: Int, gain: Float) { effectCalls += "setCustomEqBandGain" }
     override fun applyEqPreset(preset: EqPreset) { effectCalls += "applyEqPreset" }
     override fun resetAllEffects() { effectCalls += "resetAllEffects" }
-    override fun closePlayer() { calls += "closePlayer" }
+    /** Like the service: the player is stopped and its queue cleared. */
+    override fun closePlayer() {
+        calls += "closePlayer"
+        queue.value = QueueUiState()
+        player.value = player.value.copy(currentSong = null, isPlaying = false)
+    }
     override fun undoClosePlayer() { calls += "undoClosePlayer" }
     override fun startSleepTimer(durationMs: Long, finishSong: Boolean, fadeSeconds: Int) { calls += "sleep" }
     override fun startSleepTimerTracks(count: Int, fadeSeconds: Int) { calls += "sleep" }
@@ -148,7 +176,9 @@ class FakeHostTransport : JamHostTransport {
     val codes = mutableListOf<String>()
     var stopped = false
 
-    override suspend fun start(code: String): Int { codes += code; return 41_234 }
+    /** When set, start waits for it. */
+    var startGate: CompletableDeferred<Unit>? = null
+    override suspend fun start(code: String): Int { startGate?.await(); codes += code; return 41_234 }
     override fun broadcast(frame: JamFrame) { broadcasts += frame }
     override fun sendTo(guestId: String, frame: JamFrame) { sent += guestId to frame }
     override fun kick(guestId: String) { kicked += guestId }
@@ -177,8 +207,11 @@ class FakeConnector : JamGuestConnector {
     val reconnects = ArrayDeque<Any>()
     var reconnectAttempts = 0
     var joinError: JamError? = null
+    /** When set, join waits for it (a slow handshake). */
+    var joinGate: CompletableDeferred<Unit>? = null
 
     override suspend fun join(host: String, port: Int, code: String, name: String): JamGuestLink {
+        joinGate?.await()
         joinError?.let { throw JamException(it) }
         return links.removeFirst()
     }
