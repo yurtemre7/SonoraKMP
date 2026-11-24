@@ -71,6 +71,9 @@ import de.yurtemre.sonora.ui.screens.changelog.ChangelogRoute
 import de.yurtemre.sonora.ui.screens.debug.DebugCachesRoute
 import de.yurtemre.sonora.ui.screens.devicesync.DeviceSyncRoute
 import de.yurtemre.sonora.ui.screens.jam.JamRoute
+import de.yurtemre.sonora.ui.screens.jam.JamGuestActions
+import de.yurtemre.sonora.ui.screens.jam.joinedOrNull
+import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.shared.jam.JamSettings
 import de.yurtemre.sonora.ui.screens.favorites.FavoritesRoute
 import de.yurtemre.sonora.ui.screens.home.HomeRoute
@@ -111,6 +114,9 @@ fun SonoraAppShell(
     val playback: PlaybackConnection = koinInject()
     val player by playback.player.collectAsStateWithLifecycle()
     val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
+    val jamController: JamController = koinInject()
+    val jamState by jamController.state.collectAsStateWithLifecycle()
+    val jamGuest = remember(jamController) { JamGuestActions(jamController) }
     var showMiniSleep by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     if (showMiniSleep) de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet(
         onDismiss = { showMiniSleep = false },
@@ -134,9 +140,17 @@ fun SonoraAppShell(
             onExpandDragStopped = { v -> nowPlaying.settle(v, flingPx) },
             sleepTimer = sleepTimer,
             onSleepTimerClick = { showMiniSleep = true },
-            onTogglePlay = { if (player.isCompleted) { playback.seekTo(0); playback.play() } else playback.togglePlayPause() },
-            onNext = playback::skipToNext,
-            onPrevious = playback::skipToPrevious,
+            // A Jam guest's transport is a request to the host (and only when the host allows it).
+            onTogglePlay = {
+                val guest = jamState.joinedOrNull()
+                when {
+                    guest != null -> jamGuest.playPause(guest)
+                    player.isCompleted -> { playback.seekTo(0); playback.play() }
+                    else -> playback.togglePlayPause()
+                }
+            },
+            onNext = { jamState.joinedOrNull()?.let(jamGuest::next) ?: playback.skipToNext() },
+            onPrevious = { jamState.joinedOrNull()?.let(jamGuest::previous) ?: playback.skipToPrevious() },
             onClose = {
                 playback.closePlayer()
                 scope.launch {
@@ -281,6 +295,7 @@ fun SonoraAppShell(
                                 onOpenAlbum = { nowPlaying.expanded = false; navigate(albumKeyOf(it)) },
                                 onOpenArtist = { nowPlaying.expanded = false; navigate(artistKeyOf(it)) },
                                 snackbarHostState = snackbar,
+                                onJam = { nowPlaying.expanded = false; navigate(it) },
                                 modifier = m.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.End)),
                             )
                         }

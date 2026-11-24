@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Button
@@ -68,6 +69,11 @@ import de.yurtemre.sonora.ui.sheets.rememberSongActionsState
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import androidx.compose.runtime.saveable.rememberSaveable
+import de.yurtemre.sonora.jam.JamController
+import de.yurtemre.sonora.ui.navigation.Jam
+import de.yurtemre.sonora.ui.screens.jam.JamStartSheet
+import de.yurtemre.sonora.ui.screens.jam.jamPlayerUi
 import java.time.Instant
 
 /** The weekly mix: play, shuffle, add to queue, save as playlist, and the songs with the usual actions. */
@@ -92,6 +98,10 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     val title = stringResource(R.string.weekly_mix_title)
 
     var saving by remember { mutableStateOf(false) }
+    var showJamStart by rememberSaveable { mutableStateOf(false) }
+    val jamController: JamController = koinInject()
+    val jamState by jamController.state.collectAsStateWithLifecycle()
+    val jamUi = jamPlayerUi(jamState)
     fun save() = scope.launch {
         if (saving || ui.stale) return@launch
         saving = true
@@ -157,6 +167,11 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null)
                                 Text(stringResource(R.string.weekly_mix_save), Modifier.padding(start = 8.dp))
                             }
+                            // Not while a guest in someone else's Jam: hosting would end it and bring the own queue back.
+                            if (!jamUi.isGuest) TextButton(onClick = { showJamStart = true }) {
+                                Icon(Icons.Rounded.Groups, null)
+                                Text(stringResource(R.string.jam_start), Modifier.padding(start = 8.dp))
+                            }
                         }
                     }
                 }
@@ -181,6 +196,15 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
             }
         }
     }
+    if (showJamStart) JamStartSheet(
+        onDismiss = { showJamStart = false },
+        onStart = { settings ->
+            showJamStart = false
+            // Play the mix first: the Jam shares whatever the host's player plays.
+            if (ui.songs.isNotEmpty()) playback.playSong(ui.songs.first(), ui.songs)
+            onNavigate(Jam.hosting(settings))
+        },
+    )
     SongActionsHost(
         state = actions,
         snackbarHostState = snackbar,

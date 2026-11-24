@@ -18,6 +18,7 @@ fun NowPlayingTwoPane(
     onOpenArtist: (Song) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
+    onJam: (androidx.navigation3.runtime.NavKey) -> Unit = {},
 ) {
     Row(modifier) {
         NowPlayingOverlay(
@@ -25,6 +26,7 @@ fun NowPlayingTwoPane(
             onOpenAlbum = onOpenAlbum,
             onOpenArtist = onOpenArtist,
             snackbarHostState = snackbarHostState,
+            onJam = onJam,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }

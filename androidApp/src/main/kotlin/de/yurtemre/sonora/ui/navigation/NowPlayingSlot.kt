@@ -133,6 +133,7 @@ fun NowPlayingSlot(
         onCollapse = collapse,
         onOpenAlbum = { collapse(); onNavigate(albumKeyOf(it)) },
         onOpenArtist = { collapse(); onNavigate(artistKeyOf(it)) },
+        onJam = { collapse(); onNavigate(it) },
         snackbarHostState = snackbarHostState,
         dragModifier = Modifier.nowPlayingDrag(state),
         modifier = modifier
