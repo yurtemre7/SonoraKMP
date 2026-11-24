@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.jam
 
+import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.yurtemre.sonora.jam.DiscoveredJam
@@ -332,8 +333,8 @@ class JamViewModel(
     companion object {
         /** An empty list opens the manual address field after this long. */
         const val SEARCH_TIMEOUT_MS = 10_000L
-        /** The host's cool-down after too many wrong codes (`DeviceSyncServer.COOL_DOWN_MS`, reused by the Jam). */
-        const val LOCKOUT_MS = 10_000L
+        /** The host's cool-down after too many wrong codes (the device sync one, reused by the Jam's join gate). */
+        const val LOCKOUT_MS = DeviceSyncServer.COOL_DOWN_MS
 
         /** The Jam picked while it is still listed (and compatible), else the only compatible one found. */
         internal fun effectiveJam(items: List<JamListItem>, selectedName: String?): DiscoveredJam? {
