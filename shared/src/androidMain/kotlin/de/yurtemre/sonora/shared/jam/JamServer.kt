@@ -1,10 +1,6 @@
 package de.yurtemre.sonora.shared.jam
 
-import de.yurtemre.sonora.shared.devicesync.DeviceSyncAuthException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncProtocolException
-import de.yurtemre.sonora.shared.devicesync.JpakeHandshake
-import de.yurtemre.sonora.shared.devicesync.PairingCode
-import de.yurtemre.sonora.shared.devicesync.PairingLockout
 import de.yurtemre.sonora.shared.devicesync.Role
 import de.yurtemre.sonora.shared.devicesync.SecureChannel
 import de.yurtemre.sonora.shared.devicesync.toHex
@@ -23,16 +19,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The Jam host's TCP endpoint: up to [MAX_GUESTS] guests, each on its own [SecureChannel] (wire format: [JamWire]).
@@ -41,7 +32,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  *   device), then sends [JamHello]. Another [JAM_PROTOCOL_VERSION] is answered with [JamEnd] [REASON_VERSION_MISMATCH],
  *   a full Jam with [REASON_FULL]; otherwise the guest gets a [JamWelcome] (its id and a fresh 128-bit reconnect key)
  *   and [events] gets [JamEvent.GuestJoined].
- * - **Lockout:** the device sync rule ([PairingLockout]): 3 wrong codes, then joins are refused for the cool-down
+ * - **Lockout** ([JamJoinGate]): the device sync rule (`PairingLockout`): 3 wrong codes, then joins are refused for the cool-down
  *   ([lockedUntilMs], by [clock]). Join J-PAKE rounds run one at a time, so parallel connections cannot get more
  *   guesses in before the lock. After [MAX_WRONG_CODES] wrong codes in total the code is dead ([codeExhausted])
  *   until the host calls [replaceCode]. Reconnects never need the code and are not affected by either.
@@ -76,28 +67,29 @@ class JamServer(
 
     internal val job = SupervisorJob()
     private val scope = CoroutineScope(job + dispatcher)
-    private val lockout = PairingLockout(clock)
+    private val gate = JamJoinGate(clock, MAX_JOIN_HANDSHAKES)
     private val eventChannel = Channel<JamEvent>(Channel.UNLIMITED)
 
     /** Guest joins/leaves and requests, in order. Single consumer; completes after [stop]. */
     val events: Flow<JamEvent> = eventChannel.receiveAsFlow()
 
     /** Clock time until which joins are refused after too many wrong codes; 0 before the first lock. */
-    val lockedUntilMs: StateFlow<Long> = lockout.lockedUntilMs
-    private val _codeExhausted = MutableStateFlow(false)
-    private val _joinHandshakes = MutableStateFlow(0)
+    val lockedUntilMs: StateFlow<Long> = gate.lockedUntilMs
 
     /** True after [MAX_WRONG_CODES] wrong codes: joins are refused until [replaceCode]. */
-    val codeExhausted: StateFlow<Boolean> = _codeExhausted.asStateFlow()
+    val codeExhausted: StateFlow<Boolean> = gate.exhausted
 
     /** Join connections between their preamble and the end of their J-PAKE round (waiting ones included). */
-    internal val joinHandshakes: StateFlow<Int> = _joinHandshakes.asStateFlow()
+    internal val joinHandshakes: StateFlow<Int> = gate.inHandshake
 
     /** Test seam: runs inside [broadcast] between taking the guest snapshot and queueing. */
     @Volatile internal var beforeDeliver: (() -> Unit)? = null
 
-    /** One join J-PAKE round at a time, so every guess is counted before the next one is checked. */
-    private val joinMutex = Mutex()
+    /** Test seam: runs at the end of a connection's handshake, just before it would be registered. */
+    @Volatile internal var beforeRegister: ((Socket) -> Unit)? = null
+
+    /** Ids of the guests currently registered (tests). */
+    internal fun registeredGuests(): Set<String> = synchronized(lock) { guests.keys.toSet() }
 
     private val lock = Any()
     private val guests = HashMap<String, Guest>()
@@ -105,9 +97,6 @@ class JamServer(
     private val handshaking = HashSet<Socket>()
     private var serverSocket: ServerSocket? = null
     private var stopped = false
-    private var code = ""
-    /** Wrong codes against [code] in total (the timed lock resets its own count, this one only on [replaceCode]). */
-    private var codeFailures = 0
 
     /** A reconnect key; [disconnectedAtMs] is null while its guest is connected. */
     private class Ticket(val key: ByteArray) {
@@ -122,7 +111,8 @@ class JamServer(
         /** At most [MAX_REQUESTS_PER_SECOND] AddRequest/Control events per second ([clock]); reader thread only. */
         fun allowRequest(): Boolean {
             val now = clock()
-            if (windowStartMs == Long.MIN_VALUE || now - windowStartMs >= 1_000) {
+            // A clock that steps back also starts a new window, so it cannot lock a guest out.
+            if (windowStartMs == Long.MIN_VALUE || now - windowStartMs !in 0 until 1_000) {
                 windowStartMs = now
                 windowCount = 0
             }
@@ -143,6 +133,14 @@ class JamServer(
         }
     }
 
+    /** A connection that finished its handshake: channel, hello name, and what it proved (code or ticket). */
+    private class Handshake(
+        val channel: SecureChannel,
+        val name: String,
+        val code: String?,
+        val reconnect: Pair<String, Ticket>?,
+    )
+
     private sealed interface Admission {
         class In(val guest: Guest) : Admission
         class Out(val reason: String) : Admission
@@ -150,7 +148,7 @@ class JamServer(
 
     /** Binds a free port on all interfaces, starts accepting guests who know [code] and returns the port. */
     suspend fun start(code: String): Int {
-        requireCode(code)
+        gate.start(code)
         val socket = withContext(dispatcher) { ServerSocket(0) }
         synchronized(lock) {
             if (serverSocket != null || stopped) {
@@ -158,29 +156,17 @@ class JamServer(
                 error("JamServer is single-use")
             }
             serverSocket = socket
-            this.code = code
         }
         scope.launch { acceptLoop(socket) }
         return socket.localPort
     }
 
     /**
-     * Switches joins to [newCode] (the host shows it instead): clears the wrong-code counts, the cool-down and
-     * [codeExhausted]. Guests in the Jam and valid reconnect keys are unaffected; a kicked guest who knew the old
-     * code cannot use it any more.
+     * Switches joins to [newCode] (the host shows it instead; it must differ from the current one): clears the
+     * wrong-code counts, the cool-down and [codeExhausted]. Guests in the Jam and valid reconnect keys are
+     * unaffected; a kicked guest who knew the old code cannot use it any more, nor can a join still pairing with it.
      */
-    fun replaceCode(newCode: String) {
-        requireCode(newCode)
-        synchronized(lock) {
-            code = newCode
-            codeFailures = 0
-            _codeExhausted.value = false
-            lockout.clear()
-        }
-    }
-
-    private fun requireCode(code: String) =
-        require(code.length == PairingCode.LENGTH && code.all { it in '0'..'9' }) { "Bad Jam code" }
+    fun replaceCode(newCode: String) = gate.replaceCode(newCode)
 
     /** Queues [frame] for every guest; never blocks. */
     fun broadcast(frame: JamFrame) {
@@ -255,17 +241,27 @@ class JamServer(
         var guest: Guest? = null
         try {
             // A total deadline from accept: the read timeout alone restarts with every byte a slow peer trickles.
-            guest = coroutineScope {
-                val deadline = launch {
+            // The watchdog bounds blocking IO by closing the socket; it is cancelled before registration, so a
+            // registered guest is never cut by it, and nothing between here and run() can drop a registered guest.
+            val deadlineAtNs = System.nanoTime() + pairingTimeoutMs * 1_000_000L
+            val handshake = coroutineScope {
+                val watchdog = launch {
                     delay(pairingTimeoutMs.toLong())
-                    runCatching { socket.close() } // ends blocking IO
+                    runCatching { socket.close() }
                 }
                 try {
-                    withTimeoutOrNull(pairingTimeoutMs.toLong()) { admit(socket) } // ends a wait for the join slot
+                    handshake(socket, deadlineAtNs).also { beforeRegister?.invoke(socket) }
                 } finally {
-                    deadline.cancel()
+                    watchdog.cancel()
                 }
             } ?: return
+            when (val admission = register(socket, handshake)) {
+                is Admission.In -> guest = admission.guest
+                is Admission.Out -> {
+                    JamWire.send(handshake.channel, JamEnd(admission.reason))
+                    return
+                }
+            }
             run(guest)
         } catch (e: CancellationException) {
             throw e
@@ -277,34 +273,25 @@ class JamServer(
         }
     }
 
-    /** Pairs, checks the hello and registers the guest; null when refused (the refusal was sent). */
-    private suspend fun admit(socket: Socket): Guest? {
+    /** Pairs (code or reconnect key) and reads the hello; null when refused (the refusal was sent). */
+    private suspend fun handshake(socket: Socket, deadlineAtNs: Long): Handshake? {
         socket.soTimeout = pairingTimeoutMs
         socket.tcpNoDelay = true
         val input = DataInputStream(socket.getInputStream().buffered())
         val output = DataOutputStream(socket.getOutputStream().buffered())
         val channel: SecureChannel
+        var code: String? = null
         var reconnect: Pair<String, Ticket>? = null
         if (JamWire.readPreamble(input) == JamWire.MODE_JOIN) {
-            // Joins get MAX_JOIN_HANDSHAKES of the MAX_HANDSHAKES slots, so slow joins cannot keep reconnects out.
-            val slot = synchronized(lock) {
-                (_joinHandshakes.value < MAX_JOIN_HANDSHAKES).also { if (it) _joinHandshakes.value++ }
-            }
-            if (!slot) {
-                JamWire.writeStatus(output, JamWire.STATUS_BUSY)
-                return null
-            }
-            channel = try {
-                joinMutex.withLock { pair(input, output) } ?: return null
-            } finally {
-                synchronized(lock) { _joinHandshakes.value-- }
-            }
+            val waitMs = (deadlineAtNs - System.nanoTime()) / 1_000_000
+            val pairing = gate.pair(input, output, waitMs) ?: return null
+            channel = pairing.channel
+            code = pairing.code
         } else {
             val (guestId, clientNonce) = JamWire.readReconnectRequest(input)
             val ticket = synchronized(lock) { tickets[guestId]?.takeIf(::redeemable) }
             if (ticket == null) {
-                output.writeByte(JamWire.STATUS_REFUSED)
-                output.flush()
+                JamWire.writeStatus(output, JamWire.STATUS_REFUSED)
                 return null
             }
             val serverNonce = JamWire.randomBytes(random, JamWire.NONCE_SIZE)
@@ -321,45 +308,17 @@ class JamServer(
             JamWire.send(channel, JamEnd(REASON_VERSION_MISMATCH))
             return null
         }
-        return when (val admission = register(socket, channel, hello.name.take(MAX_NAME_LENGTH), reconnect)) {
-            is Admission.In -> admission.guest
-            is Admission.Out -> {
-                JamWire.send(channel, JamEnd(admission.reason))
-                null
-            }
-        }
+        return Handshake(channel, hello.name.take(MAX_NAME_LENGTH), code, reconnect)
     }
 
-    /** The join's J-PAKE round, under [joinMutex]; null when refused or the code was wrong. */
-    private fun pair(input: DataInputStream, output: DataOutputStream): SecureChannel? {
-        val code = synchronized(lock) { code.takeUnless { _codeExhausted.value } }
-        val status = when {
-            code == null -> JamWire.STATUS_EXHAUSTED
-            lockout.isLocked() -> JamWire.STATUS_LOCKED
-            else -> JamWire.STATUS_OK
-        }
-        JamWire.writeStatus(output, status)
-        if (code == null || status != JamWire.STATUS_OK) return null
-        val keyingMaterial = try {
-            JpakeHandshake.run(input, output, code, Role.Sender, "jam-host")
-        } catch (e: DeviceSyncAuthException) {
-            recordWrongCode(code)
-            return null
-        }
-        return SecureChannel(input, output, keyingMaterial, Role.Sender)
-    }
-
-    /** Counts a wrong guess against [code], unless the host has replaced it meanwhile. */
-    private fun recordWrongCode(code: String) = synchronized(lock) {
-        if (code != this.code) return
-        lockout.recordFailure()
-        if (++codeFailures >= MAX_WRONG_CODES) _codeExhausted.value = true
-    }
-
-    private fun register(socket: Socket, channel: SecureChannel, name: String, reconnect: Pair<String, Ticket>?): Admission =
+    private fun register(socket: Socket, handshake: Handshake): Admission =
         synchronized(lock) {
             handshaking.remove(socket)
             if (stopped) return Admission.Out(REASON_HOST_ENDED)
+            if (socket.isClosed) return Admission.Out(REASON_HOST_ENDED) // past its deadline: never register it
+            val code = handshake.code
+            if (code != null && !gate.isCurrent(code)) return Admission.Out(REASON_CODE_REPLACED)
+            val reconnect = handshake.reconnect
             tickets.entries.removeAll { (id, ticket) -> id !in guests && !redeemable(ticket) }
             val id = if (reconnect == null) {
                 val reserved = tickets.count { (id, _) -> id !in guests }
@@ -376,10 +335,10 @@ class JamServer(
             }
             val key = JamWire.randomBytes(random, JamWire.KEY_SIZE)
             tickets[id] = Ticket(key)
-            val guest = Guest(id, socket, channel)
+            val guest = Guest(id, socket, handshake.channel)
             guest.offer(JamWelcome(id, key.toHex())) // first in its queue, before any broadcast can reach it
             guests[id] = guest
-            eventChannel.trySend(JamEvent.GuestJoined(id, name))
+            eventChannel.trySend(JamEvent.GuestJoined(id, handshake.name))
             Admission.In(guest)
         }
 
@@ -458,7 +417,7 @@ class JamServer(
         /** Of [MAX_HANDSHAKES], joins may hold this many; the rest stay free for reconnects. */
         const val MAX_JOIN_HANDSHAKES = 6
         /** Wrong codes in total before the code is dead until [replaceCode] (the timed lock comes every 3). */
-        const val MAX_WRONG_CODES = 10
+        const val MAX_WRONG_CODES = JamJoinGate.MAX_WRONG_CODES
         /** AddRequest/Control events per guest and second; more are ignored. */
         const val MAX_REQUESTS_PER_SECOND = 20
         const val MAX_NAME_LENGTH = 64
@@ -470,6 +429,8 @@ class JamServer(
         const val REASON_FULL = "full"
         const val REASON_VERSION_MISMATCH = "version_mismatch"
         const val REASON_RECONNECT_REFUSED = "reconnect_refused"
+        /** The guest paired with a code the host replaced meanwhile. */
+        const val REASON_CODE_REPLACED = "code_replaced"
         /** Sent by a guest that leaves on purpose ([JamConnection.close]). */
         const val REASON_LEFT = "left"
     }

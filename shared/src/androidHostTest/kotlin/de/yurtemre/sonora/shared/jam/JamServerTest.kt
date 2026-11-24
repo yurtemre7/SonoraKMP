@@ -223,6 +223,36 @@ class JamServerTest {
     }
 
     @Test
+    fun aJoinThatReachesTheDeadlineDuringItsHandshakeIsNeverLeftRegistered() = test {
+        val server = server(pairingTimeoutMs = 1_000)
+        val port = server.start(code)
+        val warm = join(port, "Warm-up") // warm JIT: the J-PAKE rounds below finish well inside the deadline
+        // Each handshake overruns its deadline right before registration (the watchdog has closed its socket).
+        server.beforeRegister = { socket -> while (!socket.isClosed) Thread.onSpinWait() }
+        // Concurrent joins contend for the join slot, so some of them suspend while waiting for it.
+        (1..3).map { async(Dispatchers.IO) { runCatching { client().join(loopback, port, code, "Late $it") } } }.awaitAll()
+            .forEach { it.getOrNull()?.let(connections::add) }
+        server.beforeRegister = null
+        val guest = join(port, "On time")
+        // Whatever was registered with a dead socket has been detached again; nothing is stuck in the Jam.
+        withTimeout(10_000) {
+            while (server.registeredGuests() != setOf(warm.guestId, guest.guestId)) delay(20)
+        }
+    }
+
+    @Test
+    fun aJoinPairedWithTheOldCodeIsRefusedAfterReplaceCode() = test {
+        val server = server()
+        val port = server.start(code)
+        server.beforeRegister = { server.replaceCode("135790") } // the host replaces the code mid-handshake
+        expectError(JamError.WrongCode) { join(port, "Ana") }
+        server.beforeRegister = null
+        assertTrue(server.registeredGuests().isEmpty())
+        assertFailsWith<IllegalArgumentException> { server.replaceCode("135790") } // same code: no silent reset
+        join(port, "Ana", code = "135790")
+    }
+
+    @Test
     fun broadcastRacingStopStillDeliversJamEnd() = test {
         val server = server()
         val port = server.start(code)

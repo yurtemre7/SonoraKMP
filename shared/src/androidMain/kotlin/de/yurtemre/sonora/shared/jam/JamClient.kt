@@ -2,7 +2,6 @@ package de.yurtemre.sonora.shared.jam
 
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncAuthException
 import de.yurtemre.sonora.shared.devicesync.DeviceSyncProtocolException
-import de.yurtemre.sonora.shared.devicesync.DeviceSyncServer
 import de.yurtemre.sonora.shared.devicesync.JpakeHandshake
 import de.yurtemre.sonora.shared.devicesync.Role
 import de.yurtemre.sonora.shared.devicesync.SecureChannel
@@ -67,11 +66,7 @@ class JamClient(
                 JpakeHandshake.run(input, output, code, Role.Receiver, "jam-guest")
             } catch (e: DeviceSyncAuthException) {
                 throw JamException(JamError.WrongCode)
-            } catch (e: DeviceSyncProtocolException) {
-                throw JamException(
-                    if (e.message == DeviceSyncServer.ERROR_TOO_MANY_ATTEMPTS) JamError.Locked else JamError.HostGone,
-                )
-            }
+            } // Locked/busy/exhausted come as the status byte above; any other failure falls through to HostGone.
             SecureChannel(input, output, keyingMaterial, Role.Receiver)
         }
 
@@ -125,6 +120,7 @@ class JamClient(
         JamServer.REASON_FULL -> JamError.Full
         JamServer.REASON_VERSION_MISMATCH -> JamError.VersionMismatch
         JamServer.REASON_RECONNECT_REFUSED -> JamError.ReconnectRefused
+        JamServer.REASON_CODE_REPLACED -> JamError.WrongCode // the code it proved is no longer the Jam's
         else -> JamError.HostGone
     }
 
