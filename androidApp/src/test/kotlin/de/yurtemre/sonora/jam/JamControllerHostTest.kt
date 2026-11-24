@@ -164,6 +164,19 @@ class JamControllerHostTest : JamControllerTestBase() {
         assertNoEffects()
     }
 
+    @Test fun hostSkipSilenceCountsAsATimeEffect() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        skipSilence.value = true // guests never skip silence: they fall behind like with a speed effect
+        runCurrent()
+        assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        skipSilence.value = false
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+    }
+
     @Test fun aSongReplacedAtTheSameIndexIsNotTakenForASeek() = runTest {
         val jam = controller()
         jam.host(JamSettings())

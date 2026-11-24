@@ -5,6 +5,7 @@ import de.yurtemre.sonora.shared.jam.JamState
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.testing.testSong
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import org.junit.Assert.assertTrue
@@ -24,6 +25,7 @@ abstract class JamControllerTestBase {
     protected val logs = mutableListOf<String>()
     protected var speakerDelay = 0
     protected var codes = 0
+    protected val skipSilence = MutableStateFlow(false)
     protected lateinit var playback: RecordingPlayback
 
     protected fun TestScope.controller(library: List<Song> = listOf(a, b, c)): JamController {
@@ -41,6 +43,7 @@ abstract class JamControllerTestBase {
                 deviceName = { "Guest phone" },
                 newCode = { (123_456 + codes++).toString() },
                 debugLog = { logs += it },
+                skipSilence = skipSilence,
             ),
         )
     }

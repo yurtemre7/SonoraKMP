@@ -37,6 +37,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.io.File
 import org.koin.android.ext.koin.androidContext
@@ -100,6 +101,7 @@ val appModule = module {
                 advertise = { port, name -> discovery.advertise(port, UUID.randomUUID().toString(), name) },
                 startService = { JamService.start(ctx) },
                 newCode = { PairingCode.generate() },
+                skipSilence = get<SettingsRepository>().settings.map { it.skipSilence },
                 debugLog = if (BuildConfig.DEBUG) { msg -> android.util.Log.d("SonoraJam", msg) } else null,
             ),
         )

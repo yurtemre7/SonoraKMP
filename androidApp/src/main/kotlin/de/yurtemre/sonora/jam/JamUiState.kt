@@ -10,8 +10,9 @@ sealed interface JamUiState {
 
     /**
      * This phone hosts a Jam: guests join at [port] with [code]. [codeExhausted]: offer [JamController.newCode].
-     * [hostSpeedEffectActive]: the host plays at a speed other than 1x (an MFX effect). Guests always play at 1x and
-     * drift until the next song change, so the Jam screen can suggest turning the effect off; it is never forced.
+     * [hostSpeedEffectActive]: the host's timeline runs off the song's own time: a speed other than 1x (an MFX
+     * effect) or skip silence. (The name is kept for both.) Guests always play at 1x without skip silence and drift
+     * until the next song change, so the Jam screen can suggest turning the effect off; it is never forced.
      */
     data class Hosting(
         val code: String,

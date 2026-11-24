@@ -43,6 +43,8 @@ internal class JamHostSession(
 ) {
     private var hostState = JamHostState.initial(settings)
     private var codeExhausted = false
+    /** Speed other than 1x or skip silence on the host ([JamUiState.Hosting.hostSpeedEffectActive]). */
+    private var timeEffectActive = false
     private val jobs = mutableListOf<Job>()
     private var advertisement: AutoCloseable? = null
     private var lastBroadcastAtMs = 0L
@@ -64,7 +66,14 @@ internal class JamHostSession(
                 .collect { broadcastState() }
         }
         jobs += scope.launch { transport.events.collect(::onEvent) }
-        jobs += scope.launch { playback.mfx.collect { publishUi() } }
+        jobs += scope.launch {
+            combine(playback.mfx, env.skipSilence) { mfx, skip -> mfx.isSpeedChanged || skip }
+                .distinctUntilChanged()
+                .collect {
+                    timeEffectActive = it
+                    publishUi()
+                }
+        }
         jobs += scope.launch { watchSeeks() }
         jobs += scope.launch {
             transport.codeExhausted.collect {
@@ -188,7 +197,7 @@ internal class JamHostSession(
             guests = hostState.guests.map { (id, info) -> JamGuestUi(id, info.name) },
             settings = hostState.settings,
             codeExhausted = codeExhausted,
-            hostSpeedEffectActive = playback.mfx.value.isSpeedChanged,
+            hostSpeedEffectActive = timeEffectActive,
         ),
     )
 

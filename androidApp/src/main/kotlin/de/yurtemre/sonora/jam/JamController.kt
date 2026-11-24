@@ -11,6 +11,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
@@ -36,6 +38,8 @@ class JamEnvironment(
     val newCode: () -> String,
     /** Debug builds only: start-gap measurements for the real-phone checks. */
     val debugLog: ((String) -> Unit)? = null,
+    /** The host's skip silence setting: guests never skip silence, so it moves the host away like a speed effect. */
+    val skipSilence: Flow<Boolean> = flowOf(false),
 )
 
 /** A hosted Jam: guests join at [port] with [code]. */
