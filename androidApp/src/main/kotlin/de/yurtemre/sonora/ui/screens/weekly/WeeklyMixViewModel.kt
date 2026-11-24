@@ -32,6 +32,8 @@ data class WeeklyMixUi(
     val songs: List<Song> = emptyList(),
     val countdown: CountdownParts = CountdownParts(0, 0, 0),
     val nextRefreshMs: Long = 0,
+    /** True while [songs] are last week's, kept on screen until the rollover refresh finishes. */
+    val stale: Boolean = false,
 )
 
 /**
@@ -50,8 +52,8 @@ class WeeklyMixViewModel(
     private val firstDone = MutableStateFlow(false)
 
     /**
-     * [WeeklyMixUi.loaded] is false until the first refresh has finished, and while a refresh runs with
-     * nothing to show yet; during a rollover refresh the previous songs stay visible.
+     * [WeeklyMixUi.loaded] is false until the first refresh has finished (unless songs are already known);
+     * during a rollover refresh the previous songs stay visible and [WeeklyMixUi.stale] is set.
      */
     val ui: StateFlow<WeeklyMixUi> = flow {
         coroutineScope {
@@ -72,8 +74,10 @@ class WeeklyMixViewModel(
                 combine(repo.state(zone()), now, inFlight, firstDone) { s, t, running, first ->
                     val busy = running > 0 || !first
                     if (s.songs.isNotEmpty()) last = s.songs
-                    val shown = if (s.songs.isEmpty() && busy) last else s.songs
-                    WeeklyMixUi(!busy || shown.isNotEmpty(), s.weekStartMs, shown, formatCountdown(s.nextRefreshMs - t), s.nextRefreshMs)
+                    val stale = s.songs.isEmpty() && busy && last.isNotEmpty()
+                    val shown = if (stale) last else s.songs
+                    // Only the very first refresh hides the screen; later refreshes never blink it.
+                    WeeklyMixUi(first || shown.isNotEmpty(), s.weekStartMs, shown, formatCountdown(s.nextRefreshMs - t), s.nextRefreshMs, stale)
                 },
             )
         }

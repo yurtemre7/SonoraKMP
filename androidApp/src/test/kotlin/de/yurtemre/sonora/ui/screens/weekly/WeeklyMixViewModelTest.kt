@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -42,7 +43,9 @@ class WeeklyMixViewModelTest {
         var refreshCalls = 0
         var gate: CompletableDeferred<Unit>? = null
         var storeOnRefresh = true
-        override fun state(zone: TimeZone): Flow<WeeklyMixState> = stored.map { s ->
+        /** Bump to make [state] re-read the clock, as the real repository does when the library changes. */
+        val tick = MutableStateFlow(0)
+        override fun state(zone: TimeZone): Flow<WeeklyMixState> = combine(stored, tick) { s, _ -> s }.map { s ->
             val now = clock.now
             val week = WeeklyMix.weekStart(now, zone)
             WeeklyMixState(week, if (s == week) listOf(SONG) else emptyList(), WeeklyMix.nextRefresh(now, zone))
@@ -153,14 +156,34 @@ class WeeklyMixViewModelTest {
         backgroundScope.launch { vm.ui.collect {} }
         advanceTimeBy(1_000)
         assertTrue(vm.ui.value.songs.isNotEmpty())
+        assertEquals(false, vm.ui.value.stale)
         repo.gate = CompletableDeferred()
         clock.now = vm.ui.value.nextRefreshMs + 1
-        advanceTimeBy(61_000)
+        advanceTimeBy(61_000) // tick refresh now runs, blocked on the gate
+        repo.tick.value++ // the new week has no stored mix: the repository emits an empty list
+        advanceTimeBy(1_000)
         assertTrue(vm.ui.value.loaded)
         assertTrue(vm.ui.value.songs.isNotEmpty())
+        assertTrue(vm.ui.value.stale)
         repo.gate!!.complete(Unit)
         advanceTimeBy(1_000)
         assertTrue(vm.ui.value.songs.isNotEmpty())
+        assertEquals(false, vm.ui.value.stale)
+    }
+
+    @Test fun laterRefreshesNeverBlinkTheEmptyState() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock).apply { storeOnRefresh = false }
+        val vm = WeeklyMixViewModel(repo, flowOf(false), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.loaded)
+        repo.gate = CompletableDeferred()
+        vm.onResume()
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.loaded)
+        assertTrue(vm.ui.value.songs.isEmpty())
+        repo.gate!!.complete(Unit)
     }
 
     private companion object {

@@ -93,15 +93,15 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
 
     var saving by remember { mutableStateOf(false) }
     fun save() = scope.launch {
-        if (saving) return@launch
+        if (saving || ui.stale) return@launch
         saving = true
         try {
-        val date = DateFormats.shortDate(Instant.ofEpochMilli(ui.weekStartMs), locale)
-        val name = res.getString(R.string.weekly_mix_playlist_name, date)
-        val message = if (vm.save(name) != null) res.getString(R.string.weekly_mix_saved, name)
-        else res.getString(R.string.weekly_mix_save_failed)
-        snackbar.currentSnackbarData?.dismiss()
-        snackbar.showSnackbar(message = message, duration = SnackbarDuration.Short)
+            val date = DateFormats.shortDate(Instant.ofEpochMilli(ui.weekStartMs), locale)
+            val name = res.getString(R.string.weekly_mix_playlist_name, date)
+            val message = if (vm.save(name) != null) res.getString(R.string.weekly_mix_saved, name)
+            else res.getString(R.string.weekly_mix_save_failed)
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(message = message, duration = SnackbarDuration.Short)
         } finally { saving = false }
     }
 
@@ -153,7 +153,7 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
                                 Text(stringResource(R.string.weekly_mix_add_to_queue), Modifier.padding(start = 8.dp))
                             }
-                            TextButton(onClick = { save() }, enabled = !saving) {
+                            TextButton(onClick = { save() }, enabled = !saving && !ui.stale) {
                                 Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null)
                                 Text(stringResource(R.string.weekly_mix_save), Modifier.padding(start = 8.dp))
                             }
