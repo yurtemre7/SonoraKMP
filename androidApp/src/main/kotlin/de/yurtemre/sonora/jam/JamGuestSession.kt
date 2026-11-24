@@ -119,6 +119,7 @@ internal class JamGuestSession(
                 finish(closing ?: JamEndReason.HostGone)
                 return
             }
+            mirror.untrim() // the cut was for the drop: the host's next state brings the following songs back
             sync = clockState()
             publishJoined()
         }

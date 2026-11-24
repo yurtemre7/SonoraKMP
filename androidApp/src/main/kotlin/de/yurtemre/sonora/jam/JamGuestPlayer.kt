@@ -85,8 +85,9 @@ internal class JamGuestPlayer(
             refreshRun(s, v)
             startAt(start.atLocalMs ?: now)
         } else {
-            // The host stopped at this song's end (queue over): ours ends by itself a moment later.
-            if (v.playing && s.positionMs >= s.queue[s.index].durationMs - NATURAL_END_MS) return
+            // The host stopped at the end of the queue's last song: ours ends by itself a moment later.
+            val queueOver = s.index == s.queue.lastIndex && s.positionMs >= s.queue[s.index].durationMs - NATURAL_END_MS
+            if (v.playing && queueOver) return
             mirror.pause() // also while still buffering
             if (plan.seekOnNextBoundary || pendingSeek) playback.seekTo(plan.positionMs)
             pendingSeek = false
@@ -101,6 +102,7 @@ internal class JamGuestPlayer(
         if (s.playing && v.playing && v.songId != null && v.songId == previous?.id && remaining < TAIL_WAIT_MS) {
             // In sync, our player moves on by itself (gapless). Otherwise our song finishes first, uncut.
             if (!mirror.trimmed && nextInRun(v) == plan.song.id && remaining < NATURAL_END_MS) return
+            mirror.trimToCurrent(v) // else the player would roll on into the next song from 0 by itself
             awaitSongEnd(v.songId)
             return
         }

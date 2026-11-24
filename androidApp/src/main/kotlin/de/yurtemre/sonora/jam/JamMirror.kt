@@ -22,6 +22,7 @@ internal class JamMirror(private val playback: PlaybackConnection) {
     private var loadedSongId: Long? = null
     private var intendedPlaying = false
     private var confirmed = false
+    private var ownEntryUid: Long? = null
 
     var active = false
         private set
@@ -38,6 +39,8 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         if (!active) {
             previous = playback.queueSnapshot()
             active = true
+            // The guest's own entry may be the same song: only a new entry shows the mirror has loaded.
+            ownEntryUid = playback.player.value.currentEntryUid
         }
         run = songs
         trimmed = false
@@ -49,10 +52,10 @@ internal class JamMirror(private val playback: PlaybackConnection) {
 
     /** Leaves only the song [view] plays in the player (it plays on, gapless); nothing follows it. */
     fun trimToCurrent(view: LocalView) {
+        // Not reported yet: the player's position may still be the guest's own song's; the next frame decides.
+        val position = view.positionMs ?: return
         val song = run.firstOrNull { it.id == view.songId } ?: return
-        if (run.map { it.id } != listOf(song.id)) {
-            load(listOf(song), 0, view.positionMs ?: playback.currentPositionMs(), view.playing)
-        }
+        if (run.map { it.id } != listOf(song.id)) load(listOf(song), 0, position, view.playing)
         trimmed = true
     }
 
@@ -77,8 +80,10 @@ internal class JamMirror(private val playback: PlaybackConnection) {
     fun view(): LocalView {
         val p = playback.player.value
         if (!active) return LocalView(p.currentSong?.id, p.isPlaying, null, null)
-        if (!confirmed && p.currentSong?.id == loadedSongId && (p.isPlaying == intendedPlaying || p.isBuffering)) {
+        val mirrorEntry = ownEntryUid == null || p.currentEntryUid != ownEntryUid
+        if (!confirmed && mirrorEntry && p.currentSong?.id == loadedSongId && (p.isPlaying == intendedPlaying || p.isBuffering)) {
             confirmed = true
+            ownEntryUid = null
         }
         if (!confirmed) return LocalView(loadedSongId, intendedPlaying, null, null)
         val position = playback.currentPositionMs()
@@ -95,6 +100,7 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         active = false
         run = emptyList()
         loadedSongId = null
+        ownEntryUid = null
         playback.endMirror(previous)
         previous = null
     }

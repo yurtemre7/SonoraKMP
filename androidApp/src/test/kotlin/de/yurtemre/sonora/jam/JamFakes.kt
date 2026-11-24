@@ -66,10 +66,10 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
     }
 
     /** Host side: the user's queue. */
-    fun hostQueue(songs: List<Song>, index: Int, playing: Boolean, positionMs: Long = 0) {
-        queue.value = QueueUiState(songs.mapIndexed { i, s -> QueueItemUi(i.toLong(), s) }, index)
+    fun hostQueue(songs: List<Song>, index: Int, playing: Boolean, positionMs: Long = 0, uidBase: Long = 0) {
+        queue.value = QueueUiState(songs.mapIndexed { i, s -> QueueItemUi(uidBase + i, s) }, index)
         player.value = player.value.copy(
-            currentSong = songs.getOrNull(index), currentEntryUid = index.toLong(), isPlaying = playing,
+            currentSong = songs.getOrNull(index), currentEntryUid = uidBase + index, isPlaying = playing,
             durationMs = songs.getOrNull(index)?.durationMs ?: 0,
         )
         position = positionMs
@@ -99,8 +99,11 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
             if (playWhenReady) apply { setPlaying(true) }
             return
         }
+        val uid = nextUid++
         apply {
-            player.value = player.value.copy(currentSong = song, durationMs = song?.durationMs ?: 0, isCompleted = false)
+            player.value = player.value.copy(
+                currentSong = song, currentEntryUid = uid, durationMs = song?.durationMs ?: 0, isCompleted = false,
+            )
             position = positionMs
             setPlaying(playWhenReady && song != null)
         }
@@ -112,6 +115,7 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
         setPlaying(false)
     }
 
+    private var nextUid = 1_000L
     var deferPlayer = false
     private val pending = mutableListOf<() -> Unit>()
     private fun apply(change: () -> Unit) { if (deferPlayer) pending += change else change() }

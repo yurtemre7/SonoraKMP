@@ -138,4 +138,26 @@ class JamControllerHostTest : JamControllerTestBase() {
         assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
         assertNoEffects()
     }
+
+    @Test fun aSongReplacedAtTheSameIndexIsNotTakenForASeek() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS * 2 - 10)
+        transport.broadcasts.clear()
+        playback.hostQueue(listOf(c, b), index = 0, playing = true, uidBase = 10) // new song at index 0, from 0
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 20) // the seek check runs before the debounce settles
+        assertEquals(1, transport.broadcasts.size)
+        assertEquals(c.jam(), (transport.broadcasts.single() as JamStateFrame).state.queue[0])
+    }
+
+    @Test fun keepaliveResendsTheStateEvery30Seconds() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        advanceTimeBy(JamHostSession.KEEPALIVE_MS + JamHostSession.SEEK_CHECK_MS)
+        assertEquals(1, transport.broadcasts.size)
+    }
 }

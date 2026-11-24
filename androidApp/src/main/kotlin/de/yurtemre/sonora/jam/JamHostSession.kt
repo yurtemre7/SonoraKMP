@@ -43,6 +43,8 @@ internal class JamHostSession(
     private var codeExhausted = false
     private val jobs = mutableListOf<Job>()
     private var advertisement: AutoCloseable? = null
+    private var lastBroadcastAtMs = 0L
+    private var lastBroadcastUid: Long? = null
 
     private data class Snapshot(val queue: List<JamSong>, val index: Int, val entryUid: Long?, val playing: Boolean)
 
@@ -111,12 +113,19 @@ internal class JamHostSession(
     /**
      * A seek changes neither the queue nor play/pause, so the snapshot flow misses it: every [SEEK_CHECK_MS] the
      * player's position is compared with the last broadcast's extrapolation and a jump goes out as a new state.
+     * With no broadcast for [KEEPALIVE_MS] the state goes out again (a guest treats an unchanged state as a no-op).
      */
     private suspend fun watchSeeks() {
         while (true) {
             delay(SEEK_CHECK_MS)
+            if (env.nowMs() - lastBroadcastAtMs >= KEEPALIVE_MS) {
+                broadcastState()
+                continue
+            }
             val s = hostState.state
-            if (!s.playing || !playback.player.value.isPlaying || playback.queue.value.currentIndex != s.index) continue
+            val p = playback.player.value
+            // Another entry (a song change the debounce has not sent yet) is not a seek.
+            if (!s.playing || !p.isPlaying || p.currentEntryUid != lastBroadcastUid) continue
             val expected = s.positionMs + (env.nowMs() - s.hostTimeMs)
             if (abs(playback.currentPositionMs() - expected) > SEEK_TOLERANCE_MS) broadcastState()
         }
@@ -124,6 +133,8 @@ internal class JamHostSession(
 
     private fun broadcastState() {
         hostState = synced()
+        lastBroadcastAtMs = env.nowMs()
+        lastBroadcastUid = playback.player.value.currentEntryUid
         transport.broadcast(JamStateFrame(hostState.state))
     }
 
@@ -174,6 +185,8 @@ internal class JamHostSession(
     companion object {
         /** How often the host checks for a seek (a position jump without a queue or transport change). */
         const val SEEK_CHECK_MS = 2_000L
+        /** The current state is sent again this often, so a guest that missed a frame catches up. */
+        const val KEEPALIVE_MS = 30_000L
         /** A position this far from the extrapolated one is a seek (well above player jitter). */
         const val SEEK_TOLERANCE_MS = 1_000L
     }

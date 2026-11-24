@@ -122,4 +122,96 @@ class JamControllerSyncTest : JamControllerTestBase() {
         runCurrent()
         assertTrue("pause" in playback.calls)
     }
+
+    @Test fun hostPauseNearTheEndOfASongThatIsNotTheLastPausesTheGuest() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        advanceTimeBy(178_500)
+        link.deliver(JamStateFrame(state(a, b, playing = false, positionMs = 178_500)))
+        runCurrent()
+        assertTrue("pause" in playback.calls)
+        assertFalse(playback.player.value.isPlaying)
+    }
+
+    @Test fun hostStopAtTheEndOfTheQueueLetsTheLastSongEnd() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, index = 1)))
+        advanceTimeBy(179_000)
+        link.deliver(JamStateFrame(state(a, b, index = 1, playing = false, positionMs = 180_000)))
+        runCurrent()
+        assertFalse("pause" in playback.calls)
+    }
+
+    @Test fun hostSkipWhileTheGuestHasSecondsLeftNeverRollsIntoTheNextSongFromZero() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, c)))
+        advanceTimeBy(175_000) // 5 s left on this phone; the host skips now
+        link.deliver(JamStateFrame(state(a, b, c, index = 1)))
+        runCurrent()
+        assertEquals("our song ends, then stops: nothing rolls on from 0", listOf(1L), playback.mirrorLoads.last().songIds)
+        assertTrue(playback.player.value.isPlaying)
+        advanceTimeBy(5_000)
+        playback.finishSong()
+        runCurrent()
+        assertEquals(MirrorLoad(listOf(2, 3), 0, 5_000, true), playback.mirrorLoads.last())
+    }
+
+    @Test fun noCutBeforeThePlayerReportedItsPosition() = runTest {
+        val jam = controller()
+        playback.deferPlayer = true
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        runCurrent()
+        link.drop() // the player has not reported the load yet: its position may still be the guest's own song
+        runCurrent()
+        assertEquals(1, playback.mirrorLoads.size)
+    }
+
+    @Test fun theGuestsOwnSameSongIsNotMistakenForTheMirror() = runTest {
+        val jam = controller()
+        // The guest was listening to A itself, 90 s in.
+        playback.player.value = playback.player.value.copy(currentSong = a, currentEntryUid = 5, isPlaying = true, durationMs = a.durationMs)
+        playback.position = 90_000
+        playback.deferPlayer = true
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        runCurrent()
+        link.deliver(JamStateFrame(state(a, b, canControl = true)))
+        runCurrent()
+        assertEquals("no drift cut from the guest's own position", 1, playback.mirrorLoads.size)
+        assertTrue(playback.seeks.isEmpty())
+    }
+
+    @Test fun afterAReconnectTheFollowingSongsComeBack() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        advanceTimeBy(10_000)
+        val again = FakeLink(offsetMs = 0)
+        connector.reconnects.addLast(again)
+        link.drop()
+        runCurrent()
+        assertEquals(listOf(1L), playback.mirrorLoads.last().songIds)
+        again.deliver(JamStateFrame(state(a, b, positionMs = 10_000)))
+        runCurrent()
+        assertEquals("in sync again: B follows A gaplessly", listOf(1L, 2L), playback.mirrorLoads.last().songIds)
+    }
+
+    @Test fun keepaliveFramesChangeNothing() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        runCurrent()
+        val calls = playback.calls.size
+        repeat(5) {
+            advanceTimeBy(JamHostSession.KEEPALIVE_MS)
+            link.deliver(JamStateFrame(state(a, b, positionMs = testScheduler.currentTime)))
+            runCurrent()
+        }
+        assertEquals("no reload, seek, play or pause", calls, playback.calls.size)
+        assertTrue(playback.player.value.isPlaying)
+    }
 }
