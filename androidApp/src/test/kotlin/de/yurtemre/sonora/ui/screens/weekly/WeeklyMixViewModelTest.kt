@@ -186,6 +186,34 @@ class WeeklyMixViewModelTest {
         repo.gate!!.complete(Unit)
     }
 
+    @Test fun slowLibraryLoadNeverFlashesTheEmptyState() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock)
+        val lib = MutableStateFlow(false)
+        val vm = WeeklyMixViewModel(repo, lib, clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        repo.stored.value = null
+        repo.gate = CompletableDeferred()
+        lib.value = true
+        advanceTimeBy(1_000)
+        assertEquals(false, vm.ui.value.loaded)
+        repo.gate!!.complete(Unit)
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.loaded)
+        assertTrue(vm.ui.value.songs.isNotEmpty())
+    }
+
+    @Test fun genuinelyEmptyLibraryEndsLoadedAndEmpty() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock).apply { storeOnRefresh = false }
+        val vm = WeeklyMixViewModel(repo, flowOf(false), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.loaded)
+        assertTrue(vm.ui.value.songs.isEmpty())
+    }
+
     private companion object {
         val SONG = Song(
             id = 1L, title = "t", artist = "a", album = "al", durationMs = 1000L, filePath = "/x.mp3",

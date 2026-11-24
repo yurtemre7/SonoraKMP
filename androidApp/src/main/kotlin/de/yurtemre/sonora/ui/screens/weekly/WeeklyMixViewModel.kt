@@ -50,6 +50,8 @@ class WeeklyMixViewModel(
 
     private val inFlight = MutableStateFlow(0)
     private val firstDone = MutableStateFlow(false)
+    /** The library just turned non-empty and its refresh has not finished: an empty mix is not yet the truth. */
+    private val awaitingLibraryRefresh = MutableStateFlow(false)
 
     /**
      * [WeeklyMixUi.loaded] is false until the first refresh has finished (unless songs are already known);
@@ -68,16 +70,21 @@ class WeeklyMixViewModel(
                     refresh { now.value = clock.nowMs() }
                 }
             }
-            launch { libraryNonEmpty.distinctUntilChanged().filter { it }.collect { refresh() } }
+            launch {
+                libraryNonEmpty.distinctUntilChanged().filter { it }.collect {
+                    awaitingLibraryRefresh.value = true
+                    try { refresh() } finally { awaitingLibraryRefresh.value = false }
+                }
+            }
             var last = emptyList<Song>()
             emitAll(
-                combine(repo.state(zone()), now, inFlight, firstDone) { s, t, running, first ->
+                combine(repo.state(zone()), now, inFlight, firstDone, awaitingLibraryRefresh) { s, t, running, first, awaiting ->
                     val busy = running > 0 || !first
                     if (s.songs.isNotEmpty()) last = s.songs
                     val stale = s.songs.isEmpty() && busy && last.isNotEmpty()
                     val shown = if (stale) last else s.songs
-                    // Only the very first refresh hides the screen; later refreshes never blink it.
-                    WeeklyMixUi(first || shown.isNotEmpty(), s.weekStartMs, shown, formatCountdown(s.nextRefreshMs - t), s.nextRefreshMs, stale)
+                    // Only the first refresh and a refresh for a freshly non-empty library hide the screen; ticks never blink it.
+                    WeeklyMixUi((first || shown.isNotEmpty()) && !(awaiting && shown.isEmpty()), s.weekStartMs, shown, formatCountdown(s.nextRefreshMs - t), s.nextRefreshMs, stale)
                 },
             )
         }
