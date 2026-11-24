@@ -51,9 +51,9 @@ class JamController(
     private val scope: CoroutineScope,
     private val playback: PlaybackConnection,
     private val env: JamEnvironment,
-) {
+) : JamControls {
     private val _state = MutableStateFlow<JamUiState>(JamUiState.Idle)
-    val state: StateFlow<JamUiState> = _state.asStateFlow()
+    override val state: StateFlow<JamUiState> = _state.asStateFlow()
 
     private var hostSession: JamHostSession? = null
     private var guestSession: JamGuestSession? = null
@@ -64,7 +64,7 @@ class JamController(
      * Starts hosting with [settings]: a fresh code, a server on a free port, advertised on the LAN.
      * @throws IOException when the server cannot start ([state] is then [JamUiState.HostFailed]).
      */
-    suspend fun host(settings: JamSettings = JamSettings()): HostSession {
+    override suspend fun host(settings: JamSettings): HostSession {
         leave()
         val gen = generation
         val transport = env.hostTransport()
@@ -94,7 +94,7 @@ class JamController(
     }
 
     /** Joins the Jam at [host]:[port] with [code]; a failure leaves [JamUiState.Error] (typed) and the player as it was. */
-    suspend fun join(host: String, port: Int, code: String, hostName: String) {
+    override suspend fun join(host: String, port: Int, code: String, hostName: String) {
         leave()
         val gen = generation
         _state.value = JamUiState.Joining
@@ -122,7 +122,7 @@ class JamController(
     }
 
     /** Ends hosting (for everyone) or leaves as a guest (own queue back). Idempotent. */
-    fun leave() {
+    override fun leave() {
         generation++
         hostSession?.let {
             hostSession = null
@@ -136,39 +136,39 @@ class JamController(
     }
 
     /** Back to [JamUiState.Idle] after [JamUiState.Ended], [JamUiState.Error] or [JamUiState.HostFailed]. */
-    fun dismiss() {
+    override fun dismiss() {
         val s = _state.value
         if (s is JamUiState.Ended || s is JamUiState.Error || s is JamUiState.HostFailed) leave()
     }
 
     // ---- host -------------------------------------------------------------------------------------------------------
 
-    fun endJam() = leave()
+    override fun endJam() = leave()
 
-    fun setGuestsCanAdd(allowed: Boolean) {
+    override fun setGuestsCanAdd(allowed: Boolean) {
         hostSession?.let { it.setSettings(it.settings.copy(guestsCanAdd = allowed)) }
     }
 
-    fun setGuestsCanControl(allowed: Boolean) {
+    override fun setGuestsCanControl(allowed: Boolean) {
         hostSession?.let { it.setSettings(it.settings.copy(guestsCanControl = allowed)) }
     }
 
-    fun kick(guestId: String) {
+    override fun kick(guestId: String) {
         hostSession?.kick(guestId)
     }
 
     /** A new code after [JamUiState.Hosting.codeExhausted]; guests in the Jam stay. */
-    fun newCode() {
+    override fun newCode() {
         hostSession?.newCode()
     }
 
     // ---- guest ------------------------------------------------------------------------------------------------------
 
-    fun requestPlay() = guestSession?.request(JamAction.Play)
-    fun requestPause() = guestSession?.request(JamAction.Pause)
-    fun requestNext() = guestSession?.request(JamAction.Next)
-    fun requestPrevious() = guestSession?.request(JamAction.Previous)
-    fun requestAdd(song: Song) = guestSession?.requestAdd(song)
+    override fun requestPlay() { guestSession?.request(JamAction.Play) }
+    override fun requestPause() { guestSession?.request(JamAction.Pause) }
+    override fun requestNext() { guestSession?.request(JamAction.Next) }
+    override fun requestPrevious() { guestSession?.request(JamAction.Previous) }
+    override fun requestAdd(song: Song) { guestSession?.requestAdd(song) }
 
     /** Wi-Fi was lost or changed ([JamService]): a guest ends its connection cleanly and may rejoin. */
     fun onNetworkLost() {

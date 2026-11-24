@@ -20,4 +20,105 @@
     <string name="settings_speaker_delay_value">%1$s ms</string>
     <string name="settings_speaker_delay_less">Earlier by 10 ms</string>
     <string name="settings_speaker_delay_more">Later by 10 ms</string>
+    <!-- Jam screens -->
+    <string name="jam_title">Jam</string>
+    <string name="settings_jam_subtitle">Play music together on phones on the same Wi-Fi</string>
+    <string name="jam_start">Start a Jam</string>
+    <string name="jam_start_body">Play your queue on everyone\'s phone at the same time</string>
+    <string name="jam_join">Join a Jam</string>
+    <string name="jam_join_body">Play along with a Jam on the same Wi-Fi</string>
+    <string name="jam_open">Open Jam</string>
+    <string name="jam_how_it_works">Songs play from each phone\'s own library, so nothing is streamed and no internet is needed. Up to 8 phones can join.</string>
+    <string name="jam_local_network_denied">SonoraKMP needs access to the local network to start or join a Jam</string>
+
+    <!-- Start sheet -->
+    <string name="jam_start_sheet_body">Guests on the same Wi-Fi join with a 6-digit code. You can change these later.</string>
+    <string name="jam_perm_add">Guests can add songs</string>
+    <string name="jam_perm_add_subtitle">Their songs go to the end of your queue</string>
+    <string name="jam_perm_control">Guests can skip and pause</string>
+    <string name="jam_perm_control_subtitle">Otherwise only you control playback</string>
+    <string name="jam_start_button">Start</string>
+    <string name="jam_starting">Starting the Jam…</string>
+
+    <!-- Host -->
+    <string name="jam_code_title">Jam code</string>
+    <string name="jam_code_a11y">Jam code %1$s</string>
+    <string name="jam_host_hint">On the other phones, open Join a Jam in SonoraKMP, pick this phone and type the code. Everyone must be on the same Wi-Fi.</string>
+    <string name="jam_host_address">Not listed on the other phone? Type this address instead: %1$s</string>
+    <string name="jam_host_code_blocked">Someone typed a wrong code too often, so this code no longer works. Make a new code to let more guests join.</string>
+    <string name="jam_new_code">New code</string>
+    <string name="jam_guests_title">Guests</string>
+    <plurals name="jam_guests_count">
+        <item quantity="one">%1$d of 7</item>
+        <item quantity="other">%1$d of 7</item>
+    </plurals>
+    <string name="jam_no_guests">No guests yet</string>
+    <string name="jam_remove_guest">Remove %1$s</string>
+    <string name="jam_remove_title">Remove %1$s?</string>
+    <string name="jam_remove_body">Their phone stops playing along and goes back to its own music.</string>
+    <string name="jam_remove_confirm">Remove</string>
+    <string name="jam_permissions_title">What guests can do</string>
+    <string name="jam_speed_note">Speed effect is on; guests play at normal speed and may fall behind.</string>
+    <string name="jam_end">End Jam</string>
+    <string name="jam_end_title">End the Jam?</string>
+    <string name="jam_end_body">Guests finish the current song, then go back to their own music.</string>
+    <string name="jam_hosting">Hosting a Jam</string>
+    <plurals name="jam_hosting_with">
+        <item quantity="one">Hosting a Jam with %1$d guest</item>
+        <item quantity="other">Hosting a Jam with %1$d guests</item>
+    </plurals>
+    <string name="jam_host_failed_title">Couldn\'t start the Jam</string>
+    <string name="jam_host_failed_body">Check that Wi-Fi is on, then try again.</string>
+    <string name="jam_try_again">Try again</string>
+
+    <!-- Join -->
+    <string name="jam_found_title">Jams nearby</string>
+    <string name="jam_searching">Looking for Jams on this Wi-Fi…</string>
+    <string name="jam_none_found">No Jam found yet. Make sure both phones are on the same Wi-Fi, or type the host\'s address.</string>
+    <string name="jam_discovery_failed">Can\'t look for Jams on this network. Type the host\'s address instead.</string>
+    <string name="jam_other_version">Uses a different version of SonoraKMP</string>
+    <string name="jam_manual_title">Type the host\'s address</string>
+    <string name="jam_manual_field">Address, like 192.168.1.20:41234</string>
+    <string name="jam_manual_invalid">Type the address as IP:port or name:port</string>
+    <string name="jam_manual_hint">Guest Wi-Fi often hides phones from each other. The host\'s address is on its Jam screen.</string>
+    <string name="jam_code_field">6-digit code</string>
+    <string name="jam_choose">Choose a Jam first</string>
+    <string name="jam_join_button">Join</string>
+    <string name="jam_joining">Joining %1$s…</string>
+    <string name="jam_rejoin_target">Rejoining %1$s. Type the code again.</string>
+    <string name="jam_error_wrong_code">That code doesn\'t match. Check it and try again.</string>
+    <string name="jam_error_locked">Too many tries. Try again in %1$s.</string>
+    <string name="jam_error_code_exhausted">This code can\'t be used anymore. Ask the host for a new code.</string>
+    <string name="jam_error_full">This Jam is full. A Jam has room for 8 phones.</string>
+    <string name="jam_error_version">This Jam uses a different version of SonoraKMP. Update SonoraKMP on both phones, then try again.</string>
+    <string name="jam_error_host_gone">Couldn\'t reach the Jam. Make sure both phones are on the same Wi-Fi.</string>
+    <string name="jam_error_reconnect_refused">You\'re no longer in this Jam. Join again with the code.</string>
+
+    <!-- Guest -->
+    <string name="jam_with">In a Jam with %1$s</string>
+    <string name="jam_guest_body">The host chooses what plays. Your volume is your own.</string>
+    <string name="jam_guest_controls_host_only">Only the host can skip or pause</string>
+    <string name="jam_guest_seek_hint">The host controls the queue and where the song is</string>
+    <string name="jam_leave">Leave</string>
+    <string name="jam_leave_jam">Leave the Jam</string>
+    <string name="jam_queue_title">Jam queue</string>
+    <string name="jam_not_on_phone">Not on this phone</string>
+    <string name="jam_now">Playing now</string>
+    <string name="jam_add_song">Add a song</string>
+    <string name="jam_add_search">Search your songs</string>
+    <string name="jam_add_sent">Sent \"%1$s\" to the host</string>
+    <string name="jam_status_syncing">Syncing…</string>
+    <string name="jam_status_in_sync">In sync</string>
+    <string name="jam_status_reconnecting">Reconnecting…</string>
+    <string name="jam_status_ending">The Jam ends after this song</string>
+
+    <!-- Ended -->
+    <string name="jam_ended_title">Jam ended</string>
+    <string name="jam_ended_host_ended">The host ended the Jam.</string>
+    <string name="jam_ended_kicked">The host removed this phone from the Jam.</string>
+    <string name="jam_ended_host_gone">The host left or lost the connection.</string>
+    <string name="jam_ended_network">The Wi-Fi changed, so this phone left the Jam.</string>
+    <string name="jam_ended_queue_back">Your own queue is back.</string>
+    <string name="jam_rejoin">Rejoin</string>
+    <string name="jam_done">Done</string>
 </resources>
