@@ -23,19 +23,28 @@ join as guests (8 phones in all).
   song, an album, a playlist, the weekly mix or a related song asks "Leave the Jam to play your own music?":
   "Leave and play" leaves the Jam (the guest's own queue comes back) and then plays the choice; "Stay" keeps
   the Jam and drops it. For "Play next" and "Add to queue", when the host allows guests to add songs, the
-  first choice is "Add to the Jam queue" (the host gets the songs, the app says "Sent to the Jam", and the
-  guest stays). If the Jam ends while the question is open, it is dropped. Seeking, shuffle, repeat,
+  first choice is "Add to the Jam queue" (the host gets the songs, the app says "Sent N songs to the Jam",
+  and the guest stays). Many songs at once go out in batches of up to 100; guests can fill the Jam queue up
+  to 500 songs (the host takes the first ones that fit, and the app counts only what it sent, or says "The
+  Jam queue is full"). If the Jam ends while the question is open, it is dropped. Seeking, shuffle, repeat,
   reordering and the sleep timer are not available to a guest. Play/pause and skip, in the app and from the
   notification, lock screen, a headset or the widget, are sent to the host when it allows guests to skip and
-  pause, and ignored otherwise; outside controls cannot seek or change the queue during a Jam.
+  pause, and ignored otherwise; outside controls cannot seek or change the queue during a Jam. A headset's or
+  car's "play" only asks the host to play when it is paused (and "pause" only when it plays), so a late button
+  press never flips the host.
+- **Headphones unplugged**: when a guest's phone pauses by itself (headphones or a Bluetooth device
+  disconnected, or another app took the audio for good), it stays paused: the host's next update does not
+  start it again, so music never comes out of the phone's speaker by surprise. The Jam line says "Paused. Tap
+  play to rejoin"; play (shown even when the host does not let guests pause) rejoins the host where it is now.
+  If the phone resumes by itself when the headphones come back ("Resume on connect"), it simply plays on.
 - **Ending**: the host taps End Jam. Guests finish the current song, then see
   "Jam ended". The host can also remove a single guest.
 
 ## What to expect
 
 - Each phone plays its **own copy** of the song: nothing is streamed and no
-  internet connection is needed. Songs are matched by title, artist, album and
-  length.
+  internet connection is needed. Songs are matched by title, artist and length;
+  the album only decides between several matches.
 - **Sound quality comes before exact sync.** A guest never speeds up, slows down
   or jumps in the middle of a song to catch up. It may trail the host by a
   fraction of a second; a gap under about half a second is normal. If a phone
@@ -48,8 +57,12 @@ join as guests (8 phones in all).
   (the code is needed again). If the host disappears, guests finish the current
   song and then show "Jam ended".
 - A Jam keeps running with the screen off (a notification shows while it runs).
-- A speed effect on the host (Slowed, Nightcore, custom speed) is not copied to
-  guests: they play at normal speed and fall behind; the host screen says so.
+- A speed effect on the host (Slowed, Nightcore, custom speed) or skip silence is
+  not copied to guests: they play at normal speed without skipping and fall behind;
+  the host screen says so.
+- The host's repeat mode is followed. On **Repeat One** each guest loops the song
+  in its own player (no reload, no cut at each loop); on Repeat All the last song
+  finishes before the first one starts again.
 
 ## Limits
 
@@ -63,6 +76,20 @@ join as guests (8 phones in all).
   sees "This Jam uses a different version of SonoraKMP".
 - There is no QR-code joining (on purpose: no camera permission), and songs a
   guest lacks are not streamed or copied. Device sync can copy them beforehand.
+
+## Checks on real phones
+
+Unit tests cannot cover audio routes or speakers; before a release, try on two or more phones:
+
+- Start, join, play, pause and skip; songs a guest lacks stay silent; End Jam.
+- **Unplug headphones while a guest**: the guest stays paused (nothing from the
+  phone's speaker) through the host's next song; play rejoins; "Resume on connect"
+  plays on when they come back.
+- **Host on Repeat One**: guests loop the song with it, without a few seconds of
+  the next song or a cut at each loop; turning repeat off brings the next songs back.
+- Add 200 songs as a guest: all arrive in the host's queue, the guest stays connected.
+- Headset and lock-screen play/pause on a guest with and without "Guests can skip and pause".
+- A Bluetooth speaker with the speaker delay; Wi-Fi change and Rejoin.
 
 ## Security
 
