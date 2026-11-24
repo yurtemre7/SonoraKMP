@@ -151,6 +151,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         MediaVolume.ensureAudible(this) // PLAY-28
         exo = PlayerFactory.create(this, handleAudioFocus = true) // AudioFocusController switches per pause_on_duck
         player = SonoraForwardingPlayer(exo, scope)
+        player.transportInterceptor = ::outsideTransport
         // Hot id → song index: a queue load must not re-read the whole song table (cold Room flow) per tap.
         val songIndex = library.songs.map { l -> l.associateBy { it.id } }
             .flowOn(Dispatchers.Default)
@@ -307,6 +308,19 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         request(guest, JamGuestActions(jam))
     }
 
+    /**
+     * The player's play()/pause() while a Jam guest mirrors: from an outside controller it is a play or a pause
+     * request for the host (idempotent, see [jamExternalTransport]), never a local change the host would undo.
+     */
+    private fun outsideTransport(play: Boolean): Boolean {
+        val controller = session?.controllerForCurrentRequest ?: return false
+        return when (jamExternalTransport(play, mirroring, isExternal(controller))) {
+            ExternalTransport.Local -> false
+            ExternalTransport.HostPlay -> true.also { jamGuestRequest { guest, actions -> actions.play(guest) } }
+            ExternalTransport.HostPause -> true.also { jamGuestRequest { guest, actions -> actions.pause(guest) } }
+        }
+    }
+
     private fun isExternal(controller: MediaSession.ControllerInfo): Boolean =
         isExternalController(controller.packageName, packageName, session?.isMediaNotificationController(controller) == true)
 
@@ -340,11 +354,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
 
         override fun onPlayerCommandRequest(session: MediaSession, controller: MediaSession.ControllerInfo, playerCommand: Int): Int =
             when (jamExternalCommand(playerCommand, mirroring, isExternal(controller))) {
+                // Play/pause from outside succeeds here and is redirected in the player ([outsideTransport]).
                 ExternalCommand.Allow -> super.onPlayerCommandRequest(session, controller, playerCommand)
-                ExternalCommand.RequestPlayPause -> {
-                    jamGuestRequest { guest, actions -> actions.playPause(guest) }
-                    SessionResult.RESULT_ERROR_NOT_SUPPORTED // never a local pause or play that the host would undo
-                }
                 ExternalCommand.Reject -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
             }
 

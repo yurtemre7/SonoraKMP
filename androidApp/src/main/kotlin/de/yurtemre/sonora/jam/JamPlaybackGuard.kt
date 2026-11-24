@@ -19,13 +19,15 @@ class JamGuestActions(private val jam: JamControls) {
         if (state.playing) jam.requestPause() else jam.requestPlay()
     }
 
+    /** Idempotent: sends a play only while the host is paused (a stale "play" never pauses the host). */
     fun play(state: JamUiState.Joined) {
         if (state.pausedBySystem) return jam.resumeAfterSystemPause()
-        if (state.canControl) jam.requestPlay()
+        if (state.canControl && !state.playing) jam.requestPlay()
     }
 
+    /** Idempotent: sends a pause only while the host plays. */
     fun pause(state: JamUiState.Joined) {
-        if (state.canControl) jam.requestPause()
+        if (state.canControl && state.playing) jam.requestPause()
     }
 
     fun next(state: JamUiState.Joined) {

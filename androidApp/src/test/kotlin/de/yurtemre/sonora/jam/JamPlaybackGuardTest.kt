@@ -190,6 +190,8 @@ class JamPlaybackGuardTest {
         guarded.skipToNext()
         guarded.skipToPrevious()
         guarded.togglePlayPause()
+        guarded.play() // the host already plays: a stale play sends nothing
+        guest(canControl = true, playing = false)
         guarded.play()
         assertEquals(listOf("next", "previous", "pause", "play"), jam.calls)
         assertTrue(delegated.isEmpty())

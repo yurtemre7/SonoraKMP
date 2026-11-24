@@ -33,7 +33,13 @@ class JamExternalCommandsTest {
     }
 
     @Test fun outsidePlayPauseBecomesARequestWhileMirroring() {
-        assertEquals(ExternalCommand.RequestPlayPause, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = true, external = true))
+        // The command itself succeeds (no error flashes on the controller); the player's play()/pause() then go to
+        // the host as a play or a pause, never as a toggle.
+        assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = true, external = true))
+        assertEquals(ExternalTransport.HostPlay, jamExternalTransport(play = true, mirroring = true, external = true))
+        assertEquals(ExternalTransport.HostPause, jamExternalTransport(play = false, mirroring = true, external = true))
+        assertEquals(ExternalTransport.Local, jamExternalTransport(play = true, mirroring = true, external = false))
+        assertEquals(ExternalTransport.Local, jamExternalTransport(play = false, mirroring = false, external = true))
         // The app's own controller (the Jam mirror itself) and any controller outside a Jam act locally.
         assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = true, external = false))
         assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = false, external = true))

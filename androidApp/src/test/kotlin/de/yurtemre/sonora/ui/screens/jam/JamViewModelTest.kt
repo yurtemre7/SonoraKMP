@@ -325,6 +325,20 @@ class JamViewModelTest {
         assertEquals(listOf("next", "previous", "pause", "play"), jam.calls)
     }
 
+    @Test fun aGuestsPlayAndPauseAreIdempotent() {
+        val actions = JamGuestActions(jam)
+        // A stale "play" while the host plays (or "pause" while it is paused) sends nothing: never a toggle.
+        actions.play(joined(canControl = true, playing = true))
+        actions.pause(joined(canControl = true, playing = false))
+        assertTrue(jam.calls.isEmpty())
+        actions.play(joined(canControl = true, playing = false))
+        actions.pause(joined(canControl = true, playing = true))
+        assertEquals(listOf("play", "pause"), jam.calls)
+        // After a system pause, play resumes this phone only, with or without host control.
+        actions.play(joined(canControl = false, playing = true).copy(pausedBySystem = true))
+        assertEquals(listOf("play", "pause", "resume"), jam.calls)
+    }
+
     @Test fun guestAddsASongOnlyWhenAllowed() {
         val actions = JamGuestActions(jam)
         val s = testSong(5, "Five")

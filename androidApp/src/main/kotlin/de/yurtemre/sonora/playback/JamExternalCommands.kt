@@ -7,7 +7,7 @@ import androidx.media3.common.util.UnstableApi
 /**
  * Player commands outside controllers (notification and lock-screen seek bar, Bluetooth/headset, Android Auto)
  * lose while a Jam guest mirrors the host: seeking and changing the queue would make the guest drift. Play/pause
- * stay (a local pause is undone by the host's next state), and next/previous stay because the service turns them
+ * stay (they become a play or a pause request to the host, see [jamExternalTransport]), and next/previous stay because the service turns them
  * into requests to the host (or ignores them when the host does not allow guests to skip).
  */
 private val JAM_GUEST_BLOCKED = intArrayOf(
@@ -45,17 +45,32 @@ fun isSystemPause(playWhenReady: Boolean, reason: Int): Boolean =
         )
 
 /** What the session does with a player command from a controller while a Jam guest may be mirroring. */
-enum class ExternalCommand { Allow, RequestPlayPause, Reject }
+enum class ExternalCommand { Allow, Reject }
 
 /**
- * An outside controller's (notification, lock screen, headset, Bluetooth, Auto) play/pause while mirroring becomes
- * a request to the host (sent only when the host allows it) instead of a local pause the host would undo; its
- * seeks and queue changes are rejected. Next/previous pass on to the navigator, which maps them the same way.
- * The app's own controller (the Jam mirror) and everything outside a Jam act as usual.
+ * An outside controller's (notification, lock screen, headset, Bluetooth, Auto) seeks and queue changes while
+ * mirroring are rejected. Play/pause is allowed (the command succeeds, so no controller shows an error) and reaches
+ * the player, whose play()/pause() [jamExternalTransport] turns into a request to the host; next/previous pass on to
+ * the navigator, which maps them the same way. The app's own controller (the Jam mirror) and everything outside a Jam
+ * act as usual.
  */
 fun jamExternalCommand(command: Int, mirroring: Boolean, external: Boolean): ExternalCommand = when {
     !mirroring || !external -> ExternalCommand.Allow
-    command == Player.COMMAND_PLAY_PAUSE -> ExternalCommand.RequestPlayPause
     command in JAM_GUEST_BLOCKED -> ExternalCommand.Reject
     else -> ExternalCommand.Allow
+}
+
+/** Where an outside controller's play or pause goes ([jamExternalTransport]). */
+enum class ExternalTransport { Local, HostPlay, HostPause }
+
+/**
+ * An outside controller's play ([play]) or pause while mirroring is a play or a pause for the host, never a toggle
+ * and never a local pause the host would undo. The request is idempotent ([de.yurtemre.sonora.jam.JamGuestActions]):
+ * a "play" while the host already plays (or a "pause" while it is paused) sends nothing, so a stale headset button
+ * cannot flip the host. Everything else plays or pauses locally.
+ */
+fun jamExternalTransport(play: Boolean, mirroring: Boolean, external: Boolean): ExternalTransport = when {
+    !mirroring || !external -> ExternalTransport.Local
+    play -> ExternalTransport.HostPlay
+    else -> ExternalTransport.HostPause
 }
