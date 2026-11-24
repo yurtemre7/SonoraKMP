@@ -13,4 +13,11 @@
     <string name="jam_notif_joining">Joining a Jam…</string>
     <string name="jam_notif_end">End Jam</string>
     <string name="jam_notif_leave">Leave</string>
+    <!-- Settings › Playback › Jam -->
+    <string name="settings_section_jam">Jam</string>
+    <string name="settings_speaker_delay">Speaker delay</string>
+    <string name="settings_speaker_delay_subtitle">Use this if your Bluetooth speaker is slightly late. Plays this phone earlier (−) or later (+) in a Jam. Only for this phone.</string>
+    <string name="settings_speaker_delay_value">%1$s ms</string>
+    <string name="settings_speaker_delay_less">Earlier by 10 ms</string>
+    <string name="settings_speaker_delay_more">Later by 10 ms</string>
 </resources>

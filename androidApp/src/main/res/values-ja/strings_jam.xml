@@ -12,4 +12,11 @@
     <string name="jam_notif_joining">Jam に参加しています…</string>
     <string name="jam_notif_end">Jam を終了</string>
     <string name="jam_notif_leave">退出</string>
+    <!-- Settings › Playback › Jam -->
+    <string name="settings_section_jam">Jam</string>
+    <string name="settings_speaker_delay">スピーカーの遅延</string>
+    <string name="settings_speaker_delay_subtitle">Bluetooth スピーカーの音が少し遅れるときに使います。Jam でこのスマホの再生を早め（−）たり遅らせ（+）たりします。このスマホだけの設定です。</string>
+    <string name="settings_speaker_delay_value">%1$s ミリ秒</string>
+    <string name="settings_speaker_delay_less">10 ミリ秒早める</string>
+    <string name="settings_speaker_delay_more">10 ミリ秒遅らせる</string>
 </resources>

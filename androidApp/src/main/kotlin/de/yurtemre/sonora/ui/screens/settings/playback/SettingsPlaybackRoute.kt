@@ -165,6 +165,11 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
             )
         }
 
+        settingsHeader("jam") { stringResource(R.string.settings_section_jam) }
+        item(key = "jam_speaker_delay") {
+            SpeakerDelayRow(s.jamSpeakerDelayMs) { save { setJamSpeakerDelayMs(it) } }
+        }
+
         settingsHeader("startup") { stringResource(R.string.settings_section_startup) }
         item(key = "start_page") {
             ChoiceRow(
