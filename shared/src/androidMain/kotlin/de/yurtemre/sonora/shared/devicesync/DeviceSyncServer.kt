@@ -77,9 +77,7 @@ class DeviceSyncServer(
     private val requestTimeoutMs: Int = SOCKET_TIMEOUT_MS,
 ) {
     private val codeLock = Any()
-    private var failedAttempts = 0
-    /** Rotations caused by wrong codes since the last successful pairing (guarded by [codeLock]). */
-    private var lockedUntilMs = 0L
+    private val lockout = PairingLockout(clock)
     private val _code = MutableStateFlow(PairingCode.generate())
     private val _codeExpiresAtMs = MutableStateFlow(clock() + CODE_LIFETIME_MS)
     private val _state = MutableStateFlow<ServerState>(ServerState.Waiting)
@@ -290,7 +288,7 @@ class DeviceSyncServer(
         if (clock() >= _codeExpiresAtMs.value) rotateCode()
     }
 
-    private fun isLockedOut() = synchronized(codeLock) { clock() < lockedUntilMs }
+    private fun isLockedOut() = lockout.isLocked()
 
     /**
      * Counts a failed check against [code], unless the code has been replaced meanwhile; the 3rd rotates the code
@@ -298,10 +296,8 @@ class DeviceSyncServer(
      */
     private fun recordFailedAttempt(code: String): ServerState = synchronized(codeLock) {
         if (code != _code.value) return ServerState.Failed(ERROR_CODE_MISMATCH)
-        failedAttempts++
-        if (failedAttempts < MAX_FAILED_ATTEMPTS) return ServerState.Failed(ERROR_CODE_MISMATCH)
+        val lockedUntilMs = lockout.recordFailure() ?: return ServerState.Failed(ERROR_CODE_MISMATCH)
         rotateCode()
-        lockedUntilMs = clock() + COOL_DOWN_MS
         ServerState.Failed(ERROR_TOO_MANY_ATTEMPTS, lockedUntilMs)
     }
 
@@ -309,7 +305,7 @@ class DeviceSyncServer(
         val old = _code.value
         var next: String
         do next = PairingCode.generate() while (next == old)
-        failedAttempts = 0
+        lockout.resetFailures()
         _codeExpiresAtMs.value = clock() + CODE_LIFETIME_MS
         _code.value = next
     }
