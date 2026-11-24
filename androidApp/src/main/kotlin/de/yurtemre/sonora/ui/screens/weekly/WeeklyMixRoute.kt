@@ -3,6 +3,8 @@ package de.yurtemre.sonora.ui.screens.weekly
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +33,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -67,7 +71,7 @@ import org.koin.compose.koinInject
 import java.time.Instant
 
 /** The weekly mix: play, shuffle, add to queue, save as playlist, and the songs with the usual actions. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     val actions = rememberSongActionsState()
@@ -87,13 +91,18 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
     val locale = currentLocale()
     val title = stringResource(R.string.weekly_mix_title)
 
+    var saving by remember { mutableStateOf(false) }
     fun save() = scope.launch {
+        if (saving) return@launch
+        saving = true
+        try {
         val date = DateFormats.shortDate(Instant.ofEpochMilli(ui.weekStartMs), locale)
         val name = res.getString(R.string.weekly_mix_playlist_name, date)
         val message = if (vm.save(name) != null) res.getString(R.string.weekly_mix_saved, name)
         else res.getString(R.string.weekly_mix_save_failed)
         snackbar.currentSnackbarData?.dismiss()
         snackbar.showSnackbar(message = message, duration = SnackbarDuration.Short)
+        } finally { saving = false }
     }
 
     Scaffold(
@@ -130,13 +139,13 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 Text(stringResource(R.string.weekly_mix_shuffle), Modifier.padding(start = 8.dp))
                             }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = {
                                 playback.addToQueue(ui.songs)
                                 scope.launch {
                                     snackbar.currentSnackbarData?.dismiss()
                                     snackbar.showSnackbar(
-                                        res.getString(R.string.batch_added_to_queue, ui.songs.size),
+                                        res.getQuantityString(R.plurals.weekly_mix_added_to_queue, ui.songs.size, ui.songs.size),
                                         duration = SnackbarDuration.Short,
                                     )
                                 }
@@ -144,7 +153,7 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
                                 Text(stringResource(R.string.weekly_mix_add_to_queue), Modifier.padding(start = 8.dp))
                             }
-                            TextButton(onClick = { save() }) {
+                            TextButton(onClick = { save() }, enabled = !saving) {
                                 Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null)
                                 Text(stringResource(R.string.weekly_mix_save), Modifier.padding(start = 8.dp))
                             }

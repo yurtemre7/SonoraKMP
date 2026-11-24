@@ -6,6 +6,7 @@ import de.yurtemre.sonora.shared.library.WeeklyMixState
 import de.yurtemre.sonora.shared.model.Playlist
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,8 @@ class WeeklyMixViewModelTest {
     private class FakeRepo(private val clock: MutableClock) : WeeklyMixRepository {
         val stored = MutableStateFlow<Long?>(null)
         var refreshCalls = 0
+        var gate: CompletableDeferred<Unit>? = null
+        var storeOnRefresh = true
         override fun state(zone: TimeZone): Flow<WeeklyMixState> = stored.map { s ->
             val now = clock.now
             val week = WeeklyMix.weekStart(now, zone)
@@ -46,6 +49,8 @@ class WeeklyMixViewModelTest {
         }
         override suspend fun refreshIfNeeded(zone: TimeZone): Boolean {
             refreshCalls++
+            gate?.await()
+            if (!storeOnRefresh) return false
             val week = WeeklyMix.weekStart(clock.now, zone)
             if (stored.value == week) return false
             stored.value = week
@@ -59,7 +64,7 @@ class WeeklyMixViewModelTest {
     @Test fun viewModelRefreshesInPlaceWhenCountdownHitsZero() = runTest(dispatcher) {
         val clock = MutableClock(t0)
         val repo = FakeRepo(clock)
-        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, zone)
+        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, { zone })
         val job = backgroundScope.launch { vm.ui.collect {} }
         advanceTimeBy(1_000)
         val first = vm.ui.value
@@ -77,7 +82,7 @@ class WeeklyMixViewModelTest {
     @Test fun viewModelTickerStopsWhenNotCollected() = runTest(dispatcher) {
         val clock = MutableClock(t0)
         val repo = FakeRepo(clock)
-        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, zone)
+        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, { zone })
         val job = backgroundScope.launch { vm.ui.collect {} }
         advanceTimeBy(130_000)
         assertTrue(repo.refreshCalls >= 2)
@@ -86,6 +91,76 @@ class WeeklyMixViewModelTest {
         val calls = repo.refreshCalls
         advanceTimeBy(600_000)
         assertEquals(calls, repo.refreshCalls)
+    }
+
+    @Test fun boundaryWakesBeforeTheMinuteTick() = runTest(dispatcher) {
+        val next = WeeklyMix.nextRefresh(t0, zone)
+        val clock = MutableClock(next - 30_000)
+        val repo = FakeRepo(clock)
+        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        val first = vm.ui.value.weekStartMs
+        val calls = repo.refreshCalls
+        clock.now = next
+        advanceTimeBy(30_000)
+        assertTrue(repo.refreshCalls > calls)
+        assertNotEquals(first, vm.ui.value.weekStartMs)
+    }
+
+    @Test fun libraryBecomingNonEmptyRefreshes() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock)
+        val lib = MutableStateFlow(false)
+        val vm = WeeklyMixViewModel(repo, lib, clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        val calls = repo.refreshCalls
+        lib.value = true
+        advanceTimeBy(1_000)
+        assertEquals(calls + 1, repo.refreshCalls)
+    }
+
+    @Test fun onResumeRefreshes() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock)
+        val vm = WeeklyMixViewModel(repo, flowOf(false), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        val calls = repo.refreshCalls
+        vm.onResume()
+        advanceTimeBy(1_000)
+        assertEquals(calls + 1, repo.refreshCalls)
+    }
+
+    @Test fun notLoadedUntilFirstRefreshThenEmptyStateOnlyWhenTrulyEmpty() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock).apply { gate = CompletableDeferred(); storeOnRefresh = false }
+        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        assertEquals(false, vm.ui.value.loaded)
+        repo.gate!!.complete(Unit)
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.loaded)
+        assertTrue(vm.ui.value.songs.isEmpty())
+    }
+
+    @Test fun rolloverKeepsPreviousSongsWhileRefreshing() = runTest(dispatcher) {
+        val clock = MutableClock(t0)
+        val repo = FakeRepo(clock)
+        val vm = WeeklyMixViewModel(repo, flowOf(true), clock, { zone })
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.songs.isNotEmpty())
+        repo.gate = CompletableDeferred()
+        clock.now = vm.ui.value.nextRefreshMs + 1
+        advanceTimeBy(61_000)
+        assertTrue(vm.ui.value.loaded)
+        assertTrue(vm.ui.value.songs.isNotEmpty())
+        repo.gate!!.complete(Unit)
+        advanceTimeBy(1_000)
+        assertTrue(vm.ui.value.songs.isNotEmpty())
     }
 
     private companion object {

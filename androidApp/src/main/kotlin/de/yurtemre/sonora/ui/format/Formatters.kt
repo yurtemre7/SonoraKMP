@@ -163,6 +163,9 @@ fun formatCountdown(remainingMs: Long): CountdownParts {
 /** "Refreshes in 3 d 4 h" / "... 5 h 10 min" / "... 42 min", all units from resources. */
 fun countdownText(context: Context, parts: CountdownParts): String {
     val res = context.resources
+    if (parts == CountdownParts(0, 0, 0)) {
+        return res.getString(R.string.weekly_mix_refreshes_in, res.getString(R.string.weekly_mix_less_than_minute))
+    }
     val sep = res.getString(R.string.duration_part_separator)
     val time = when {
         parts.days > 0 -> listOf(

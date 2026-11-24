@@ -15,4 +15,9 @@
     <string name="weekly_mix_play">Play</string>
     <string name="weekly_mix_shuffle">Shuffle</string>
     <string name="weekly_mix_add_to_queue">Add to queue</string>
+    <string name="weekly_mix_less_than_minute">less than a minute</string>
+    <plurals name="weekly_mix_added_to_queue">
+        <item quantity="one">Added %1$d song to queue</item>
+        <item quantity="other">Added %1$d songs to queue</item>
+    </plurals>
 </resources>

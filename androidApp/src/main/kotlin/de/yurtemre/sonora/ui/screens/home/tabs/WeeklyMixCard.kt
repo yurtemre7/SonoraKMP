@@ -40,8 +40,11 @@ fun WeeklyMixCard(ui: WeeklyMixUi, onOpen: () -> Unit, modifier: Modifier = Modi
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (ui.songs.isEmpty()) stringResource(R.string.weekly_mix_empty)
-                    else pluralStringResource(R.plurals.song_count, ui.songs.size, ui.songs.size),
+                    when {
+                        !ui.loaded -> ""
+                        ui.songs.isEmpty() -> stringResource(R.string.weekly_mix_empty)
+                        else -> pluralStringResource(R.plurals.song_count, ui.songs.size, ui.songs.size)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

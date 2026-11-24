@@ -13,4 +13,8 @@
     <string name="weekly_mix_play">再生</string>
     <string name="weekly_mix_shuffle">シャッフル</string>
     <string name="weekly_mix_add_to_queue">キューに追加</string>
+    <string name="weekly_mix_less_than_minute">1分未満</string>
+    <plurals name="weekly_mix_added_to_queue">
+        <item quantity="other">%1$d曲をキューに追加しました</item>
+    </plurals>
 </resources>
