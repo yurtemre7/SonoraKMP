@@ -48,6 +48,8 @@ It proves storage only; runtime effects below are not covered by tests.
 | pauseOnDisconnect | `playback/NoisyAndReconnectHandler.kt:44` | next disconnect | ✅ | B |
 | resumeOnConnect | `NoisyAndReconnectHandler.kt:52` | next reconnect | ✅ | B |
 | bluetoothMfxPatch | `playback/AudioEffects.kt:116` | immediate EQ recompute | ✅ | B |
+| smartShuffle | `SonoraPlaybackService.kt` `smartReorder()` | 🕑 next shuffle (the current order is kept) | 🕑 | B |
+| jamSpeakerDelayMs (Playback › Jam) | `jam/JamSpeakerDelay.kt` `jamSpeakerDelay()` → `JamEnvironment.speakerDelayMs` → `jamStart` | 🕑 next Jam start or song change on a guest | 🕑 | – (per device) |
 | sleepTimerDefaultMinutes | `SleepTimerSheet.kt` preselects the preset (or custom slider) | 🕑 next sheet open | 🕑 | B |
 | sleepTimerFadeOutSeconds | `SleepTimerSheet.kt:76`; `SonoraPlaybackService.kt:384` (extend) | 🕑 next sheet open | 🕑 | B |
 | sleepTimerFinishSong | `SleepTimerSheet.kt`; `SonoraPlaybackService.kt` (extend) | 🕑 next sheet open; combines with a duration (P5-32) | 🕑 | B |
@@ -73,4 +75,4 @@ It proves storage only; runtime effects below are not covered by tests.
 
 ## Counts
 
-✅ 31 rows · 🕑 7 rows · no ❌, ⚠️ or 🚧 left (grouped settings share a row).
+✅ 31 rows · 🕑 9 rows · no ❌, ⚠️ or 🚧 left (grouped settings share a row).

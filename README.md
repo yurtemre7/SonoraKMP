@@ -37,6 +37,9 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Gapless playback, ReplayGain (track or album), smooth play/pause fades, skip silence, and an optional fade between songs
 - Equalizer with presets, speed and pitch presets from slowed to nightcore
 - Sleep timer with "finish this song", stop after a number of songs, and a fade-out
+- Smart shuffle (optional): plays songs you skip less and favourites more, and avoids the same artist twice in a row
+- Jam: play the same queue on up to 8 phones on the same Wi-Fi at once, each from its own library; guests join with
+  a 6-digit code, no internet or account needed ([how it works](docs/JAM.md))
 - Home-screen widget
 
 **Yours**
