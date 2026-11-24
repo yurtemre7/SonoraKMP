@@ -70,6 +70,8 @@ import de.yurtemre.sonora.ui.screens.artist.ArtistRoute
 import de.yurtemre.sonora.ui.screens.changelog.ChangelogRoute
 import de.yurtemre.sonora.ui.screens.debug.DebugCachesRoute
 import de.yurtemre.sonora.ui.screens.devicesync.DeviceSyncRoute
+import de.yurtemre.sonora.ui.screens.jam.JamRoute
+import de.yurtemre.sonora.shared.jam.JamSettings
 import de.yurtemre.sonora.ui.screens.favorites.FavoritesRoute
 import de.yurtemre.sonora.ui.screens.home.HomeRoute
 import de.yurtemre.sonora.ui.screens.licenses.LicensesRoute
@@ -191,6 +193,16 @@ fun SonoraAppShell(
                 entry<SettingsBackup> { TextWidth { SettingsBackupRoute(goBack) } }
                 entry<SettingsDeviceSync> { TextWidth { DeviceSyncRoute(goBack) } }
                 entry<SettingsInfo> { TextWidth { SettingsInfoRoute(goBack, navigate) } }
+                entry<Jam> { key ->
+                    TextWidth {
+                        JamRoute(
+                            join = key.join,
+                            host = if (key.host) JamSettings(key.guestsCanAdd, key.guestsCanControl) else null,
+                            onBack = goBack,
+                            onOpenPlayer = { if (player.currentSong != null) controller.expand() },
+                        )
+                    }
+                }
                 entry<Changelog> { TextWidth { ChangelogRoute(goBack) } }
                 entry<Licenses> { TextWidth { LicensesRoute(goBack) } }
                 entry<DebugCaches> { DebugCachesRoute(goBack) }
