@@ -93,4 +93,10 @@ class JamMirrorModeTest {
         val edit = mirrorEdit(applied = playing, latest = playing, mirroring = false, ids = listOf(1), index = 0, positionMs = 0, play = false)
         assertTrue(edit is MirrorEdit.Load)
     }
+
+    @Test fun repeatOneKeepsThePlayingEntryAndLoopsIt() {
+        val edit = mirrorEdit(applied = playing, latest = playing, mirroring = true, ids = listOf(1), index = 0, positionMs = 5_000, play = true, repeatOne = true)
+        edit as MirrorEdit.Keep
+        assertEquals(RepeatMode.One, edit.state.repeat)
+    }
 }

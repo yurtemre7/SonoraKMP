@@ -35,7 +35,11 @@ internal class JamMirror(private val playback: PlaybackConnection) {
     var trimmed = false
         private set
 
-    fun load(songs: List<Song>, index: Int, positionMs: Long, play: Boolean) {
+    /** The player loops its current song (the host is on Repeat One). */
+    var repeatOne = false
+        private set
+
+    fun load(songs: List<Song>, index: Int, positionMs: Long, play: Boolean, repeatOne: Boolean = this.repeatOne) {
         if (!active) {
             previous = playback.queueSnapshot()
             active = true
@@ -47,7 +51,21 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         loadedSongId = songs.getOrNull(index)?.id
         intendedPlaying = play
         confirmed = false
-        playback.setMirrorQueue(songs, index, positionMs, play)
+        this.repeatOne = repeatOne
+        playback.setMirrorQueue(songs, index, positionMs, play, repeatOne)
+    }
+
+    /**
+     * Switches the player's looping of the song [view] plays (same run, so the playing entry stays: no gap, no
+     * seek); a trimmed run stays trimmed.
+     */
+    fun setRepeatOne(view: LocalView, repeatOne: Boolean) {
+        if (repeatOne == this.repeatOne) return
+        val position = view.positionMs ?: return // not reported yet: the next frame does it
+        val index = run.indexOfFirst { it.id == view.songId }.takeIf { it >= 0 } ?: return
+        val wasTrimmed = trimmed
+        load(run, index, position, view.playing, repeatOne)
+        trimmed = wasTrimmed
     }
 
     /** Leaves only the song [view] plays in the player (it plays on, gapless); nothing follows it. */
@@ -101,6 +119,7 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         run = emptyList()
         loadedSongId = null
         ownEntryUid = null
+        repeatOne = false
         playback.endMirror(previous)
         previous = null
     }

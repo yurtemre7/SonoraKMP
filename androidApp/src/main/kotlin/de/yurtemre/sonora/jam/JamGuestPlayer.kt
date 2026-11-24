@@ -3,6 +3,7 @@ package de.yurtemre.sonora.jam
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.jam.ClockSync
 import de.yurtemre.sonora.shared.jam.GuestPlan
+import de.yurtemre.sonora.shared.jam.JamRepeat
 import de.yurtemre.sonora.shared.jam.JamState
 import de.yurtemre.sonora.shared.jam.nextPlayableIndex
 import de.yurtemre.sonora.shared.jam.planPlayback
@@ -23,6 +24,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * song) and the next song starts from the host's frame at the host's position; the same drift is also corrected by
  * one seek at the next pause or resume. In sync, the player rolls on to the next song by itself, gapless.
  * Songs this phone lacks never reach the player (no stats); the next one it has waits, cued at its start.
+ * The host's Repeat One is mirrored by a run of just the current song that the guest's player loops by itself, so the
+ * host's "same song, position 0" frame at each loop is no change (never a reload or cut); with Repeat All the song
+ * before the first is the last one, so the host's wrap-around lets the guest's last song finish like any other.
  */
 internal class JamGuestPlayer(
     private val scope: CoroutineScope,
@@ -73,6 +77,7 @@ internal class JamGuestPlayer(
                 if (plan.seekOnNextBoundary) {
                     pendingSeek = true // never mid-song: the seek waits for the next pause
                     mirror.trimToCurrent(v) // and the next song waits for the host
+                    mirror.setRepeatOne(v, s.repeat == JamRepeat.One)
                 } else {
                     refreshRun(s, v)
                 }
@@ -97,7 +102,7 @@ internal class JamGuestPlayer(
     }
 
     private fun onNewSong(s: JamState, plan: GuestPlan.Play, v: LocalView, now: Long) {
-        val previous = s.queue.getOrNull(s.index - 1)?.let(library::match)
+        val previous = previousSong(s)
         val remaining = v.remainingMs ?: Long.MAX_VALUE
         if (s.playing && v.playing && v.songId != null && v.songId == previous?.id && remaining < TAIL_WAIT_MS) {
             // In sync, our player moves on by itself (gapless). Otherwise our song finishes first, uncut.
@@ -107,17 +112,18 @@ internal class JamGuestPlayer(
             return
         }
         pendingSeek = false
-        val run = library.runFrom(s, s.index)
+        val run = runFor(s, s.index)
+        val repeatOne = s.repeat == JamRepeat.One
         if (!s.playing) {
-            mirror.load(run, 0, plan.positionMs, play = false)
+            mirror.load(run, 0, plan.positionMs, play = false, repeatOne)
             return
         }
         val start = jamStart(plan, now, env.speakerDelayMs())
         if (start.atLocalMs == null) {
-            mirror.load(run, 0, start.positionMs, play = true)
+            mirror.load(run, 0, start.positionMs, play = true, repeatOne)
             logStartGap(now)
         } else {
-            mirror.load(run, 0, start.positionMs, play = false)
+            mirror.load(run, 0, start.positionMs, play = false, repeatOne)
             startAt(start.atLocalMs)
         }
     }
@@ -125,7 +131,7 @@ internal class JamGuestPlayer(
     /** The host plays a song this phone lacks: silence, with the next song it has cued at its start. */
     private fun onMissing(s: JamState, v: LocalView) {
         pendingSeek = false
-        val previous = s.queue.getOrNull(s.index - 1)?.let(library::match)
+        val previous = previousSong(s)
         val finishing = mirror.active && v.playing && v.songId == previous?.id && (v.remainingMs ?: Long.MAX_VALUE) < NATURAL_END_MS
         if (finishing) return // its run ends right there: the player stops by itself
         val next = nextPlayableIndex(s, library.songs(), s.index + 1)
@@ -133,19 +139,38 @@ internal class JamGuestPlayer(
             if (v.playing) mirror.pause()
             return
         }
-        val run = library.runFrom(s, next)
-        val cued = mirror.active && !v.playing && v.songId == run.first().id && (v.positionMs ?: 0L) == 0L
-        if (!cued) mirror.load(run, 0, 0, play = false)
+        val run = runFor(s, next)
+        val repeatOne = s.repeat == JamRepeat.One
+        val cued = mirror.active && !v.playing && v.songId == run.first().id && (v.positionMs ?: 0L) == 0L &&
+            mirror.repeatOne == repeatOne
+        if (!cued) mirror.load(run, 0, 0, play = false, repeatOne)
     }
 
-    /** Keeps the playing entry and replaces what follows it when the host's queue changed (not while trimmed). */
+    /**
+     * Keeps the playing entry and replaces what follows it when the host's queue or repeat mode changed. While
+     * trimmed only the looping follows the host (the run stays cut).
+     */
     private fun refreshRun(s: JamState, v: LocalView) {
-        if (mirror.trimmed) return
+        val repeatOne = s.repeat == JamRepeat.One
+        if (mirror.trimmed) {
+            mirror.setRepeatOne(v, repeatOne)
+            return
+        }
         val position = v.positionMs ?: return // the player has not reported the last load yet: the next frame does it
-        val run = library.runFrom(s, s.index)
+        val run = runFor(s, s.index)
         val loaded = mirror.run.dropWhile { it.id != v.songId }
-        if (run.map { it.id } != loaded.map { it.id }) mirror.load(run, 0, position, v.playing)
+        if (run.map { it.id } != loaded.map { it.id } || mirror.repeatOne != repeatOne) {
+            mirror.load(run, 0, position, v.playing, repeatOne)
+        }
     }
+
+    /** The run from [from]; on Repeat One only that song (the player loops it, nothing follows it). */
+    private fun runFor(s: JamState, from: Int) =
+        library.runFrom(s, from).let { if (s.repeat == JamRepeat.One) it.take(1) else it }
+
+    /** The song the host played before the current one: on Repeat All the first song follows the last. */
+    private fun previousSong(s: JamState) =
+        s.queue.getOrNull(if (s.index == 0 && s.repeat == JamRepeat.All) s.queue.lastIndex else s.index - 1)?.let(library::match)
 
     private fun awaitSongEnd(songId: Long) {
         tailJob = scope.launch {

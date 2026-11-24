@@ -65,6 +65,7 @@ sealed interface MirrorEdit {
  * The mirror queue [ids] (current [index]) as an edit of [applied] (the queue the player has) given [latest] (the
  * newest request, possibly still being built). The playing entry is kept only when the player already has it and
  * nothing is pending; otherwise a pending build would be redone from "position 0, paused" and swallow the start.
+ * Repeat is off, or one when [repeatOne] (the host repeats its song: the guest loops it itself, never a reload).
  */
 fun mirrorEdit(
     applied: QueueState,
@@ -74,6 +75,7 @@ fun mirrorEdit(
     index: Int,
     positionMs: Long,
     play: Boolean,
+    repeatOne: Boolean = false,
 ): MirrorEdit {
     val cur = applied.currentEntry
     val keep = mirroring && latest === applied && cur != null && ids.getOrNull(index) == cur.songId
@@ -82,7 +84,7 @@ fun mirrorEdit(
     val state = QueueState(
         entries = entries, original = entries,
         currentIndex = if (entries.isEmpty()) -1 else index.coerceIn(0, entries.lastIndex),
-        repeat = RepeatMode.Off, nextUid = uid,
+        repeat = if (repeatOne) RepeatMode.One else RepeatMode.Off, nextUid = uid,
     )
     return if (keep) MirrorEdit.Keep(state, play) else MirrorEdit.Load(state, positionMs, play)
 }

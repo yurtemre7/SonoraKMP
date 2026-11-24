@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.jam
 
+import de.yurtemre.sonora.shared.jam.JamRepeat
 import de.yurtemre.sonora.shared.jam.JamState
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.testing.testSong
@@ -51,7 +52,8 @@ abstract class JamControllerTestBase {
         positionMs: Long = 0,
         hostTimeMs: Long = testScheduler.currentTime,
         canControl: Boolean = false,
-    ) = JamState(songs.map { it.jam() }, index, playing, positionMs, hostTimeMs, guestsCanAdd = true, guestsCanControl = canControl)
+        repeat: JamRepeat = JamRepeat.Off,
+    ) = JamState(songs.map { it.jam() }, index, playing, positionMs, hostTimeMs, guestsCanAdd = true, guestsCanControl = canControl, repeat = repeat)
 
     /** Joins with a fresh link; returns it. */
     protected suspend fun TestScope.joined(jam: JamController, link: FakeLink = FakeLink(offsetMs = 0)): FakeLink {

@@ -71,6 +71,7 @@ object SessionCommands {
     const val ARG_POSITION = "position"
     const val ARG_INDEX = "index"
     const val ARG_PLAY = "play"
+    const val ARG_REPEAT_ONE = "repeatOne"
 
     // Session extras keys
     private const val X_SLEEP_KIND = "x.sleep.kind"

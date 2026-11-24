@@ -3,8 +3,10 @@ package de.yurtemre.sonora.jam
 import de.yurtemre.sonora.playback.api.MfxUiState
 import de.yurtemre.sonora.shared.jam.JamAction
 import de.yurtemre.sonora.shared.jam.JamEvent
+import de.yurtemre.sonora.shared.jam.JamRepeat
 import de.yurtemre.sonora.shared.jam.JamSettings
 import de.yurtemre.sonora.shared.jam.JamStateFrame
+import de.yurtemre.sonora.shared.model.RepeatMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -44,6 +46,23 @@ class JamControllerHostTest : JamControllerTestBase() {
         advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
         assertEquals(1, transport.broadcasts.size)
         assertNoEffects()
+    }
+
+    @Test fun hostRepeatModeGoesOutWithTheState() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.Off, transport.broadcasts.filterIsInstance<JamStateFrame>().last().state.repeat)
+        transport.broadcasts.clear()
+
+        playback.player.value = playback.player.value.copy(repeat = RepeatMode.One)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.One, transport.broadcasts.filterIsInstance<JamStateFrame>().single().state.repeat)
+
+        playback.player.value = playback.player.value.copy(repeat = RepeatMode.All)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.All, transport.broadcasts.filterIsInstance<JamStateFrame>().last().state.repeat)
     }
 
     @Test fun joiningGuestGetsTheCurrentStateOnly() = runTest {

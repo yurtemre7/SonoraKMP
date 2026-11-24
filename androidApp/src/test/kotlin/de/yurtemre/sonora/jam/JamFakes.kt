@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 fun Song.jam() = JamSong(title, artist, album, durationMs)
 
 /** One `setMirrorQueue` call. */
-data class MirrorLoad(val songIds: List<Long>, val index: Int, val positionMs: Long, val play: Boolean)
+data class MirrorLoad(val songIds: List<Long>, val index: Int, val positionMs: Long, val play: Boolean, val repeatOne: Boolean = false)
 
 /**
  * A [PlaybackConnection] that records every command. The player follows the mirror commands so the controller
@@ -88,9 +88,9 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
      * play is honoured); otherwise the mirror loads at the given position. With [deferPlayer] the player reports
      * changes only on [catchUp], as the real MediaController does a moment later.
      */
-    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean) {
+    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean) {
         calls += "setMirrorQueue"
-        mirrorLoads += MirrorLoad(songs.map { it.id }, index, positionMs, playWhenReady)
+        mirrorLoads += MirrorLoad(songs.map { it.id }, index, positionMs, playWhenReady, repeatOne)
         val keep = pending.isEmpty() && mirrorSongs.isNotEmpty() && player.value.currentSong?.id == songs.getOrNull(index)?.id
         mirrorSongs = songs
         queue.value = QueueUiState(songs.mapIndexed { i, s -> QueueItemUi(100L + i, s) }, index)

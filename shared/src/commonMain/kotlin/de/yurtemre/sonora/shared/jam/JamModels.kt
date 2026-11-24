@@ -8,6 +8,14 @@ const val JAM_PROTOCOL_VERSION = 1
 @Serializable
 data class JamSong(val title: String, val artist: String, val album: String, val durationMs: Long)
 
+/** The host's repeat mode as guests mirror it ([JamState.repeat]). */
+@Serializable
+enum class JamRepeat { Off, All, One }
+
+/**
+ * [repeat] is the host's repeat mode; frames without it (older builds) decode as [JamRepeat.Off]. With
+ * [JamRepeat.One] a guest loops the current song in its own player (never a reload at each loop).
+ */
 @Serializable
 data class JamState(
     val queue: List<JamSong>,
@@ -17,6 +25,7 @@ data class JamState(
     val hostTimeMs: Long,
     val guestsCanAdd: Boolean,
     val guestsCanControl: Boolean,
+    val repeat: JamRepeat = JamRepeat.Off,
 )
 
 @Serializable

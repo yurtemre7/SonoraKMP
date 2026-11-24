@@ -450,7 +450,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             C.CLOSE_PLAYER -> closePlayer()
             C.SET_MIRROR -> setMirror(
                 a.getLongArray(C.ARG_IDS)?.toList().orEmpty(), a.getInt(C.ARG_INDEX), a.getLong(C.ARG_POSITION),
-                a.getBoolean(C.ARG_PLAY),
+                a.getBoolean(C.ARG_PLAY), a.getBoolean(C.ARG_REPEAT_ONE),
             )
             C.END_MIRROR -> endMirror(C.decodeQueue(a.getString(C.ARG_QUEUE_JSON)), a.getLong(C.ARG_POSITION))
         }
@@ -520,17 +520,17 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
 
     /**
      * Jam guest mirror: the first call saves the guest's own session once, then persistence pauses (an app killed
-     * mid-Jam restores the guest's own queue). Repeat off, normal speed, skip silence off. When [ids] keeps the
+     * mid-Jam restores the guest's own queue). Repeat off (one with [repeatOne]), normal speed, skip silence off. When [ids] keeps the
      * playing entry current it stays loaded (no gap) and [play] is honoured; otherwise the mirror loads at
      * [positionMs], paused unless [play].
      */
-    private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean) {
+    private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean, repeatOne: Boolean) {
         val starting = !mirroring
         if (starting) {
             userLoaded = true
             sleepTimer.stop()
         }
-        val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play)
+        val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play, repeatOne)
         mirrorMode.begin {
             when (edit) {
                 is MirrorEdit.Keep -> {

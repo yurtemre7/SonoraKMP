@@ -5,11 +5,13 @@ import de.yurtemre.sonora.shared.jam.HostAction
 import de.yurtemre.sonora.shared.jam.JamAction
 import de.yurtemre.sonora.shared.jam.JamEvent
 import de.yurtemre.sonora.shared.jam.JamHostState
+import de.yurtemre.sonora.shared.jam.JamRepeat
 import de.yurtemre.sonora.shared.jam.JamSettings
 import de.yurtemre.sonora.shared.jam.JamSong
 import de.yurtemre.sonora.shared.jam.JamSongMatcher
 import de.yurtemre.sonora.shared.jam.JamStateFrame
 import de.yurtemre.sonora.shared.jam.apply
+import de.yurtemre.sonora.shared.model.RepeatMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -46,14 +48,16 @@ internal class JamHostSession(
     private var lastBroadcastAtMs = 0L
     private var lastBroadcastUid: Long? = null
 
-    private data class Snapshot(val queue: List<JamSong>, val index: Int, val entryUid: Long?, val playing: Boolean)
+    private data class Snapshot(
+        val queue: List<JamSong>, val index: Int, val entryUid: Long?, val playing: Boolean, val repeat: JamRepeat,
+    )
 
     fun start() {
         publishUi()
         advertisement = runCatching { env.advertise(port, env.deviceName()) }.getOrNull() // manual IP:port still works
         jobs += scope.launch {
             combine(playback.queue, playback.player) { q, p ->
-                Snapshot(q.items.map { it.song.toJamSong() }, q.currentIndex, p.currentEntryUid, p.isPlaying)
+                Snapshot(q.items.map { it.song.toJamSong() }, q.currentIndex, p.currentEntryUid, p.isPlaying, p.repeat.toJam())
             }
                 .debounce(JamController.HOST_DEBOUNCE_MS)
                 .distinctUntilChanged()
@@ -96,7 +100,7 @@ internal class JamHostSession(
         transport.stop()
     }
 
-    /** [hostState] brought up to the player as it is right now (queue, index, playing, position, host time). */
+    /** [hostState] brought up to the player as it is right now (queue, index, repeat, playing, position, host time). */
     private fun synced(): JamHostState {
         val q = playback.queue.value
         val queue = q.items.map { it.song.toJamSong() }
@@ -104,6 +108,8 @@ internal class JamHostSession(
         if (queue != s.state.queue || q.currentIndex != s.state.index) {
             s = s.apply(JamEvent.HostAction(HostAction.SetQueue(queue, q.currentIndex)))
         }
+        val repeat = playback.player.value.repeat.toJam()
+        if (repeat != s.state.repeat) s = s.apply(JamEvent.HostAction(HostAction.SetRepeat(repeat)))
         val now = env.nowMs()
         val position = playback.currentPositionMs()
         val action = if (playback.player.value.isPlaying) HostAction.Play(position, now) else HostAction.Pause(position, now)
@@ -181,6 +187,12 @@ internal class JamHostSession(
             hostSpeedEffectActive = playback.mfx.value.isSpeedChanged,
         ),
     )
+
+    private fun RepeatMode.toJam() = when (this) {
+        RepeatMode.Off -> JamRepeat.Off
+        RepeatMode.All -> JamRepeat.All
+        RepeatMode.One -> JamRepeat.One
+    }
 
     companion object {
         /** How often the host checks for a seek (a position jump without a queue or transport change). */

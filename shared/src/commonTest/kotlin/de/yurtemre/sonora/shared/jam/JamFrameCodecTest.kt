@@ -25,6 +25,22 @@ class JamFrameCodecTest {
         JamAction.entries.forEach { assertEquals(JamControl(it), roundTrip(JamControl(it))) }
     }
 
+    @Test fun stateCarriesTheHostsRepeatMode() {
+        JamRepeat.entries.forEach { r ->
+            val f = JamStateFrame(state.copy(repeat = r))
+            assertEquals(f, roundTrip(f))
+        }
+    }
+
+    @Test fun stateWithoutRepeatDecodesAsRepeatOff() {
+        // A frame from a build before the repeat field: no "repeat" key at all.
+        val old = "{\"queue\":[],\"index\":0,\"playing\":true,\"positionMs\":5,\"hostTimeMs\":6," +
+            "\"guestsCanAdd\":true,\"guestsCanControl\":false}"
+        val decoded = JamFrameCodec.decode(2, old.encodeToByteArray()) as JamStateFrame
+        assertEquals(JamRepeat.Off, decoded.state.repeat)
+        assertEquals(5, decoded.state.positionMs)
+    }
+
     @Test fun welcomeDoesNotPrintTheReconnectKey() {
         val key = "00112233445566778899aabbccddeeff"
         kotlin.test.assertFalse(key in JamWelcome("guest-1", key).toString())

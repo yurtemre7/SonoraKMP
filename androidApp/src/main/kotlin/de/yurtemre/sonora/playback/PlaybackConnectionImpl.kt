@@ -370,11 +370,12 @@ class PlaybackConnectionImpl(
     override fun queueSnapshot(): QueueSnapshot? =
         queueState.takeIf { it.entries.isNotEmpty() }?.let { QueueSnapshot(it, controller?.currentPosition ?: 0L) }
 
-    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean) = send(
+    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean) = send(
         C.SET_MIRROR,
         Bundle().apply {
             putLongArray(C.ARG_IDS, ids(songs)); putInt(C.ARG_INDEX, index)
             putLong(C.ARG_POSITION, positionMs); putBoolean(C.ARG_PLAY, playWhenReady)
+            putBoolean(C.ARG_REPEAT_ONE, repeatOne)
         },
     )
 

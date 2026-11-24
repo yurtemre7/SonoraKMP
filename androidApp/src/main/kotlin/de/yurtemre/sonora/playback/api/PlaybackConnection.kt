@@ -87,10 +87,10 @@ interface PlaybackConnection {
     /**
      * Jam guest: plays [songs] (only songs this phone has) from [index] at [positionMs], or paused when
      * [playWhenReady] is false. While mirroring, nothing is persisted (the saved session stays the guest's own
-     * queue), repeat is off, playback runs at normal speed and pitch, and local skips are ignored. When the song at
+     * queue), repeat is off (one when [repeatOne]: the host repeats its song), playback runs at normal speed and pitch, and local skips are ignored. When the song at
      * [index] is the one already playing it keeps playing without a gap; [positionMs] is then ignored.
      */
-    fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean)
+    fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean = false)
 
     /** Ends the Jam mirror: [snapshot] comes back paused (null leaves an empty queue) and persistence resumes. */
     fun endMirror(snapshot: QueueSnapshot?)

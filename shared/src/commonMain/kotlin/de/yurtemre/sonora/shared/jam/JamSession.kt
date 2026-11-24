@@ -68,6 +68,7 @@ sealed interface HostAction {
     data class Previous(val hostTimeMs: Long) : HostAction
     data class SetSettings(val settings: JamSettings) : HostAction
     data class AddSong(val song: JamSong) : HostAction
+    data class SetRepeat(val repeat: JamRepeat) : HostAction
 }
 
 sealed interface JamEvent {
@@ -120,6 +121,7 @@ fun JamHostState.apply(event: JamEvent): JamHostState = when (event) {
             state = state.copy(guestsCanAdd = a.settings.guestsCanAdd, guestsCanControl = a.settings.guestsCanControl),
         )
         is HostAction.AddSong -> withState(state.copy(queue = state.queue + a.song))
+        is HostAction.SetRepeat -> withState(state.copy(repeat = a.repeat))
     }
 }
 
