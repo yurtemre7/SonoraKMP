@@ -18,12 +18,14 @@ object JamFrameCodec {
     private const val T_PING = 5
     private const val T_PONG = 6
     private const val T_END = 7
+    private const val T_WELCOME = 8
 
     @Serializable private class AddP(val song: JamSong)
     @Serializable private class ControlP(val action: JamAction)
     @Serializable private class PingP(val id: Long, val sentMs: Long)
     @Serializable private class PongP(val id: Long, val sentMs: Long, val hostMs: Long)
     @Serializable private class EndP(val reason: String)
+    @Serializable private class WelcomeP(val guestId: String, val reconnectKey: String)
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -36,6 +38,8 @@ object JamFrameCodec {
             is Ping -> T_PING to json.encodeToString(PingP.serializer(), PingP(frame.id, frame.sentMs))
             is Pong -> T_PONG to json.encodeToString(PongP.serializer(), PongP(frame.id, frame.sentMs, frame.hostMs))
             is JamEnd -> T_END to json.encodeToString(EndP.serializer(), EndP(frame.reason))
+            is JamWelcome ->
+                T_WELCOME to json.encodeToString(WelcomeP.serializer(), WelcomeP(frame.guestId, frame.reconnectKey))
         }
         val payload = text.encodeToByteArray()
         checkLength(payload.size)
@@ -75,7 +79,8 @@ object JamFrameCodec {
                 T_CONTROL -> JamControl(json.decodeFromString(ControlP.serializer(), text).action)
                 T_PING -> json.decodeFromString(PingP.serializer(), text).let { Ping(it.id, it.sentMs) }
                 T_PONG -> json.decodeFromString(PongP.serializer(), text).let { Pong(it.id, it.sentMs, it.hostMs) }
-                else -> JamEnd(json.decodeFromString(EndP.serializer(), text).reason)
+                T_END -> JamEnd(json.decodeFromString(EndP.serializer(), text).reason)
+                else -> json.decodeFromString(WelcomeP.serializer(), text).let { JamWelcome(it.guestId, it.reconnectKey) }
             }
         } catch (e: SerializationException) {
             throw DeviceSyncProtocolException("Malformed jam payload: ${e.message}")
@@ -85,7 +90,7 @@ object JamFrameCodec {
     }
 
     private fun checkType(type: Int) {
-        if (type !in T_HELLO..T_END) throw DeviceSyncProtocolException("Unknown jam frame type $type")
+        if (type !in T_HELLO..T_WELCOME) throw DeviceSyncProtocolException("Unknown jam frame type $type")
     }
 
     private fun checkLength(length: Int) {

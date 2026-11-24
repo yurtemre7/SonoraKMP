@@ -33,3 +33,11 @@ data class JamControl(val action: JamAction) : JamFrame
 data class Ping(val id: Long, val sentMs: Long) : JamFrame
 data class Pong(val id: Long, val sentMs: Long, val hostMs: Long) : JamFrame
 data class JamEnd(val reason: String) : JamFrame
+
+/**
+ * Host → guest, right after a successful join or reconnect, inside the encrypted channel: the guest's id and its
+ * single-use reconnect key (128 bits, lowercase hex). Consumed by the Jam client, never shown.
+ */
+data class JamWelcome(val guestId: String, val reconnectKey: String) : JamFrame {
+    override fun toString() = "JamWelcome(guestId=$guestId)"
+}

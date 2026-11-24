@@ -20,8 +20,14 @@ class JamFrameCodecTest {
         listOf<JamFrame>(
             JamHello(JAM_PROTOCOL_VERSION, "Emre"), JamStateFrame(state), JamAddRequest(song),
             JamControl(JamAction.Previous), Ping(1, 2), Pong(1, 2, 3), JamEnd("bye"),
+            JamWelcome("guest-1", "00112233445566778899aabbccddeeff"),
         ).forEach { assertEquals(it, roundTrip(it)) }
         JamAction.entries.forEach { assertEquals(JamControl(it), roundTrip(JamControl(it))) }
+    }
+
+    @Test fun welcomeDoesNotPrintTheReconnectKey() {
+        val key = "00112233445566778899aabbccddeeff"
+        kotlin.test.assertFalse(key in JamWelcome("guest-1", key).toString())
     }
 
     @Test fun unknownTypeThrows() {

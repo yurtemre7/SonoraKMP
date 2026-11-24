@@ -9,7 +9,28 @@ const val MAX_GUESTS = 7
 /** Guest/host drift above this many milliseconds is flagged (exactly this value is not drift). */
 const val JAM_DRIFT_THRESHOLD_MS = 2000L
 
-enum class JamError { Full, VersionMismatch }
+/** Why joining (or staying in) a Jam failed; typed so the UI (Task 12) picks its own text. */
+enum class JamError {
+    /** The Jam already has [MAX_GUESTS] guests (reserved reconnect slots included). */
+    Full,
+
+    /** Host and guest speak different [JAM_PROTOCOL_VERSION]s. */
+    VersionMismatch,
+
+    /** The J-PAKE round failed: the guest typed another code. */
+    WrongCode,
+
+    /** Too many wrong codes: the host refuses new joins for a short cool-down. */
+    Locked,
+
+    /** The host could not be reached or the connection broke without a [JamEnd]. */
+    HostGone,
+
+    /** The reconnect key is unknown, already used, revoked (kick/stop) or older than the reconnect window. */
+    ReconnectRefused,
+}
+
+class JamException(val error: JamError) : Exception(error.name)
 
 data class JamSettings(val guestsCanAdd: Boolean = true, val guestsCanControl: Boolean = false)
 
