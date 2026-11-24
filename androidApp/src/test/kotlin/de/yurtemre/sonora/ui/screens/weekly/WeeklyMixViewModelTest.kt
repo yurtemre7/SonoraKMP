@@ -188,12 +188,13 @@ class WeeklyMixViewModelTest {
 
     @Test fun slowLibraryLoadNeverFlashesTheEmptyState() = runTest(dispatcher) {
         val clock = MutableClock(t0)
-        val repo = FakeRepo(clock)
+        val repo = FakeRepo(clock).apply { storeOnRefresh = false } // empty library: nothing stored
         val lib = MutableStateFlow(false)
         val vm = WeeklyMixViewModel(repo, lib, clock, { zone })
         backgroundScope.launch { vm.ui.collect {} }
         advanceTimeBy(1_000)
-        repo.stored.value = null
+        assertTrue(vm.ui.value.loaded)
+        repo.storeOnRefresh = true
         repo.gate = CompletableDeferred()
         lib.value = true
         advanceTimeBy(1_000)
