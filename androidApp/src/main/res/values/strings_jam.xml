@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Jam foreground service (keeps a Jam running with the screen off) -->
+    <string name="jam_channel_name">Jam</string>
+    <string name="jam_channel_description">Keeps a SonoraKMP Jam running while the screen is off</string>
+    <string name="jam_notif_hosting_title">Hosting a Jam</string>
+    <plurals name="jam_notif_hosting_text">
+        <item quantity="one">Code %1$s · %2$d guest</item>
+        <item quantity="other">Code %1$s · %2$d guests</item>
+    </plurals>
+    <string name="jam_notif_joined_title">In a Jam</string>
+    <string name="jam_notif_joined_text">Playing along with %1$s</string>
+    <string name="jam_notif_joining">Joining a Jam…</string>
+    <string name="jam_notif_end">End Jam</string>
+    <string name="jam_notif_leave">Leave</string>
+</resources>

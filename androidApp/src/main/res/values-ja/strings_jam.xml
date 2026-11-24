@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Jam foreground service (keeps a Jam running with the screen off) -->
+    <string name="jam_channel_name">Jam</string>
+    <string name="jam_channel_description">画面がオフの間も SonoraKMP の Jam を続けます</string>
+    <string name="jam_notif_hosting_title">Jam をホスト中</string>
+    <plurals name="jam_notif_hosting_text">
+        <item quantity="other">コード %1$s・ゲスト %2$d 人</item>
+    </plurals>
+    <string name="jam_notif_joined_title">Jam に参加中</string>
+    <string name="jam_notif_joined_text">%1$s と一緒に再生中</string>
+    <string name="jam_notif_joining">Jam に参加しています…</string>
+    <string name="jam_notif_end">Jam を終了</string>
+    <string name="jam_notif_leave">退出</string>
+</resources>
