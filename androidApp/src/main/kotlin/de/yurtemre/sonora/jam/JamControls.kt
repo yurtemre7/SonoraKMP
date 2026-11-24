@@ -24,5 +24,6 @@ interface JamControls {
     fun requestPause()
     fun requestNext()
     fun requestPrevious()
-    fun requestAdd(song: Song)
+    /** Sends [songs] to the host (in batches, up to the Jam queue cap); returns how many were sent. */
+    fun requestAdd(songs: List<Song>): Int
 }

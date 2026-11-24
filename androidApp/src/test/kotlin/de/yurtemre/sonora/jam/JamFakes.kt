@@ -196,12 +196,22 @@ class FakeLink(offsetMs: Long? = null) : JamGuestLink {
     override val clock = ClockSync().apply { offsetMs?.let { addSample(sentMs = 0, hostMs = it, receivedMs = 0) } }
     val sent = mutableListOf<JamFrame>()
     var closed = false
+    /** Frames the outbox still takes (null: all); a refused frame is not recorded in [sent]. */
+    var accepts: Int? = null
 
     fun deliver(frame: JamFrame) { channel.trySend(frame) }
 
     /** The connection broke (host gone or Wi-Fi hiccup). */
     fun drop() { channel.close(JamException(JamError.HostGone)) }
-    override fun send(frame: JamFrame) { sent += frame }
+    override fun send(frame: JamFrame): Boolean {
+        val left = accepts
+        if (left != null) {
+            if (left <= 0) return false
+            accepts = left - 1
+        }
+        sent += frame
+        return true
+    }
     override fun close() { closed = true; channel.close() }
 }
 

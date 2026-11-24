@@ -328,8 +328,8 @@ class JamViewModelTest {
     @Test fun guestAddsASongOnlyWhenAllowed() {
         val actions = JamGuestActions(jam)
         val s = testSong(5, "Five")
-        assertFalse(actions.add(joined(canAdd = false), s))
-        assertTrue(actions.add(joined(canAdd = true), s))
+        assertEquals(0, actions.add(joined(canAdd = false), listOf(s)))
+        assertEquals(1, actions.add(joined(canAdd = true), listOf(s)))
         assertEquals(listOf(s), jam.added)
     }
 

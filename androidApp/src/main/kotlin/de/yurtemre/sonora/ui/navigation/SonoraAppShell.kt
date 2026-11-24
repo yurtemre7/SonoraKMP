@@ -78,6 +78,8 @@ import de.yurtemre.sonora.jam.JamGuestActions
 import de.yurtemre.sonora.ui.screens.jam.joinedOrNull
 import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.shared.jam.JamSettings
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
+import androidx.compose.ui.platform.LocalResources
 import de.yurtemre.sonora.ui.screens.favorites.FavoritesRoute
 import de.yurtemre.sonora.ui.screens.home.HomeRoute
 import de.yurtemre.sonora.ui.screens.licenses.LicensesRoute
@@ -325,11 +327,13 @@ fun SonoraAppShell(
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
         // A Jam guest's own playback asks first: leave the Jam, add to the Jam queue, or stay.
-        val sentToJam = stringResource(R.string.jam_sent_to_jam)
-        JamOwnPlaybackDialog(onSentToJam = {
+        val res = LocalResources.current
+        JamOwnPlaybackDialog(onSentToJam = { sent ->
+            val message = if (sent > 0) res.getQuantityString(R.plurals.jam_sent_songs_to_jam, sent, sent)
+            else res.getString(R.string.jam_queue_full, MAX_JAM_QUEUE)
             scope.launch {
                 snackbar.currentSnackbarData?.dismiss()
-                snackbar.showSnackbar(sentToJam, duration = SnackbarDuration.Short)
+                snackbar.showSnackbar(message, duration = SnackbarDuration.Short)
             }
         })
     } }

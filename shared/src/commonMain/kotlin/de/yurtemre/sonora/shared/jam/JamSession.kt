@@ -75,6 +75,9 @@ sealed interface JamEvent {
     data class GuestJoined(val id: String, val name: String) : JamEvent
     data class GuestLeft(val id: String) : JamEvent
     data class AddRequest(val id: String, val song: JamSong) : JamEvent
+
+    /** A guest's batch of songs ([JamAddManyRequest]): the same rules as [AddRequest], one request. */
+    data class AddManyRequest(val id: String, val songs: List<JamSong>) : JamEvent
     data class Control(val id: String, val action: JamAction, val hostTimeMs: Long) : JamEvent
     data class HostAction(val action: de.yurtemre.sonora.shared.jam.HostAction) : JamEvent
 }
@@ -97,14 +100,20 @@ private fun JamState.perform(action: JamAction, hostTimeMs: Long): JamState = wh
 
 private fun JamHostState.withState(s: JamState) = copy(state = s)
 
+/** A guest's songs are appended when guests may add, up to [MAX_JAM_QUEUE] songs in the queue (the first that fit). */
+private fun JamHostState.guestAdd(id: String, songs: List<JamSong>): JamHostState {
+    val room = MAX_JAM_QUEUE - state.queue.size
+    if (id !in guests || !settings.guestsCanAdd || room <= 0 || songs.isEmpty()) return this
+    return withState(state.copy(queue = state.queue + songs.take(room)))
+}
+
 /** Pure reducer. A refused join (see [JamHostState.canJoin]) leaves the state unchanged. */
 fun JamHostState.apply(event: JamEvent): JamHostState = when (event) {
     is JamEvent.GuestJoined ->
         if (canJoin(event.id) != null) this else copy(guests = guests + (event.id to GuestInfo(event.name)))
     is JamEvent.GuestLeft -> copy(guests = guests - event.id)
-    is JamEvent.AddRequest ->
-        if (event.id !in guests || !settings.guestsCanAdd) this
-        else withState(state.copy(queue = state.queue + event.song))
+    is JamEvent.AddRequest -> guestAdd(event.id, listOf(event.song))
+    is JamEvent.AddManyRequest -> guestAdd(event.id, event.songs)
     is JamEvent.Control ->
         if (event.id !in guests || !settings.guestsCanControl) this
         else withState(state.perform(event.action, event.hostTimeMs))

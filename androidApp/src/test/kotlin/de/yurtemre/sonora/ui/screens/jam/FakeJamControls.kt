@@ -46,5 +46,5 @@ class FakeJamControls : JamControls {
     override fun requestPause() { calls += "pause" }
     override fun requestNext() { calls += "next" }
     override fun requestPrevious() { calls += "previous" }
-    override fun requestAdd(song: Song) { added += song }
+    override fun requestAdd(songs: List<Song>): Int { added += songs; return songs.size }
 }

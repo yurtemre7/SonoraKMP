@@ -21,6 +21,7 @@ class JamFrameCodecTest {
             JamHello(JAM_PROTOCOL_VERSION, "Emre"), JamStateFrame(state), JamAddRequest(song),
             JamControl(JamAction.Previous), Ping(1, 2), Pong(1, 2, 3), JamEnd("bye"),
             JamWelcome("guest-1", "00112233445566778899aabbccddeeff"),
+            JamAddManyRequest(listOf(song, song.copy(title = "B"))),
         ).forEach { assertEquals(it, roundTrip(it)) }
         JamAction.entries.forEach { assertEquals(JamControl(it), roundTrip(JamControl(it))) }
     }
@@ -39,6 +40,15 @@ class JamFrameCodecTest {
         val decoded = JamFrameCodec.decode(2, old.encodeToByteArray()) as JamStateFrame
         assertEquals(JamRepeat.Off, decoded.state.repeat)
         assertEquals(5, decoded.state.positionMs)
+    }
+
+    @Test fun addManyHoldsAFullBatchAndRefusesMore() {
+        val full = JamAddManyRequest(List(MAX_ADD_BATCH) { song.copy(title = "Song $it") })
+        assertEquals(full, roundTrip(full))
+        val tooMany = JamFrameCodec.encode(JamAddManyRequest(List(MAX_ADD_BATCH + 1) { song }))
+        assertFailsWith<DeviceSyncProtocolException> {
+            JamFrameCodec.decode(tooMany[0].toInt(), tooMany.copyOfRange(JamFrameCodec.HEADER_SIZE, tooMany.size))
+        }
     }
 
     @Test fun welcomeDoesNotPrintTheReconnectKey() {

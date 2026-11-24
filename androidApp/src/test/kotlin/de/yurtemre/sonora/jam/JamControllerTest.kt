@@ -1,12 +1,14 @@
 package de.yurtemre.sonora.jam
 
 import de.yurtemre.sonora.shared.jam.JamAction
-import de.yurtemre.sonora.shared.jam.JamAddRequest
+import de.yurtemre.sonora.shared.jam.JamAddManyRequest
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
 import de.yurtemre.sonora.shared.jam.JamControl
 import de.yurtemre.sonora.shared.jam.JamEnd
 import de.yurtemre.sonora.shared.jam.JamError
 import de.yurtemre.sonora.shared.jam.JamServer
 import de.yurtemre.sonora.shared.jam.JamStateFrame
+import de.yurtemre.sonora.testing.testSong
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -85,8 +87,42 @@ class JamControllerTest : JamControllerTestBase() {
         assertEquals(listOf(a.id), skips)
 
         jam.requestPause()
-        jam.requestAdd(c)
-        assertEquals(listOf(JamControl(JamAction.Next), JamControl(JamAction.Pause), JamAddRequest(c.jam())), link.sent)
+        assertEquals(1, jam.requestAdd(listOf(c)))
+        assertEquals(listOf(JamControl(JamAction.Next), JamControl(JamAction.Pause), JamAddManyRequest(listOf(c.jam()))), link.sent)
+    }
+
+    @Test fun manySongsGoOutInBatchesUpToTheJamQueueCap() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        runCurrent()
+        val sixty = (1L..60L).map { testSong(1_000 + it, "S$it") }
+        assertEquals(60, jam.requestAdd(sixty))
+        assertEquals(listOf(sixty.map { it.jam() }), link.sent.filterIsInstance<JamAddManyRequest>().map { it.songs })
+        link.sent.clear()
+
+        val many = (1L..200L).map { testSong(2_000 + it, "M$it") }
+        assertEquals(200, jam.requestAdd(many))
+        assertEquals(listOf(100, 100), link.sent.filterIsInstance<JamAddManyRequest>().map { it.songs.size })
+        link.sent.clear()
+
+        // The host's queue is nearly full: only what fits is sent, and the count says so.
+        val big = (1L..(MAX_JAM_QUEUE - 10L)).map { testSong(5_000 + it, "Q$it") }
+        link.deliver(JamStateFrame(state(*big.toTypedArray())))
+        runCurrent()
+        assertEquals(10, jam.requestAdd(many))
+        assertEquals(many.take(10).map { it.jam() }, link.sent.filterIsInstance<JamAddManyRequest>().single().songs)
+    }
+
+    @Test fun aRefusedAddFrameIsNotCountedAsSent() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b)))
+        runCurrent()
+        link.accepts = 1 // the outbox takes one more frame, then refuses
+        val many = (1L..250L).map { testSong(2_000 + it, "M$it") }
+        assertEquals(100, jam.requestAdd(many))
+        assertFalse("never closed for a full outbox", link.closed)
     }
 
     @Test fun missingSongIsSkippedWithoutAnyStatsCall() = runTest {

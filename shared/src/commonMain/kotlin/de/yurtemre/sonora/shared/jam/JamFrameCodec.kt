@@ -19,8 +19,10 @@ object JamFrameCodec {
     private const val T_PONG = 6
     private const val T_END = 7
     private const val T_WELCOME = 8
+    private const val T_ADD_MANY = 9
 
     @Serializable private class AddP(val song: JamSong)
+    @Serializable private class AddManyP(val songs: List<JamSong>)
     @Serializable private class ControlP(val action: JamAction)
     @Serializable private class PingP(val id: Long, val sentMs: Long)
     @Serializable private class PongP(val id: Long, val sentMs: Long, val hostMs: Long)
@@ -40,6 +42,7 @@ object JamFrameCodec {
             is JamEnd -> T_END to json.encodeToString(EndP.serializer(), EndP(frame.reason))
             is JamWelcome ->
                 T_WELCOME to json.encodeToString(WelcomeP.serializer(), WelcomeP(frame.guestId, frame.reconnectKey))
+            is JamAddManyRequest -> T_ADD_MANY to json.encodeToString(AddManyP.serializer(), AddManyP(frame.songs))
         }
         val payload = text.encodeToByteArray()
         checkLength(payload.size)
@@ -80,6 +83,10 @@ object JamFrameCodec {
                 T_PING -> json.decodeFromString(PingP.serializer(), text).let { Ping(it.id, it.sentMs) }
                 T_PONG -> json.decodeFromString(PongP.serializer(), text).let { Pong(it.id, it.sentMs, it.hostMs) }
                 T_END -> JamEnd(json.decodeFromString(EndP.serializer(), text).reason)
+                T_ADD_MANY -> json.decodeFromString(AddManyP.serializer(), text).songs.let { songs ->
+                    if (songs.size > MAX_ADD_BATCH) throw DeviceSyncProtocolException("Too many songs in one jam add: ${songs.size}")
+                    JamAddManyRequest(songs)
+                }
                 else -> json.decodeFromString(WelcomeP.serializer(), text).let { JamWelcome(it.guestId, it.reconnectKey) }
             }
         } catch (e: SerializationException) {
@@ -90,7 +97,7 @@ object JamFrameCodec {
     }
 
     private fun checkType(type: Int) {
-        if (type !in T_HELLO..T_WELCOME) throw DeviceSyncProtocolException("Unknown jam frame type $type")
+        if (type !in T_HELLO..T_ADD_MANY) throw DeviceSyncProtocolException("Unknown jam frame type $type")
     }
 
     private fun checkLength(length: Int) {

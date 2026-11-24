@@ -45,9 +45,10 @@ import kotlinx.coroutines.withContext
  * - **Sending:** [broadcast] / [sendTo] never block: each guest has a bounded queue ([sendQueueCapacity]) drained by
  *   its own writer; a guest whose queue is full, or whose write takes longer than [sendTimeoutMs], is disconnected
  *   (as a drop: it may reconnect) so it cannot hold up the others.
- * - **Guest frames:** [Ping] is answered with [Pong] stamped by [clock]; [JamAddRequest] / [JamControl] become
- *   [JamEvent.AddRequest] / [JamEvent.Control] ([clock] time; at most [MAX_REQUESTS_PER_SECOND] per guest, more are
- *   ignored); [JamEnd] from a guest means it left.
+ * - **Guest frames:** [Ping] is answered with [Pong] stamped by [clock]; [JamAddRequest] / [JamAddManyRequest] /
+ *   [JamControl] become [JamEvent.AddRequest] / [JamEvent.AddManyRequest] / [JamEvent.Control] ([clock] time; at
+ *   most [MAX_REQUESTS_PER_SECOND] per guest, a batch counting once, more are ignored); [JamEnd] from a guest means it
+ *   left.
  *
  * Blocking IO runs on [dispatcher], which must allow blocking in parallel (default [Dispatchers.IO]). [stop] sends
  * [JamEnd] to every guest, closes all sockets and lets every coroutine finish ([awaitTermination]).
@@ -382,6 +383,8 @@ class JamServer(
                     if (queued.isFailure && !queued.isClosed) return false // queue full: cannot keep up
                 }
                 is JamAddRequest -> if (guest.allowRequest()) emitFrom(guest, JamEvent.AddRequest(guest.id, frame.song))
+                is JamAddManyRequest ->
+                    if (guest.allowRequest()) emitFrom(guest, JamEvent.AddManyRequest(guest.id, frame.songs)) // one request
                 is JamControl -> if (guest.allowRequest()) emitFrom(guest, JamEvent.Control(guest.id, frame.action, clock()))
                 is JamEnd -> return true
                 else -> throw DeviceSyncProtocolException("Unexpected Jam frame from a guest")
@@ -419,7 +422,7 @@ class JamServer(
         const val MAX_JOIN_HANDSHAKES = 6
         /** Wrong codes in total before the code is dead until [replaceCode] (the timed lock comes every 3). */
         const val MAX_WRONG_CODES = JamJoinGate.MAX_WRONG_CODES
-        /** AddRequest/Control events per guest and second; more are ignored. */
+        /** AddRequest/AddManyRequest/Control events per guest and second; more are ignored. */
         const val MAX_REQUESTS_PER_SECOND = 20
         const val MAX_NAME_LENGTH = 64
         private const val GUEST_ID_BYTES = 8

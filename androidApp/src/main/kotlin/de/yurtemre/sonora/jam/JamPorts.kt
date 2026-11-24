@@ -27,7 +27,9 @@ interface JamGuestLink {
 
     /** Owned by the connection's ping loop: read it inside `synchronized(clock)`. */
     val clock: ClockSync
-    fun send(frame: JamFrame)
+
+    /** Queues [frame]; false when it was not queued (closed, or a burst filled the outbox: never a disconnect). */
+    fun send(frame: JamFrame): Boolean
 
     /** Leaves on purpose (the host revokes the reconnect key). */
     fun close()

@@ -3,7 +3,6 @@ package de.yurtemre.sonora.jam
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.jam.ClockSync
 import de.yurtemre.sonora.shared.jam.JamAction
-import de.yurtemre.sonora.shared.jam.JamAddRequest
 import de.yurtemre.sonora.shared.jam.JamControl
 import de.yurtemre.sonora.shared.jam.JamEnd
 import de.yurtemre.sonora.shared.jam.JamError
@@ -12,6 +11,9 @@ import de.yurtemre.sonora.shared.jam.JamFrame
 import de.yurtemre.sonora.shared.jam.JamServer
 import de.yurtemre.sonora.shared.jam.JamState
 import de.yurtemre.sonora.shared.jam.JamStateFrame
+import de.yurtemre.sonora.shared.jam.MAX_ADD_BATCH
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
+import de.yurtemre.sonora.shared.jam.jamAddRequests
 import de.yurtemre.sonora.shared.model.Song
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -90,9 +92,21 @@ internal class JamGuestSession(
         link.send(JamControl(action))
     }
 
-    fun requestAdd(song: Song) {
-        val s = state ?: return
-        if (s.guestsCanAdd && !left && closing == null) link.send(JamAddRequest(song.toJamSong()))
+    /**
+     * Sends [songs] in batches of [MAX_ADD_BATCH] (one request each against the host's rate limit), only as many as
+     * fit the Jam queue ([MAX_JAM_QUEUE], as this guest last saw it). Returns how many were sent; stops at the first
+     * batch the connection refuses, so the count is exact and the order kept.
+     */
+    fun requestAdd(songs: List<Song>): Int {
+        val s = state ?: return 0
+        if (!s.guestsCanAdd || left || closing != null) return 0
+        val room = (MAX_JAM_QUEUE - s.queue.size).coerceAtLeast(0)
+        var sent = 0
+        for (frame in jamAddRequests(songs.take(room).map { it.toJamSong() })) {
+            if (!link.send(frame)) break
+            sent += frame.songs.size
+        }
+        return sent
     }
 
     // ---- connection ------------------------------------------------------------------------------------------------

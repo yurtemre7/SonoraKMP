@@ -33,12 +33,8 @@ class JamGuestActions(private val jam: JamControls) {
         if (state.canControl) jam.requestPrevious()
     }
 
-    /** Asks the host to add [song]; false when guests may not add songs. */
-    fun add(state: JamUiState.Joined, song: Song): Boolean {
-        if (!state.canAdd) return false
-        jam.requestAdd(song)
-        return true
-    }
+    /** Asks the host to add [songs]; how many were sent (0 when guests may not add songs or the Jam queue is full). */
+    fun add(state: JamUiState.Joined, songs: List<Song>): Int = if (state.canAdd) jam.requestAdd(songs) else 0
 }
 
 /** A "play my own music" call held while this phone is a Jam guest. [isAdd]: play next / add to queue. */
@@ -85,14 +81,16 @@ class JamPlaybackGuard(private val jam: JamControls, scope: CoroutineScope? = nu
         p.run()
     }
 
-    /** Sends the held songs to the host; true when they were sent (the app then says "Sent to the Jam"). */
-    fun addToJam(): Boolean {
-        val p = _pending.value ?: return false
-        val state = guest() ?: return false
-        if (!canAddToJam(p)) return false
+    /**
+     * Sends the held songs to the host as one request (batched); returns how many were sent (the app then says "Sent
+     * N songs to the Jam"), 0 when nothing was (not allowed, or the Jam queue is full).
+     */
+    fun addToJam(): Int {
+        val p = _pending.value ?: return 0
+        val state = guest() ?: return 0
+        if (!canAddToJam(p)) return 0
         _pending.value = null
-        p.songs.forEach { guestActions.add(state, it) }
-        return true
+        return guestActions.add(state, p.songs)
     }
 
     fun stay() {

@@ -42,6 +42,7 @@ import de.yurtemre.sonora.ui.sheets.SongInfoSheet
 import org.koin.compose.koinInject
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalResources
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberUpdatedState
@@ -201,10 +202,12 @@ fun NowPlayingOverlay(
                 },
                 upNext = {
                     if (guest != null) JamQueueView(guest, onAdd = { s ->
-                        val sent = joined?.let { guestActions.add(it, s) } == true
-                        if (sent && snackbarHostState != null) scope.launch {
+                        val sent = joined?.let { guestActions.add(it, listOf(s)) } ?: return@JamQueueView
+                        val message = if (sent > 0) res.getString(R.string.jam_add_sent, s.title)
+                        else res.getString(R.string.jam_queue_full, MAX_JAM_QUEUE)
+                        if (snackbarHostState != null) scope.launch {
                             snackbarHostState.currentSnackbarData?.dismiss()
-                            snackbarHostState.showSnackbar(res.getString(R.string.jam_add_sent, s.title))
+                            snackbarHostState.showSnackbar(message)
                         }
                     })
                     else if (upNext != null) upNext()

@@ -299,6 +299,43 @@ class JamServerTest {
     }
 
     @Test
+    fun manySongsArriveInBatchesAndTheGuestStays() = test {
+        val server = server()
+        val port = server.start(code)
+        val guest = join(port, "Ana")
+        server.await<JamEvent.GuestJoined>()
+        for (n in listOf(60, 200)) {
+            val songs = List(n) { song.copy(title = "Song $n.$it") }
+            jamAddRequests(songs).forEach { assertTrue(guest.send(it)) }
+            val got = mutableListOf<JamSong>()
+            server.events.filterIsInstance<JamEvent.AddManyRequest>().first { got += it.songs; got.size >= n }
+            assertEquals(songs, got)
+        }
+        // Still connected: a request after the adds arrives as usual.
+        guest.send(JamControl(JamAction.Next))
+        assertEquals(guest.guestId, server.await<JamEvent.Control>().id)
+    }
+
+    @Test
+    fun aFullOutboxRefusesFramesButKeepsTheConnection() = test {
+        val server = server()
+        val port = server.start(code)
+        val guest = join(port, "Ana")
+        server.await<JamEvent.GuestJoined>()
+        // Far more than the outbox holds, faster than it drains: some are refused (send says so), none abort.
+        val sent = (1..2_000).count { guest.send(JamControl(JamAction.Play)) }
+        assertTrue(sent > 0)
+        // The connection is still up: a later request gets through (each round opens a new rate window).
+        val previous = async { server.await<JamEvent.Control> { it.action == JamAction.Previous } }
+        while (!previous.isCompleted) {
+            hostClock.now += 2_000
+            guest.send(JamControl(JamAction.Previous))
+            delay(50)
+        }
+        assertEquals(guest.guestId, previous.await().id)
+    }
+
+    @Test
     fun eighthGuestGetsFullButAKnownGuestMayRejoin() = test {
         val server = server()
         val port = server.start(code)

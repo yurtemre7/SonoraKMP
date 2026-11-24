@@ -102,6 +102,11 @@ class JamControllerHostTest : JamControllerTestBase() {
         assertTrue(playback.calls.none { it.startsWith("skipTo") })
         assertEquals(listOf("addToQueue:3"), playback.calls.filter { it.startsWith("addToQueue") })
 
+        transport.eventChannel.trySend(JamEvent.AddManyRequest("g1", listOf(a.jam(), missing.jam(), b.jam())))
+        runCurrent()
+        assertEquals("one batch, one queue edit", listOf("addToQueue:3", "addToQueue:1, 2"), playback.calls.filter { it.startsWith("addToQueue") })
+        playback.calls.removeAll { it.startsWith("addToQueue") }
+
         jam.setGuestsCanControl(true)
         jam.setGuestsCanAdd(false)
         runCurrent()
@@ -109,12 +114,13 @@ class JamControllerHostTest : JamControllerTestBase() {
         transport.eventChannel.trySend(JamEvent.Control("g1", JamAction.Next, 0))
         transport.eventChannel.trySend(JamEvent.Control("g1", JamAction.Pause, 0))
         transport.eventChannel.trySend(JamEvent.AddRequest("g1", c.jam()))
+        transport.eventChannel.trySend(JamEvent.AddManyRequest("g1", listOf(c.jam())))
         transport.eventChannel.trySend(JamEvent.Control("nobody", JamAction.Next, 0))
         runCurrent()
         // Jumps to the next entry: never recorded as the host's own skip.
         assertEquals(listOf("skipToQueueItem:1"), playback.calls.filter { it.startsWith("skipTo") })
         assertEquals(1, playback.calls.count { it == "pause" })
-        assertEquals(1, playback.calls.count { it.startsWith("addToQueue") })
+        assertEquals(0, playback.calls.count { it.startsWith("addToQueue") })
     }
 
     @Test fun hostControlsKickNewCodeAndEnd() = runTest {

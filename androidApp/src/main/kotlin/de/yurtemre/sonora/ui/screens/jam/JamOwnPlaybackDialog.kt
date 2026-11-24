@@ -20,7 +20,7 @@ import org.koin.compose.koinInject
  * Placed once in the app shell; [onSentToJam] confirms an add that went to the host.
  */
 @Composable
-fun JamOwnPlaybackDialog(onSentToJam: () -> Unit = {}) {
+fun JamOwnPlaybackDialog(onSentToJam: (sent: Int) -> Unit = {}) {
     val guard: JamPlaybackGuard = koinInject()
     val controller: JamController = koinInject()
     val pending by guard.pending.collectAsStateWithLifecycle()
@@ -38,7 +38,7 @@ fun JamOwnPlaybackDialog(onSentToJam: () -> Unit = {}) {
             )
         },
         confirmButton = {
-            if (addable) TextButton(onClick = { if (guard.addToJam()) onSentToJam() }) { Text(stringResource(R.string.jam_own_add)) }
+            if (addable) TextButton(onClick = { onSentToJam(guard.addToJam()) }) { Text(stringResource(R.string.jam_own_add)) }
             else TextButton(onClick = guard::leaveAndPlay) { Text(stringResource(R.string.jam_own_leave)) }
         },
         dismissButton = {

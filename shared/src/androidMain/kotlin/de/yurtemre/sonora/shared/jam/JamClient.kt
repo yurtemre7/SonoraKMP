@@ -196,11 +196,12 @@ class JamConnection internal constructor(
         pinger.start()
     }
 
-    /** Queues [frame] for the host; never blocks. */
-    fun send(frame: JamFrame) {
-        val queued = outbox.trySend(frame)
-        if (queued.isFailure && !queued.isClosed) abort() // cannot keep up: the connection is broken
-    }
+    /**
+     * Queues [frame] for the host; never blocks. False when it was not queued: the connection is closed, or a burst
+     * filled the outbox (the caller decides; a full outbox never drops the connection: a writer that is really stuck
+     * is closed by its send timeout, which the reader then reports). A refused [Ping] only costs one clock sample.
+     */
+    fun send(frame: JamFrame): Boolean = outbox.trySend(frame).isSuccess
 
     /**
      * Leaves the Jam on purpose: sends [JamEnd] (the host revokes the reconnect key) and closes once the host has

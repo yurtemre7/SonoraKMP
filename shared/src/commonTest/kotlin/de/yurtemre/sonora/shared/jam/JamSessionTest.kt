@@ -49,6 +49,31 @@ class JamSessionTest {
         assertEquals(on.state.queue, on.apply(JamEvent.AddRequest("ghost", jam(2))).state.queue)
     }
 
+    @Test fun addManyRequestIsOneRequestWithTheSamePermissionRules() {
+        val songs = (1..60).map(::jam)
+        val on = host().join("1").apply(JamEvent.AddManyRequest("1", songs))
+        assertEquals(songs, on.state.queue)
+        val off = host(JamSettings(guestsCanAdd = false)).join("1")
+        assertEquals(off, off.apply(JamEvent.AddManyRequest("1", songs)))
+        assertEquals(on, on.apply(JamEvent.AddManyRequest("ghost", songs)))
+    }
+
+    @Test fun guestAddsStopAtTheJamQueueCap() {
+        val nearlyFull = host().apply(JamEvent.HostAction(HostAction.SetQueue((1..MAX_JAM_QUEUE - 30).map(::jam), 0))).join("1")
+        val added = nearlyFull.apply(JamEvent.AddManyRequest("1", (1..100).map { jam(1000 + it) }))
+        assertEquals(MAX_JAM_QUEUE, added.state.queue.size)
+        assertEquals((1..30).map { jam(1000 + it) }, added.state.queue.takeLast(30)) // the first ones that fit
+        assertEquals(added, added.apply(JamEvent.AddManyRequest("1", listOf(jam(5000)))))
+        assertEquals(added, added.apply(JamEvent.AddRequest("1", jam(5000))))
+    }
+
+    @Test fun addFramesSplitLargeAddsIntoBatches() {
+        val frames = jamAddRequests((1..250).map(::jam))
+        assertEquals(listOf(MAX_ADD_BATCH, MAX_ADD_BATCH, 50), frames.map { it.songs.size })
+        assertEquals((1..250).map(::jam), frames.flatMap { it.songs })
+        assertTrue(jamAddRequests(emptyList()).isEmpty())
+    }
+
     @Test fun controlHonoursSetting() {
         val q = host().apply(JamEvent.HostAction(HostAction.SetQueue(listOf(jam(1), jam(2)), 0))).join("1")
         assertEquals(q, q.apply(JamEvent.Control("1", JamAction.Play, 10)))

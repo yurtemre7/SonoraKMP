@@ -118,8 +118,8 @@ class JamPlaybackGuardTest {
     @Test fun addingToTheJamReportsIt() {
         guest(canAdd = true)
         guard.request(listOf(a), isAdd = true) { log += "run" }
-        assertTrue(guard.addToJam())
-        assertFalse(guard.addToJam()) // nothing pending any more
+        assertEquals(1, guard.addToJam())
+        assertEquals(0, guard.addToJam()) // nothing pending any more
     }
 
     // ---- the guarded PlaybackConnection -----------------------------------------------------------------------------

@@ -156,10 +156,14 @@ internal class JamHostSession(
                 hostState = hostState.apply(event)
                 publishUi()
             }
-            is JamEvent.AddRequest -> {
+            is JamEvent.AddRequest, is JamEvent.AddManyRequest -> {
                 val now = synced()
-                if (now.apply(event) == now) return // guests may not add
-                JamSongMatcher.match(event.song, env.library())?.let { playback.addToQueue(listOf(it)) }
+                val after = now.apply(event)
+                if (after == now) return // guests may not add, or the Jam queue is full
+                // The songs that fit the Jam queue cap; ones the host lacks are left out. One batch is one queue edit.
+                val library = env.library()
+                val songs = after.state.queue.drop(now.state.queue.size).mapNotNull { JamSongMatcher.match(it, library) }
+                if (songs.isNotEmpty()) playback.addToQueue(songs)
             }
             is JamEvent.Control -> {
                 val now = synced()

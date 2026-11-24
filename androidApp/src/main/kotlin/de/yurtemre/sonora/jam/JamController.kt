@@ -168,7 +168,7 @@ class JamController(
     override fun requestPause() { guestSession?.request(JamAction.Pause) }
     override fun requestNext() { guestSession?.request(JamAction.Next) }
     override fun requestPrevious() { guestSession?.request(JamAction.Previous) }
-    override fun requestAdd(song: Song) { guestSession?.requestAdd(song) }
+    override fun requestAdd(songs: List<Song>): Int = guestSession?.requestAdd(songs) ?: 0
 
     /** Wi-Fi was lost or changed ([JamService]): a guest ends its connection cleanly and may rejoin. */
     fun onNetworkLost() {
