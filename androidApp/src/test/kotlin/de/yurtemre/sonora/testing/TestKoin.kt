@@ -8,6 +8,7 @@ import de.yurtemre.sonora.di.appModule
 import de.yurtemre.sonora.playback.api.MfxUiState
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
+import de.yurtemre.sonora.playback.api.QueueSnapshot
 import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.db.SonoraDatabase
@@ -122,4 +123,8 @@ class FakePlayback(current: Song? = null) : PlaybackConnection {
     override fun startSleepTimerTracks(count: Int, fadeSeconds: Int) {}
     override fun extendSleepTimer(deltaMs: Long) {}
     override fun cancelSleepTimer() {}
+    override fun currentPositionMs(): Long = 0L
+    override fun queueSnapshot(): QueueSnapshot? = null
+    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean) {}
+    override fun endMirror(snapshot: QueueSnapshot?) {}
 }

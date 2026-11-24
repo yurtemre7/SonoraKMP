@@ -66,6 +66,13 @@ class AudioEffects(
         releaseEq()
     }
 
+    /**
+     * Jam guest: play at normal speed and pitch whatever the settings say, so the guest's clock-synced start holds
+     * (a Jam never changes the rate to chase the host; this only keeps the user's own effect out of the Jam).
+     */
+    var normalSpeed: Boolean = false
+        set(value) { field = value; reapplySpeed() }
+
     /** Re-apply speed/pitch (call per track, PLAY-13). */
     fun reapplySpeed() { current?.let(::applySpeed) }
 
@@ -100,7 +107,7 @@ class AudioEffects(
     }
 
     private fun applySpeed(s: AppSettings) {
-        val (speed, pitch) = SpeedPresets.playbackParameters(
+        val (speed, pitch) = if (normalSpeed) 1.0 to 1.0 else SpeedPresets.playbackParameters(
             s.mfxPreset,
             SpeedPresets.clampSpeed(s.speed),
             SpeedPresets.clampPitch(s.pitch),

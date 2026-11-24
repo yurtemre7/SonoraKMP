@@ -107,6 +107,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     /** Items that failed in a row without anything playing in between (error skip, see [handlePlayerError]). */
     private var consecutiveErrors = 0
     private var lastError: C.PlaybackErrorEvent? = null
+    /** A Jam guest's mirrored queue is loaded (see [setMirror]); never persisted. */
+    private var mirroring = false
 
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
@@ -166,8 +168,16 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         })
         // All transport routes (UI, notification, Bluetooth, widget) record skip/restart stats.
         player.navigator = object : QueueNavigator {
-            override fun skipNext() { recorder.onSkipNext(queue.state.value.isLast); queue.skipNext() }
-            override fun skipPrevious(positionMs: Long) { recorder.onPrevious(); queue.skipPrevious(positionMs) }
+            // A Jam guest follows the host: local skips (notification, Bluetooth, widget) would diverge, so they
+            // are ignored; the Jam screen sends skip requests to the host instead.
+            override fun skipNext() {
+                if (mirroring) return
+                recorder.onSkipNext(queue.state.value.isLast); queue.skipNext()
+            }
+            override fun skipPrevious(positionMs: Long) {
+                if (mirroring) return
+                recorder.onPrevious(); queue.skipPrevious(positionMs)
+            }
         }
         persistence = PlaybackPersistence(
             stateStore, scope, snapshot = ::snapshot, positionMs = { exo.currentPosition },
@@ -392,6 +402,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             C.SLEEP_EXTEND -> extendTimer(a.getLong(C.ARG_SECONDS, SLEEP_EXTEND_SEC))
             C.SLEEP_STOP -> sleepTimer.stop()
             C.CLOSE_PLAYER -> closePlayer()
+            C.SET_MIRROR -> setMirror(
+                a.getLongArray(C.ARG_IDS)?.toList().orEmpty(), a.getInt(C.ARG_INDEX), a.getLong(C.ARG_POSITION),
+                a.getBoolean(C.ARG_PLAY),
+            )
+            C.END_MIRROR -> endMirror(C.decodeQueue(a.getString(C.ARG_QUEUE_JSON)), a.getLong(C.ARG_POSITION))
         }
     }
 
@@ -451,6 +466,52 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         exo.stop()
         persistence.clear()
         widget.clear()
+    }
+
+    /**
+     * Jam guest mirror: the first call saves the guest's own session once, then persistence pauses (an app killed
+     * mid-Jam restores the guest's own queue). Repeat off, normal speed. When [ids] keeps the playing entry current
+     * it stays loaded (no gap); otherwise the mirror loads at [positionMs], paused unless [play].
+     */
+    private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean) {
+        val s = queue.latestState
+        val cur = s.currentEntry
+        val keep = mirroring && cur != null && ids.getOrNull(index) == cur.songId
+        if (!mirroring) {
+            persistence.beginMirror()
+            mirroring = true
+            userLoaded = true
+            sleepTimer.stop()
+            effects.normalSpeed = true
+        }
+        var uid = s.nextUid
+        val entries = ids.mapIndexed { i, id -> if (keep && i == index) cur!! else QueueEntry(uid++, id) }
+        val ns = QueueState(
+            entries = entries, original = entries, currentIndex = if (entries.isEmpty()) -1 else index.coerceIn(0, entries.lastIndex),
+            repeat = RepeatMode.Off, nextUid = uid,
+        )
+        when {
+            keep -> queue.applyEdit(ns)
+            else -> {
+                if (!play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
+                queue.setQueue(ns, positionMs, playWhenReady = play)
+            }
+        }
+    }
+
+    /** Ends the Jam mirror: [restored] (the guest's own queue) comes back paused at [positionMs]. */
+    private fun endMirror(restored: QueueState?, positionMs: Long) {
+        if (!mirroring) return
+        mirroring = false
+        effects.normalSpeed = false
+        persistence.endMirror()
+        player.pauseImmediately()
+        if (restored != null) {
+            queue.setQueue(restored, positionMs, playWhenReady = false)
+        } else {
+            queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
+            persistence.clear()
+        }
     }
 
     private fun updateButtons(timerActive: Boolean) {

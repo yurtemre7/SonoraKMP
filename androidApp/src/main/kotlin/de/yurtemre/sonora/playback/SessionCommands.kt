@@ -38,12 +38,14 @@ object SessionCommands {
     const val SLEEP_EXTEND = P + "SLEEP_EXTEND"
     const val SLEEP_STOP = P + "SLEEP_STOP"
     const val CLOSE_PLAYER = P + "CLOSE_PLAYER"
+    const val SET_MIRROR = P + "SET_MIRROR"
+    const val END_MIRROR = P + "END_MIRROR"
 
     val ALL = listOf(
         SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, INSERT_AT, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
         CYCLE_REPEAT, SKIP_NEXT, SKIP_PREVIOUS, SET_VOLUME, SET_SPEED, SET_PITCH, SET_MFX_PRESET, SET_BASS_BOOST, SET_WARMTH,
         SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_START_TRACKS, SLEEP_EXTEND,
-        SLEEP_STOP, CLOSE_PLAYER,
+        SLEEP_STOP, CLOSE_PLAYER, SET_MIRROR, END_MIRROR,
     )
 
     fun command(action: String) = SessionCommand(action, Bundle.EMPTY)
@@ -67,6 +69,8 @@ object SessionCommands {
     const val ARG_COUNT = "count"
     const val ARG_QUEUE_JSON = "queueJson"
     const val ARG_POSITION = "position"
+    const val ARG_INDEX = "index"
+    const val ARG_PLAY = "play"
 
     // Session extras keys
     private const val X_SLEEP_KIND = "x.sleep.kind"

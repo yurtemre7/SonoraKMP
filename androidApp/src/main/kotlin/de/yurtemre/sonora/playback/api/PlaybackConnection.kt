@@ -2,6 +2,7 @@ package de.yurtemre.sonora.playback.api
 
 import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
+import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.Song
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -75,4 +76,25 @@ interface PlaybackConnection {
     /** Extends the running timer: by [deltaMs] for a countdown, by one song in track-count mode. */
     fun extendSleepTimer(deltaMs: Long)
     fun cancelSleepTimer()
+
+    // Jam (synchronized playback over the LAN)
+    /** The player's position right now in ms (main thread); 0 when nothing is loaded. */
+    fun currentPositionMs(): Long
+
+    /** The loaded queue and position, kept by a Jam guest to bring back afterwards; null when nothing is loaded. */
+    fun queueSnapshot(): QueueSnapshot?
+
+    /**
+     * Jam guest: plays [songs] (only songs this phone has) from [index] at [positionMs], or paused when
+     * [playWhenReady] is false. While mirroring, nothing is persisted (the saved session stays the guest's own
+     * queue), repeat is off, playback runs at normal speed and pitch, and local skips are ignored. When the song at
+     * [index] is the one already playing it keeps playing without a gap; [positionMs] is then ignored.
+     */
+    fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean)
+
+    /** Ends the Jam mirror: [snapshot] comes back paused (null leaves an empty queue) and persistence resumes. */
+    fun endMirror(snapshot: QueueSnapshot?)
 }
+
+/** A queue with its position, as [PlaybackConnection.queueSnapshot] returns it. */
+data class QueueSnapshot(val queue: QueueState, val positionMs: Long)
