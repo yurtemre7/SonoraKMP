@@ -186,7 +186,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         )
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
-        mirrorMode = JamMirrorMode(setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
+        mirrorMode = JamMirrorMode(persistence, setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
         focus = AudioFocusController(this, exo, settingsRepo.settings, scope).also { it.start() }
         noisy = NoisyAndReconnectHandler(this, exo, settingsRepo.settings, scope, resume = { player.play() })
             .also { it.start() }
@@ -466,16 +466,18 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
      * the mirror mode ends here, and the Jam controller sees the emptied queue and leaves the Jam.
      */
     private fun closePlayer() {
-        val wasMirroring = mirroring
-        if (wasMirroring) {
-            mirrorMode.end()
-            persistence.endMirror()
-        }
         sleepTimer.stop()
-        player.pauseImmediately()
-        queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
-        exo.stop()
-        if (!wasMirroring) persistence.clear()
+        val stop = {
+            player.pauseImmediately()
+            queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
+            exo.stop()
+        }
+        if (mirroring) {
+            mirrorMode.end(stop) // stops while still in mirror mode: the pause's save cannot store the Jam queue
+        } else {
+            stop()
+            persistence.clear()
+        }
         widget.clear()
     }
 
@@ -486,31 +488,29 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
      * [positionMs], paused unless [play].
      */
     private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean) {
-        val starting = !mirroring
-        if (starting) {
-            persistence.beginMirror()
+        if (!mirroring) {
             userLoaded = true
             sleepTimer.stop()
         }
-        when (val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play)) {
-            is MirrorEdit.Keep -> {
-                queue.applyEdit(edit.state)
-                if (edit.play && !exo.playWhenReady) player.play()
-            }
-            is MirrorEdit.Load -> {
-                if (!edit.play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
-                queue.setQueue(edit.state, edit.positionMs, playWhenReady = edit.play)
+        val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play)
+        mirrorMode.begin {
+            when (edit) {
+                is MirrorEdit.Keep -> {
+                    queue.applyEdit(edit.state)
+                    if (edit.play && !exo.playWhenReady) player.play()
+                }
+                is MirrorEdit.Load -> {
+                    if (!edit.play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
+                    queue.setQueue(edit.state, edit.positionMs, playWhenReady = edit.play)
+                }
             }
         }
-        if (starting) mirrorMode.begin() // after the load: normal speed and no skip silence for the Jam items
     }
 
     /** Ends the Jam mirror: [restored] (the guest's own queue) comes back paused at [positionMs]. */
     private fun endMirror(restored: QueueState?, positionMs: Long) {
         if (!mirroring) return
-        mirrorMode.end()
-        persistence.endMirror()
-        player.pauseImmediately()
+        mirrorMode.end { player.pauseImmediately() } // pause first: still in mirror mode, still at Jam speed
         if (restored != null) {
             queue.setQueue(restored, positionMs, playWhenReady = false)
         } else {

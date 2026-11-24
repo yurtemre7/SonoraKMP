@@ -6,10 +6,12 @@ import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.queue.currentEntry
 
 /**
- * The playback service's Jam guest mode: while a mirror is loaded the guest plays at normal speed and pitch and with
- * skip silence off (both would move it away from the host's timeline); the user's settings come back on [end].
+ * The playback service's Jam guest mode: while a mirror is loaded nothing is persisted ([PlaybackPersistence] keeps
+ * the guest's own queue), and the guest plays at normal speed and pitch with skip silence off (both would move it
+ * away from the host's timeline); the user's settings come back on [end].
  */
 class JamMirrorMode(
+    private val persistence: PlaybackPersistence,
     private val setNormalSpeed: (Boolean) -> Unit,
     private val setSkipSilence: (Boolean) -> Unit,
 ) {
@@ -23,16 +25,28 @@ class JamMirrorMode(
             setSkipSilence(value && !active)
         }
 
-    fun begin() {
-        if (active) return
+    /** Runs [load]; the first time, the own queue is saved before it and the Jam audio settings apply after it. */
+    fun begin(load: () -> Unit) {
+        if (active) {
+            load()
+            return
+        }
+        persistence.beginMirror()
         active = true
+        load()
         setNormalSpeed(true)
         setSkipSilence(false)
     }
 
-    fun end() {
+    /**
+     * Ends the mirror. [stopPlayback] runs first, still in mirror mode: ExoPlayer reports the pause from inside the
+     * pause call, and a save then would store the Jam queue over the guest's own one.
+     */
+    fun end(stopPlayback: () -> Unit) {
         if (!active) return
+        stopPlayback()
         active = false
+        persistence.endMirror()
         setNormalSpeed(false)
         setSkipSilence(userSkipSilence)
     }
