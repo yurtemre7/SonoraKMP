@@ -10,7 +10,10 @@ import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.repo.api.StatsSnapshot
 import de.yurtemre.sonora.shared.repo.api.SyncOutcome
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -31,12 +34,16 @@ class WeeklyMixRepositoryTest {
     private class FakeStore : WeeklyMixStore {
         val state = MutableStateFlow<StoredWeeklyMix?>(null)
         override val stored: Flow<StoredWeeklyMix?> get() = state
-        override suspend fun save(mix: StoredWeeklyMix) { state.value = mix }
+        var saveCount = 0
+        override suspend fun save(mix: StoredWeeklyMix) { saveCount++; state.value = mix }
     }
 
     private class FakeLibrary(initial: List<Song>) : LibraryRepository {
         val list = MutableStateFlow(initial)
-        override val songs: Flow<List<Song>> get() = list
+        /** When set, [songs] suspends until completed (simulates a slow library read). */
+        var gate: CompletableDeferred<Unit>? = null
+        override val songs: Flow<List<Song>> get() =
+            gate?.let { g -> flow { g.await(); emit(list.value) } } ?: list
         override val artistImages: Flow<Map<String, String>> = MutableStateFlow(emptyMap())
         override val isSyncing: Flow<Boolean> = MutableStateFlow(false)
         override val backgroundWork: StateFlow<BackgroundWork?> = MutableStateFlow(null)
@@ -177,5 +184,37 @@ class WeeklyMixRepositoryTest {
         f.repo.refreshIfNeeded(zone)
         assertEquals(expected, f.playlists.created.single().songIds)
         assertEquals(5, f.repo.state(zone).first().songs.size)
+    }
+
+    @Test fun concurrentRefreshesGenerateOnce() = runTest {
+        val f = Fixture(tenSongs(), mon0800 + 1000)
+        val gate = CompletableDeferred<Unit>()
+        f.library.gate = gate
+        val a = async { f.repo.refreshIfNeeded(zone) }
+        val b = async { f.repo.refreshIfNeeded(zone) }
+        testScheduler.advanceUntilIdle()
+        gate.complete(Unit)
+        val results = listOf(a.await(), b.await())
+        assertEquals(1, results.count { it })
+        assertEquals(1, f.store.saveCount)
+        assertEquals(f.store.state.value!!.songPaths, f.repo.state(zone).first().songs.map { it.filePath })
+    }
+
+    @Test fun staleWeekWithEmptyLibraryShowsEmptyCurrentWeekThenGeneratesOnLoad() = runTest {
+        val f = Fixture(tenSongs(), mon0800 + 1000)
+        f.repo.refreshIfNeeded(zone)
+        f.now = mon0800 + week + 1000
+        f.library.list.value = emptyList()
+        val s = f.repo.state(zone).first()
+        assertEquals(mon0800 + week, s.weekStartMs)
+        assertEquals(mon0800 + 2 * week, s.nextRefreshMs)
+        assertEquals(emptyList(), s.songs)
+        assertFalse(f.repo.refreshIfNeeded(zone))
+
+        f.library.list.value = tenSongs()
+        assertTrue(f.repo.refreshIfNeeded(zone))
+        val after = f.repo.state(zone).first()
+        assertEquals(mon0800 + week, after.weekStartMs)
+        assertEquals(10, after.songs.size)
     }
 }

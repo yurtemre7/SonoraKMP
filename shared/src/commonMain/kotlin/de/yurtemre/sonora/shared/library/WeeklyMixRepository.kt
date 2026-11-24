@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -21,11 +23,21 @@ import kotlinx.serialization.json.Json
 /** The weekly mix as shown: [weekStartMs] of its week, [songs] resolved against the current library. */
 data class WeeklyMixState(val weekStartMs: Long, val songs: List<Song>, val nextRefreshMs: Long)
 
+/**
+ * The UI must call [refreshIfNeeded] on resume, on the countdown tick, and whenever the library songs
+ * become non-empty; [state] never generates a mix by itself.
+ */
 interface WeeklyMixRepository {
-    /** Current mix; re-emits when the library or the stored mix changes. Does not generate. */
+    /**
+     * Current mix; re-emits when the library or the stored mix changes. Always reports the computed
+     * current week start and next refresh; songs are empty while the stored mix belongs to another week.
+     */
     fun state(zone: TimeZone): Flow<WeeklyMixState>
 
-    /** Generates and stores a new mix when none is stored for the current week; true when it did. */
+    /**
+     * Generates and stores a new mix when none is stored for the current week; true when it did.
+     * Returns false when the week is already stored and also when the library is empty (nothing is stored).
+     */
     suspend fun refreshIfNeeded(zone: TimeZone): Boolean
 
     /** Copies the current mix into a new playlist; the playlist is unaffected by later refreshes. */
@@ -68,23 +80,26 @@ class WeeklyMixRepositoryImpl(
     override fun state(zone: TimeZone): Flow<WeeklyMixState> =
         combine(library.songs, store.stored) { songs, stored ->
             val now = clock.nowMs()
+            val weekStart = WeeklyMix.weekStart(now, zone)
             WeeklyMixState(
-                weekStartMs = stored?.weekStartMs ?: WeeklyMix.weekStart(now, zone),
-                songs = resolve(stored, songs),
+                weekStartMs = weekStart,
+                songs = resolve(stored?.takeIf { it.weekStartMs == weekStart }, songs),
                 nextRefreshMs = WeeklyMix.nextRefresh(now, zone),
             )
         }
 
-    override suspend fun refreshIfNeeded(zone: TimeZone): Boolean {
+    private val refreshLock = Mutex()
+
+    override suspend fun refreshIfNeeded(zone: TimeZone): Boolean = refreshLock.withLock {
         val now = clock.nowMs()
         val weekStart = WeeklyMix.weekStart(now, zone)
-        if (store.stored.first()?.weekStartMs == weekStart) return false
+        if (store.stored.first()?.weekStartMs == weekStart) return@withLock false
         val songs = library.songs.first()
         // An empty library usually means "not loaded yet"; do not lock in an empty week.
-        if (songs.isEmpty()) return false
+        if (songs.isEmpty()) return@withLock false
         val built = WeeklyMix.build(songs, stats.snapshot.first().songs, now)
         store.save(StoredWeeklyMix(weekStart, built.map { it.filePath }))
-        return true
+        true
     }
 
     override suspend fun saveAsPlaylist(name: String): Playlist {
