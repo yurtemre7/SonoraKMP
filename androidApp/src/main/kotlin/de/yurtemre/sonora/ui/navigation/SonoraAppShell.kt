@@ -76,6 +76,7 @@ import de.yurtemre.sonora.ui.screens.licenses.LicensesRoute
 import de.yurtemre.sonora.ui.screens.playlist.PlaylistRoute
 import de.yurtemre.sonora.ui.screens.recent.RecentlyPlayedRoute
 import de.yurtemre.sonora.ui.screens.smartlist.SmartListRoute
+import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixRoute
 import de.yurtemre.sonora.ui.screens.settings.SettingsRoute
 import de.yurtemre.sonora.ui.screens.settings.appearance.SettingsAppearanceRoute
 import de.yurtemre.sonora.ui.screens.settings.backup.SettingsBackupRoute
@@ -180,6 +181,7 @@ fun SonoraAppShell(
                 entry<Favorites> { FavoritesRoute(goBack, navigate) }
                 entry<RecentlyPlayed> { RecentlyPlayedRoute(goBack, navigate) }
                 entry<SmartList> { SmartListRoute(it.kind, goBack, navigate) }
+                entry<WeeklyMix> { WeeklyMixRoute(goBack, navigate) }
                 entry<Stats> { StatsRoute(goBack, navigate) }
                 entry<Settings> { TextWidth { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) } }
                 entry<SettingsAppearance> { TextWidth { SettingsAppearanceRoute(goBack) } }

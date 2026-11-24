@@ -78,6 +78,10 @@ object DateFormats {
     fun date(instant: Instant, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String =
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(instant.atZone(zone))
 
+    /** Locale short date, e.g. "11/23/26" or "2026/11/23". */
+    fun shortDate(instant: Instant, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String =
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale).format(instant.atZone(zone))
+
     fun dateTime(instant: Instant, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String =
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).withLocale(locale).format(instant.atZone(zone))
 
@@ -146,3 +150,30 @@ object RelativeTime {
 @Composable
 fun relativeTimeText(thenMs: Long): String =
     RelativeTime.ago(LocalContext.current, thenMs, System.currentTimeMillis(), currentLocale())
+
+/** Time left until a refresh, broken down for display; every part is zero or more. */
+data class CountdownParts(val days: Long, val hours: Long, val minutes: Long)
+
+/** Floors to whole minutes; a negative [remainingMs] counts as zero. */
+fun formatCountdown(remainingMs: Long): CountdownParts {
+    val minutesTotal = remainingMs.coerceAtLeast(0) / 60_000
+    return CountdownParts(days = minutesTotal / 1440, hours = (minutesTotal / 60) % 24, minutes = minutesTotal % 60)
+}
+
+/** "Refreshes in 3 d 4 h" / "... 5 h 10 min" / "... 42 min", all units from resources. */
+fun countdownText(context: Context, parts: CountdownParts): String {
+    val res = context.resources
+    val sep = res.getString(R.string.duration_part_separator)
+    val time = when {
+        parts.days > 0 -> listOf(
+            res.getString(R.string.weekly_mix_unit_days, parts.days.toInt()),
+            res.getString(R.string.weekly_mix_unit_hours, parts.hours.toInt()),
+        )
+        parts.hours > 0 -> listOf(
+            res.getString(R.string.weekly_mix_unit_hours, parts.hours.toInt()),
+            res.getString(R.string.weekly_mix_unit_minutes, parts.minutes.toInt()),
+        )
+        else -> listOf(res.getString(R.string.weekly_mix_unit_minutes, parts.minutes.toInt()))
+    }.joinToString(sep)
+    return res.getString(R.string.weekly_mix_refreshes_in, time)
+}

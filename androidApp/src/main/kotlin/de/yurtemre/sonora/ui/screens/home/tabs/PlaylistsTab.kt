@@ -60,7 +60,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import de.yurtemre.sonora.shared.library.WeeklyMixRepository
+import de.yurtemre.sonora.shared.repo.api.Clock
+import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixViewModel
+import kotlinx.coroutines.flow.map
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.library.ScrollSection
 import de.yurtemre.sonora.shared.library.SmartListKind
@@ -100,10 +106,20 @@ fun PlaylistsTab(
     snackbar: SnackbarHostState,
     onOpen: (Playlist) -> Unit,
     onOpenSmartList: (SmartListKind) -> Unit,
+    onOpenWeeklyMix: () -> Unit,
 ) {
     val repo = koinInject<PlaylistRepository>()
     val library = koinInject<LibraryRepository>()
     val songs by library.songs.collectAsStateWithLifecycle(emptyList())
+    val weeklyRepo = koinInject<WeeklyMixRepository>()
+    val clock = koinInject<Clock>()
+    val weeklyVm = viewModel { WeeklyMixViewModel(weeklyRepo, library.songs.map { it.isNotEmpty() }, clock) }
+    val weekly by weeklyVm.ui.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(weeklyVm) { weeklyVm.onResume(); onPauseOrDispose { } }
+    val top: @Composable () -> Unit = {
+        WeeklyMixCard(weekly, onOpenWeeklyMix)
+        SmartListsRow(onOpenSmartList)
+    }
     val artById = remember(songs) { songs.associate { it.id to it.artworkPath } }
     val context = LocalContext.current
     val res = LocalResources.current
@@ -160,7 +176,7 @@ fun PlaylistsTab(
     when {
         !state.loaded -> Unit
         state.totalCount == 0 -> Column(Modifier.fillMaxSize()) {
-            SmartListsRow(onOpenSmartList)
+            top()
             EmptyState(
                 icon = Icons.Rounded.QueueMusic,
                 title = stringResource(R.string.library_playlists_empty),
@@ -175,7 +191,7 @@ fun PlaylistsTab(
             )
         }
         playlists.isEmpty() -> Column(Modifier.fillMaxSize()) {
-            SmartListsRow(onOpenSmartList)
+            top()
             EmptyState(
                 icon = Icons.Rounded.SearchOff,
                 title = stringResource(R.string.library_playlists_no_match),
@@ -193,7 +209,7 @@ fun PlaylistsTab(
             val labels = bins.map { binLabel(it.key) }
             val starts = remember(bins) { binStarts(bins, leading = 2) }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                item(key = "smart_lists") { SmartListsRow(onOpenSmartList) }
+                item(key = "smart_lists") { Column { top() } }
                 item(key = "header") {
                     SectionHeader(
                         text = stringResource(R.string.library_playlists_header),

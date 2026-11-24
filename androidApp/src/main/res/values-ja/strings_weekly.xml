@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="weekly_mix_title">今週のミックス</string>
+    <string name="weekly_mix_refreshes_in">更新まで%1$s</string>
+    <string name="weekly_mix_unit_days" tools:ignore="PluralsCandidate">%1$d日</string>
+    <string name="weekly_mix_unit_hours" tools:ignore="PluralsCandidate">%1$d時間</string>
+    <string name="weekly_mix_unit_minutes" tools:ignore="PluralsCandidate">%1$d分</string>
+    <string name="weekly_mix_empty">何曲か再生すると、今週のミックスができあがります。</string>
+    <string name="weekly_mix_save">プレイリストとして保存</string>
+    <string name="weekly_mix_playlist_name">今週のミックス · %1$s</string>
+    <string name="weekly_mix_saved">「%1$s」を保存しました</string>
+    <string name="weekly_mix_save_failed">プレイリストを保存できませんでした</string>
+    <string name="weekly_mix_play">再生</string>
+    <string name="weekly_mix_shuffle">シャッフル</string>
+    <string name="weekly_mix_add_to_queue">キューに追加</string>
+</resources>

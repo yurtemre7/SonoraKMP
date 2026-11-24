@@ -29,6 +29,7 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Songs, albums, artists and playlists, with search and per-tab sorting
 - Playlists with drag-to-reorder and M3U import/export; save the current queue as a playlist
 - Favourites, recently played, smart lists (recently added, never played, most played) you can save as playlists, and a listening statistics dashboard
+- A weekly mix that refreshes every week from what you play, with a countdown and one-tap save as a playlist
 - Synced `.lrc` and plain `.txt` lyrics, or lyrics embedded in the file's tags
 
 **Playback**

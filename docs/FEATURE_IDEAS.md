@@ -12,6 +12,7 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 | --- | --- | --- |
 | Embedded lyrics (ID3 `USLT`, Vorbis `LYRICS`) as a fallback to `.lrc`/`.txt` sidecars | Done | #20 |
 | Smart lists: recently added, never played, most played | Done | #22 |
+| Weekly mix (auto-generated every Monday from what you play, saveable as a playlist) | Done | Playlists tab card |
 | Folder browsing (file-tree view next to Songs/Albums/Artists) | Idea | |
 | Genre and year browsing | Idea | `genre` and `year` are already on `Song` |
 | Exclude folders and a minimum track length | Idea | keeps voice memos and ringtones out |
