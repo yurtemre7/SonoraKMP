@@ -183,6 +183,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: sonora-${{ steps.version.outputs.version }}
+          retention-days: 1
           path: dist/
           if-no-files-found: error
 
