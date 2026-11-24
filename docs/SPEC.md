@@ -476,6 +476,8 @@ Types: B Boolean, I Int, L Long, D Double, S String, SS StringSet. ★ = new key
 | pause_on_disconnect ⓑ | B | true | |
 | resume_on_connect ⓑ | B | false | |
 | mfx_bluetoothMfxPatch ⓑ | B | false | |
+| smart_shuffle ★ⓑ | B | false | weights skips, favourites and recency; avoids back-to-back artists |
+| jam_speaker_delay_ms ★ | I | 0 | −500..500 (clamped on read and write); per device, deliberately not in backup |
 | sleep_timer_default_minutes ⓑ | I | 5 | {5,10,15,20,30,60}; other stored values snap to the nearest |
 | sleep_timer_fade_out_seconds ⓑ | I | 10 | {0,10,30,60}; other stored values snap to the nearest |
 | sleep_timer_finish_song ⓑ | B | false | |

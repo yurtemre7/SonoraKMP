@@ -29,6 +29,7 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Songs, albums, artists and playlists, with search and per-tab sorting
 - Playlists with drag-to-reorder and M3U import/export; save the current queue as a playlist
 - Favourites, recently played, smart lists (recently added, never played, most played) you can save as playlists, and a listening statistics dashboard
+- A weekly mix that refreshes every week from what you play, with a countdown and one-tap save as a playlist
 - Synced `.lrc` and plain `.txt` lyrics, or lyrics embedded in the file's tags
 
 **Playback**
@@ -36,6 +37,9 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Gapless playback, ReplayGain (track or album), smooth play/pause fades, skip silence, and an optional fade between songs
 - Equalizer with presets, speed and pitch presets from slowed to nightcore
 - Sleep timer with "finish this song", stop after a number of songs, and a fade-out
+- Smart shuffle (optional): plays songs you skip less and favourites more, and avoids the same artist twice in a row
+- Jam: play the same queue on up to 8 phones on the same Wi-Fi at once, each from its own library; guests join with
+  a 6-digit code, no internet or account needed ([how it works](docs/JAM.md))
 - Home-screen widget
 
 **Yours**

@@ -15,6 +15,10 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
+import de.yurtemre.sonora.jam.JamController
+import de.yurtemre.sonora.jam.JamGuestActions
+import de.yurtemre.sonora.jam.JamUiState
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -35,6 +39,7 @@ import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.shared.model.QueueEntry
 import de.yurtemre.sonora.shared.model.QueueState
 import de.yurtemre.sonora.shared.model.RepeatMode
+import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.queue.add
 import de.yurtemre.sonora.shared.queue.cleared
 import de.yurtemre.sonora.shared.queue.currentEntry
@@ -46,9 +51,11 @@ import de.yurtemre.sonora.shared.queue.move
 import de.yurtemre.sonora.shared.queue.playNext
 import de.yurtemre.sonora.shared.queue.quickShuffle
 import de.yurtemre.sonora.shared.queue.removeByUid
+import de.yurtemre.sonora.shared.queue.SmartShuffle
 import de.yurtemre.sonora.shared.queue.skipTo
 import de.yurtemre.sonora.shared.queue.toggleShuffle
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.settings.PlaybackStateStore
 import de.yurtemre.sonora.shared.settings.SavedPlaybackState
@@ -65,6 +72,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -94,12 +103,19 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private lateinit var sleepTimer: SleepTimer
     private var session: MediaLibrarySession? = null
     private var settings = AppSettings()
+    private var songIndexState: StateFlow<Map<Long, Song>?> = MutableStateFlow(null)
+    private var statsState: StateFlow<Map<Long, SongStats>?> = MutableStateFlow(null)
     private var restoreJob: Job? = null
     /** A user load happened; a pending restore must not override it. */
     private var userLoaded = false
     /** Items that failed in a row without anything playing in between (error skip, see [handlePlayerError]). */
     private var consecutiveErrors = 0
     private var lastError: C.PlaybackErrorEvent? = null
+    /** Jam guest mode: a mirrored queue is loaded (see [setMirror]); never persisted. */
+    private lateinit var mirrorMode: JamMirrorMode
+    private val mirroring: Boolean get() = mirrorMode.active
+    /** Pauses made for the audio route (unplugged, focus lost); published so a Jam guest stays paused. */
+    private var systemPauses = 0L
 
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
@@ -126,6 +142,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         override fun onPlayerError(error: PlaybackException) = handlePlayerError(error)
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) noisy.clearDisconnectFlag()
+            if (isSystemPause(playWhenReady, reason)) onSystemPause() // Media3's own focus handling
         }
     }
 
@@ -134,10 +151,14 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         MediaVolume.ensureAudible(this) // PLAY-28
         exo = PlayerFactory.create(this, handleAudioFocus = true) // AudioFocusController switches per pause_on_duck
         player = SonoraForwardingPlayer(exo, scope)
+        player.transportInterceptor = ::outsideTransport
         // Hot id → song index: a queue load must not re-read the whole song table (cold Room flow) per tap.
         val songIndex = library.songs.map { l -> l.associateBy { it.id } }
             .flowOn(Dispatchers.Default)
             .stateIn(scope, SharingStarted.Eagerly, null)
+        songIndexState = songIndex
+        // Latest stats snapshot for smart shuffle; handle() is not suspending, so it reads the cached value.
+        statsState = stats.snapshot.map { it.songs }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Eagerly, null)
         queue = QueueController(player, scope, songs = { ids ->
             val index = songIndex.filterNotNull().first()
             buildMap { ids.forEach { id -> index[id]?.let { put(id, it) } } }
@@ -156,8 +177,17 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         })
         // All transport routes (UI, notification, Bluetooth, widget) record skip/restart stats.
         player.navigator = object : QueueNavigator {
-            override fun skipNext() { recorder.onSkipNext(queue.state.value.isLast); queue.skipNext() }
-            override fun skipPrevious(positionMs: Long) { recorder.onPrevious(); queue.skipPrevious(positionMs) }
+            // A Jam guest follows the host: local skips (notification, Bluetooth, widget) would diverge, so they
+            // become requests to the host when it allows guests to skip, and are ignored otherwise. (The app's own
+            // UI never gets here while mirroring: JamGuardedPlayback sends its requests directly.)
+            override fun skipNext() {
+                if (mirroring) return jamGuestRequest { guest, actions -> actions.next(guest) }
+                recorder.onSkipNext(queue.state.value.isLast); queue.skipNext()
+            }
+            override fun skipPrevious(positionMs: Long) {
+                if (mirroring) return jamGuestRequest { guest, actions -> actions.previous(guest) }
+                recorder.onPrevious(); queue.skipPrevious(positionMs)
+            }
         }
         persistence = PlaybackPersistence(
             stateStore, scope, snapshot = ::snapshot, positionMs = { exo.currentPosition },
@@ -165,9 +195,12 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         )
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
-        focus = AudioFocusController(this, exo, settingsRepo.settings, scope).also { it.start() }
-        noisy = NoisyAndReconnectHandler(this, exo, settingsRepo.settings, scope, resume = { player.play() })
+        mirrorMode = JamMirrorMode(persistence, setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
+        focus = AudioFocusController(this, exo, settingsRepo.settings, scope, onPermanentLoss = ::onSystemPause)
             .also { it.start() }
+        noisy = NoisyAndReconnectHandler(
+            this, exo, settingsRepo.settings, scope, resume = { player.play() }, onPausedByDisconnect = ::onSystemPause,
+        ).also { it.start() }
         widget = WidgetUpdater(this, player)
         sleepTimer = SleepTimer(scope, host, SleepTimerNotifier(this, ComponentName(this, SonoraPlaybackService::class.java)))
 
@@ -202,7 +235,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             settingsRepo.settings.collect {
                 settings = it
                 queue.replayGainMode = it.replayGainMode
-                exo.skipSilenceEnabled = it.skipSilence
+                mirrorMode.userSkipSilence = it.skipSilence // stays off while a Jam mirror is loaded
                 fader.setFadeSeconds(it.fadeBetweenSongsSeconds)
             }
         }
@@ -227,7 +260,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 scope.launch {
                     restoreJob?.join()
                     when (action) {
-                        WidgetActions.ACTION_PLAY_PAUSE -> if (exo.playWhenReady) player.pause() else player.play()
+                        WidgetActions.ACTION_PLAY_PAUSE -> when {
+                            mirroring -> jamGuestRequest { guest, actions -> actions.playPause(guest) } // the host decides
+                            exo.playWhenReady -> player.pause()
+                            else -> player.play()
+                        }
                         WidgetActions.ACTION_NEXT -> player.seekToNext()
                         WidgetActions.ACTION_PREVIOUS -> player.seekToPrevious()
                     }
@@ -264,18 +301,63 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         super.onDestroy()
     }
 
+    /** Runs [request] with the Jam guest state, if this phone is a guest (resolved lazily: no cycle at start-up). */
+    private fun jamGuestRequest(request: (JamUiState.Joined, JamGuestActions) -> Unit) {
+        val jam = getKoin().getOrNull<JamController>() ?: return
+        val guest = jam.state.value as? JamUiState.Joined ?: return
+        request(guest, JamGuestActions(jam))
+    }
+
+    /**
+     * The player's play()/pause() while a Jam guest mirrors: from an outside controller it is a play or a pause
+     * request for the host (idempotent, see [jamExternalTransport]), never a local change the host would undo.
+     */
+    private fun outsideTransport(play: Boolean): Boolean {
+        val controller = session?.controllerForCurrentRequest ?: return false
+        return when (jamExternalTransport(play, mirroring, isExternal(controller))) {
+            ExternalTransport.Local -> false
+            ExternalTransport.HostPlay -> true.also { jamGuestRequest { guest, actions -> actions.play(guest) } }
+            ExternalTransport.HostPause -> true.also { jamGuestRequest { guest, actions -> actions.pause(guest) } }
+        }
+    }
+
+    private fun isExternal(controller: MediaSession.ControllerInfo): Boolean =
+        isExternalController(controller.packageName, packageName, session?.isMediaNotificationController(controller) == true)
+
+    /** Outside controllers lose seek and queue commands while mirroring ([externalPlayerCommands]); back after. */
+    private fun refreshExternalCommands() {
+        val s = session ?: return
+        s.connectedControllers.filter(::isExternal).forEach { c ->
+            s.setAvailableCommands(c, sessionCommandsFor(c), externalPlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS, mirroring))
+        }
+    }
+
+    private fun sessionCommandsFor(controller: MediaSession.ControllerInfo): SessionCommands {
+        // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
+        val trusted = controller.packageName == packageName || controller.isTrusted
+        val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+        if (trusted) C.ALL.forEach { cmds.add(C.command(it)) } // untrusted apps keep the default playback commands only
+        return cmds.build()
+    }
+
     // ---- session callback ----
 
     private val callback = object : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
-            val trusted = controller.packageName == packageName || controller.isTrusted
-            val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-            if (trusted) C.ALL.forEach { cmds.add(C.command(it)) } // untrusted apps keep the default playback commands only
-            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(cmds.build())
-                .build()
+            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(sessionCommandsFor(controller))
+            if (mirroring && isExternal(controller)) {
+                builder.setAvailablePlayerCommands(externalPlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS, true))
+            }
+            return builder.build()
         }
+
+        override fun onPlayerCommandRequest(session: MediaSession, controller: MediaSession.ControllerInfo, playerCommand: Int): Int =
+            when (jamExternalCommand(playerCommand, mirroring, isExternal(controller))) {
+                // Play/pause from outside succeeds here and is redirected in the player ([outsideTransport]).
+                ExternalCommand.Allow -> super.onPlayerCommandRequest(session, controller, playerCommand)
+                ExternalCommand.Reject -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
+            }
 
         override fun onCustomCommand(
             session: MediaSession,
@@ -313,7 +395,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 userLoaded = true
                 val ns = if (a.getBoolean(C.ARG_SHUFFLE)) {
                     recorder.onShuffleSessionStarted()
-                    s.quickShuffle(ids, playlistContext = playlist)
+                    s.quickShuffle(ids, playlistContext = playlist, reorder = smartReorder())
                 } else {
                     s.load(ids, a.getLong(C.ARG_START_SONG, -1L).takeIf { it >= 0 }, playlist)
                 }
@@ -382,11 +464,27 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             C.SLEEP_EXTEND -> extendTimer(a.getLong(C.ARG_SECONDS, SLEEP_EXTEND_SEC))
             C.SLEEP_STOP -> sleepTimer.stop()
             C.CLOSE_PLAYER -> closePlayer()
+            C.SET_MIRROR -> setMirror(
+                a.getLongArray(C.ARG_IDS)?.toList().orEmpty(), a.getInt(C.ARG_INDEX), a.getLong(C.ARG_POSITION),
+                a.getBoolean(C.ARG_PLAY), a.getBoolean(C.ARG_REPEAT_ONE),
+            )
+            C.END_MIRROR -> endMirror(C.decodeQueue(a.getString(C.ARG_QUEUE_JSON)), a.getLong(C.ARG_POSITION))
+        }
+    }
+
+    /**
+     * Smart shuffle ordering for upcoming entries, or null (plain shuffle) when the setting is off. Before the song
+     * index has loaded (cold start) it is a plain shuffle too ([SmartShuffle.reorderEntries]).
+     */
+    private fun smartReorder(): ((List<QueueEntry>) -> List<QueueEntry>)? {
+        if (!settings.smartShuffle) return null
+        return { entries ->
+            SmartShuffle.reorderEntries(entries, songIndexState.value, statsState.value.orEmpty(), System.currentTimeMillis())
         }
     }
 
     private fun toggleShuffle(s: QueueState) {
-        val ns = s.toggleShuffle()
+        val ns = s.toggleShuffle(reorder = smartReorder())
         if (ns.isShuffled) recorder.onShuffleSessionStarted()
         queue.applyEdit(ns)
     }
@@ -414,18 +512,77 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private fun extendTimer(sec: Long) =
         sleepTimer.extend(sec, settings.sleepTimerFinishSong, settings.sleepTimerFadeOutSeconds)
 
-    /** PLAY-21: clear queue + saved session + widget; Media3 drops the foreground notification once idle/empty. */
+    /**
+     * PLAY-21: clear queue + saved session + widget; Media3 drops the foreground notification once idle/empty.
+     * During a Jam mirror the saved session is the guest's own queue: it is kept (it comes back on the next start),
+     * the mirror mode ends here, and the Jam controller sees the emptied queue and leaves the Jam.
+     */
     private fun closePlayer() {
         sleepTimer.stop()
-        player.pauseImmediately()
-        queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
-        exo.stop()
-        persistence.clear()
+        val stop = {
+            player.pauseImmediately()
+            queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
+            exo.stop()
+        }
+        if (mirroring) {
+            mirrorMode.end(stop) // stops while still in mirror mode: the pause's save cannot store the Jam queue
+            refreshExternalCommands()
+        } else {
+            stop()
+            persistence.clear()
+        }
         widget.clear()
+    }
+
+    /**
+     * Jam guest mirror: the first call saves the guest's own session once, then persistence pauses (an app killed
+     * mid-Jam restores the guest's own queue). Repeat off (one with [repeatOne]), normal speed, skip silence off. When [ids] keeps the
+     * playing entry current it stays loaded (no gap) and [play] is honoured; otherwise the mirror loads at
+     * [positionMs], paused unless [play].
+     */
+    private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean, repeatOne: Boolean) {
+        val starting = !mirroring
+        if (starting) {
+            userLoaded = true
+            sleepTimer.stop()
+        }
+        val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play, repeatOne)
+        mirrorMode.begin {
+            when (edit) {
+                is MirrorEdit.Keep -> {
+                    queue.applyEdit(edit.state)
+                    if (edit.play && !exo.playWhenReady) player.play()
+                }
+                is MirrorEdit.Load -> {
+                    if (!edit.play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
+                    queue.setQueue(edit.state, edit.positionMs, playWhenReady = edit.play)
+                }
+            }
+        }
+        if (starting) refreshExternalCommands()
+    }
+
+    /** Ends the Jam mirror: [restored] (the guest's own queue) comes back paused at [positionMs]. */
+    private fun endMirror(restored: QueueState?, positionMs: Long) {
+        if (!mirroring) return
+        mirrorMode.end { player.pauseImmediately() } // pause first: still in mirror mode, still at Jam speed
+        refreshExternalCommands()
+        if (restored != null) {
+            queue.setQueue(restored, positionMs, playWhenReady = false)
+        } else {
+            queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
+            persistence.clear()
+        }
     }
 
     private fun updateButtons(timerActive: Boolean) {
         session?.setMediaButtonPreferences(NotificationButtons.build(this, timerActive))
+    }
+
+    /** The player paused for the audio route: tell controllers (a Jam guest must not be restarted by the host). */
+    private fun onSystemPause() {
+        systemPauses++
+        publishExtras()
     }
 
     private fun publishExtras() {
@@ -434,7 +591,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             C.toBundle(
                 C.Extras(
                     sleepTimer.uiState.value, effects.isEqualizerSupported.value, effects.eqInfo.value,
-                    lastError,
+                    lastError, systemPauses,
                 ),
             ),
         )

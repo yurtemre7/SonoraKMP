@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.favorites
 
+import de.yurtemre.sonora.jam.ranNow
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
 import de.yurtemre.sonora.ui.components.preferredArtistImage
 import de.yurtemre.sonora.ui.components.displayTitle
@@ -166,8 +167,8 @@ fun FavoritesRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                     selection = selection,
                     allIds = { ui.songs.map { it.id } },
                     snackbarHostState = snackbar,
-                    onPlayNext = { playback.playNext(pick(it)) },
-                    onAddToQueue = { playback.addToQueue(pick(it)) },
+                    onPlayNext = { playback.ranNow { playNext(pick(it)) } },
+                    onAddToQueue = { playback.ranNow { addToQueue(pick(it)) } },
                     onAddToPlaylist = { addToPlaylistIds = it.toList() },
                     allFavorite = true,
                     onFavoriteToggle = { ids, fav -> vm.favoriteBulk(pick(ids), fav) },

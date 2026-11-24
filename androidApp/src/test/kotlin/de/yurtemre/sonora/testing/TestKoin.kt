@@ -6,8 +6,10 @@ import androidx.room.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import de.yurtemre.sonora.di.appModule
 import de.yurtemre.sonora.playback.api.MfxUiState
+import de.yurtemre.sonora.playback.RAW_PLAYBACK
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
+import de.yurtemre.sonora.playback.api.QueueSnapshot
 import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.db.SonoraDatabase
@@ -60,6 +62,7 @@ fun startTestKoin(context: Context, songs: List<Song> = emptyList(), playback: P
                 single { HttpClient(MockEngine { respondError(HttpStatusCode.NotFound) }) { expectSuccess = false } }
                 single<LibraryRepository> { FakeLibrary(songs) }
                 single<PlaybackConnection> { playback }
+                single<PlaybackConnection>(RAW_PLAYBACK) { playback }
             },
         )
     }
@@ -122,4 +125,8 @@ class FakePlayback(current: Song? = null) : PlaybackConnection {
     override fun startSleepTimerTracks(count: Int, fadeSeconds: Int) {}
     override fun extendSleepTimer(deltaMs: Long) {}
     override fun cancelSleepTimer() {}
+    override fun currentPositionMs(): Long = 0L
+    override fun queueSnapshot(): QueueSnapshot? = null
+    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean) {}
+    override fun endMirror(snapshot: QueueSnapshot?) {}
 }

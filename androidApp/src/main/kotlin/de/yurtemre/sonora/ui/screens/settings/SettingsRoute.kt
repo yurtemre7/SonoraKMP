@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.SettingsBackupRestore
 import androidx.compose.material.icons.rounded.SystemUpdate
@@ -40,6 +41,7 @@ import de.yurtemre.sonora.ui.navigation.DebugCaches
 import de.yurtemre.sonora.ui.navigation.SettingsAppearance
 import de.yurtemre.sonora.ui.navigation.SettingsBackup
 import de.yurtemre.sonora.ui.navigation.SettingsDeviceSync
+import de.yurtemre.sonora.ui.navigation.Jam
 import de.yurtemre.sonora.ui.navigation.SettingsFormatting
 import de.yurtemre.sonora.ui.navigation.SettingsInfo
 import de.yurtemre.sonora.ui.navigation.SettingsPlayback
@@ -180,6 +182,13 @@ fun SettingsRoute(
                 stringResource(R.string.settings_devicesync_title), icon = Icons.Rounded.Devices,
                 subtitle = stringResource(R.string.settings_devicesync_subtitle), chevron = true,
                 onClick = { onNavigate(SettingsDeviceSync) },
+            )
+        }
+        item(key = "jam") {
+            SettingsRow(
+                stringResource(R.string.jam_title), icon = Icons.Rounded.Groups,
+                subtitle = stringResource(R.string.settings_jam_subtitle), chevron = true,
+                onClick = { onNavigate(Jam()) },
             )
         }
 

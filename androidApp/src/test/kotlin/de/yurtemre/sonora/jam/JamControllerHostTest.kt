@@ -1,0 +1,201 @@
+package de.yurtemre.sonora.jam
+
+import de.yurtemre.sonora.playback.api.MfxUiState
+import de.yurtemre.sonora.shared.jam.JamAction
+import de.yurtemre.sonora.shared.jam.JamEvent
+import de.yurtemre.sonora.shared.jam.JamRepeat
+import de.yurtemre.sonora.shared.jam.JamSettings
+import de.yurtemre.sonora.shared.jam.JamStateFrame
+import de.yurtemre.sonora.shared.model.RepeatMode
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class JamControllerHostTest : JamControllerTestBase() {
+    @Test fun hostQueueChangeBroadcastsOneStateFrame() = runTest {
+        val jam = controller()
+        val session = jam.host(JamSettings())
+        assertEquals("123456", session.code)
+        assertEquals(41_234, session.port)
+        advanceTimeBy(1_000) // the initial (empty) state goes out first
+        transport.broadcasts.clear()
+
+        playback.hostQueue(listOf(a, b), index = 0, playing = false)
+        playback.hostQueue(listOf(a, b, c), index = 1, playing = false)
+        playback.hostQueue(listOf(a, b, c), index = 1, playing = true, positionMs = 2_000) // one user action, three updates
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+
+        val frames = transport.broadcasts.filterIsInstance<JamStateFrame>()
+        assertEquals(1, frames.size)
+        val s = frames.single().state
+        assertEquals(listOf(a, b, c).map { it.jam() }, s.queue)
+        assertEquals(1, s.index)
+        assertTrue(s.playing)
+        // Anchored when the debounce settles: host time and the position at that moment.
+        assertEquals(1_000 + JamController.HOST_DEBOUNCE_MS, s.hostTimeMs)
+        assertEquals(2_000 + JamController.HOST_DEBOUNCE_MS, s.positionMs)
+        assertTrue(jam.state.value is JamUiState.Hosting)
+
+        playback.hostQueue(listOf(a, b, c), index = 1, playing = true, positionMs = playback.position) // nothing changed
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(1, transport.broadcasts.size)
+        assertNoEffects()
+    }
+
+    @Test fun hostRepeatModeGoesOutWithTheState() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.Off, transport.broadcasts.filterIsInstance<JamStateFrame>().last().state.repeat)
+        transport.broadcasts.clear()
+
+        playback.player.value = playback.player.value.copy(repeat = RepeatMode.One)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.One, transport.broadcasts.filterIsInstance<JamStateFrame>().single().state.repeat)
+
+        playback.player.value = playback.player.value.copy(repeat = RepeatMode.All)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(JamRepeat.All, transport.broadcasts.filterIsInstance<JamStateFrame>().last().state.repeat)
+    }
+
+    @Test fun joiningGuestGetsTheCurrentStateOnly() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 1, playing = true, positionMs = 5_000)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+
+        transport.eventChannel.trySend(JamEvent.GuestJoined("g1", "Ann"))
+        runCurrent()
+        val (to, frame) = transport.sent.single()
+        assertEquals("g1", to)
+        assertEquals(1, (frame as JamStateFrame).state.index)
+        assertEquals(5_000L + JamController.HOST_DEBOUNCE_MS + 1, frame.state.positionMs)
+        assertTrue(transport.broadcasts.none { it is JamStateFrame })
+        assertEquals(listOf(JamGuestUi("g1", "Ann")), (jam.state.value as JamUiState.Hosting).guests)
+
+        // A reconnect is a join of the same id: it gets the state again.
+        transport.eventChannel.trySend(JamEvent.GuestLeft("g1"))
+        transport.eventChannel.trySend(JamEvent.GuestJoined("g1", "Ann"))
+        runCurrent()
+        assertEquals(2, transport.sent.size)
+    }
+
+    @Test fun remoteControlsFollowTheHostsPermissions() = runTest {
+        val jam = controller(library = listOf(a, b, c))
+        jam.host(JamSettings(guestsCanAdd = true, guestsCanControl = false))
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        transport.eventChannel.trySend(JamEvent.GuestJoined("g1", "Ann"))
+        runCurrent()
+
+        transport.eventChannel.trySend(JamEvent.Control("g1", JamAction.Next, 0))
+        transport.eventChannel.trySend(JamEvent.AddRequest("g1", c.jam()))
+        transport.eventChannel.trySend(JamEvent.AddRequest("g1", missing.jam())) // the host lacks it: nothing to add
+        runCurrent()
+        assertTrue(playback.calls.none { it.startsWith("skipTo") })
+        assertEquals(listOf("addToQueue:3"), playback.calls.filter { it.startsWith("addToQueue") })
+
+        transport.eventChannel.trySend(JamEvent.AddManyRequest("g1", listOf(a.jam(), missing.jam(), b.jam())))
+        runCurrent()
+        assertEquals("one batch, one queue edit", listOf("addToQueue:3", "addToQueue:1, 2"), playback.calls.filter { it.startsWith("addToQueue") })
+        playback.calls.removeAll { it.startsWith("addToQueue") }
+
+        jam.setGuestsCanControl(true)
+        jam.setGuestsCanAdd(false)
+        runCurrent()
+        assertTrue(transport.broadcasts.filterIsInstance<JamStateFrame>().last().state.guestsCanControl)
+        transport.eventChannel.trySend(JamEvent.Control("g1", JamAction.Next, 0))
+        transport.eventChannel.trySend(JamEvent.Control("g1", JamAction.Pause, 0))
+        transport.eventChannel.trySend(JamEvent.AddRequest("g1", c.jam()))
+        transport.eventChannel.trySend(JamEvent.AddManyRequest("g1", listOf(c.jam())))
+        transport.eventChannel.trySend(JamEvent.Control("nobody", JamAction.Next, 0))
+        runCurrent()
+        // Jumps to the next entry: never recorded as the host's own skip.
+        assertEquals(listOf("skipToQueueItem:1"), playback.calls.filter { it.startsWith("skipTo") })
+        assertEquals(1, playback.calls.count { it == "pause" })
+        assertEquals(0, playback.calls.count { it.startsWith("addToQueue") })
+    }
+
+    @Test fun hostControlsKickNewCodeAndEnd() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        transport.eventChannel.trySend(JamEvent.GuestJoined("g1", "Ann"))
+        runCurrent()
+        jam.kick("g1")
+        jam.newCode()
+        assertEquals(listOf("g1"), transport.kicked)
+        assertEquals(2, transport.codes.size)
+        jam.endJam()
+        runCurrent()
+        assertTrue(transport.stopped)
+        assertEquals(JamUiState.Idle, jam.state.value)
+        assertTrue("the host's own queue is untouched", playback.mirrorLoads.isEmpty() && playback.restored.isEmpty())
+    }
+
+    @Test fun aSeekOnTheHostIsBroadcast() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        advanceTimeBy(10_000)
+        assertTrue("normal playback sends nothing", transport.broadcasts.isEmpty())
+        playback.position = 120_000 // the host seeks: no queue or transport change
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS + 1)
+        val s = (transport.broadcasts.single() as JamStateFrame).state
+        assertTrue(s.positionMs in 120_000..120_000 + JamHostSession.SEEK_CHECK_MS)
+    }
+
+    @Test fun hostSpeedEffectIsShown() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        playback.mfx.value = MfxUiState(customSpeed = 1.25f)
+        runCurrent()
+        assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        assertNoEffects()
+    }
+
+    @Test fun hostSkipSilenceCountsAsATimeEffect() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        skipSilence.value = true // guests never skip silence: they fall behind like with a speed effect
+        runCurrent()
+        assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        skipSilence.value = false
+        runCurrent()
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+    }
+
+    @Test fun aSongReplacedAtTheSameIndexIsNotTakenForASeek() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS * 2 - 10)
+        transport.broadcasts.clear()
+        playback.hostQueue(listOf(c, b), index = 0, playing = true, uidBase = 10) // new song at index 0, from 0
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 20) // the seek check runs before the debounce settles
+        assertEquals(1, transport.broadcasts.size)
+        assertEquals(c.jam(), (transport.broadcasts.single() as JamStateFrame).state.queue[0])
+    }
+
+    @Test fun keepaliveResendsTheStateEvery30Seconds() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        advanceTimeBy(JamHostSession.KEEPALIVE_MS + JamHostSession.SEEK_CHECK_MS)
+        assertEquals(1, transport.broadcasts.size)
+    }
+}

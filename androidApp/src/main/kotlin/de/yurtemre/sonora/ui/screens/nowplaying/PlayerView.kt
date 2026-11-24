@@ -61,6 +61,7 @@ import de.yurtemre.sonora.shared.model.RepeatMode
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.model.TitleStyle
 import de.yurtemre.sonora.ui.components.PulseButton
+import de.yurtemre.sonora.ui.screens.jam.LocalJamPlayerUi
 
 /** Which pane the overlay shows (UI-17). */
 enum class NowPlayingView { Player, UpNext, Lyrics, Related }
@@ -256,17 +257,35 @@ private fun MetaChips(song: Song, actions: PlayerActions, horizontal: Boolean = 
 
 @Composable
 internal fun Transport(state: PlayerUiState, actions: PlayerActions) {
+    // In a Jam a guest's actions are requests to the host, shown only when the host allows them.
+    val jam = LocalJamPlayerUi.current
+    if (jam.isGuest && !jam.showSkip && !jam.showPlayPause) {
+        Text(
+            stringResource(R.string.jam_guest_controls_host_only),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        )
+        return
+    }
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = actions.onPrevious, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Filled.SkipPrevious, stringResource(R.string.np_previous), Modifier.size(32.dp))
+        if (jam.showSkip) {
+            IconButton(onClick = actions.onPrevious, modifier = Modifier.size(56.dp)) {
+                Icon(Icons.Filled.SkipPrevious, stringResource(R.string.np_previous), Modifier.size(32.dp))
+            }
         }
-        PulseButton(isPlaying = state.isPlaying, onClick = actions.onTogglePlayPause, size = 80.dp, isCompleted = state.isCompleted)
-        IconButton(onClick = actions.onNext, enabled = state.hasNext || state.repeat != RepeatMode.Off, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Filled.SkipNext, stringResource(R.string.np_next), Modifier.size(32.dp))
+        if (jam.showPlayPause) {
+            PulseButton(isPlaying = state.isPlaying, onClick = actions.onTogglePlayPause, size = 80.dp, isCompleted = state.isCompleted && !jam.isGuest)
+        }
+        if (jam.showSkip) {
+            val canSkip = jam.isGuest || state.hasNext || state.repeat != RepeatMode.Off
+            IconButton(onClick = actions.onNext, enabled = canSkip, modifier = Modifier.size(56.dp)) {
+                Icon(Icons.Filled.SkipNext, stringResource(R.string.np_next), Modifier.size(32.dp))
+            }
         }
     }
 }
@@ -280,9 +299,10 @@ internal fun SecondaryRow(
     sleepTimerActive: Boolean = false,
     mfxActive: Boolean = false,
 ) {
+    val jam = LocalJamPlayerUi.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // Connected button group (DESIGN §6.7): shuffle | repeat.
-        Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
+        // Connected button group (DESIGN §6.7): shuffle | repeat. Hidden for a Jam guest (the host's queue rules).
+        if (jam.showShuffleRepeat) Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
             val shuffleState = stringResource(if (state.isShuffled) R.string.np_state_on else R.string.np_state_off)
             ToggleButton(
                 checked = state.isShuffled,
@@ -328,7 +348,7 @@ internal fun SecondaryRow(
                 tint = if (mfxActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = actions.onSleepTimer) {
+        if (jam.showSleepTimer) IconButton(onClick = actions.onSleepTimer) {
             Icon(
                 Icons.Filled.Bedtime,
                 stringResource(R.string.np_sleep_timer),

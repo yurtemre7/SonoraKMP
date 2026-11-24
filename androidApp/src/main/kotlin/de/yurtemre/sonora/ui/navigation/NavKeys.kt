@@ -21,6 +21,8 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 @Serializable data object RecentlyPlayed : NavKey
 /** A built-in smart list; [kind] is a `SmartListKind.key`. */
 @Serializable data class SmartList(val kind: String) : NavKey
+/** The weekly mix: an auto-generated, weekly-refreshing song list. */
+@Serializable data object WeeklyMix : NavKey
 @Serializable data object Stats : NavKey
 @Serializable data object Settings : NavKey
 @Serializable data object SettingsAppearance : NavKey
@@ -30,6 +32,21 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 @Serializable data object SettingsBackup : NavKey
 @Serializable data object SettingsDeviceSync : NavKey
 @Serializable data object SettingsInfo : NavKey
+/**
+ * The Jam screens. [join] opens the join form; [host] starts hosting once with these guest permissions (the caller
+ * already played the queue to share).
+ */
+@Serializable data class Jam(
+    val join: Boolean = false,
+    val host: Boolean = false,
+    val guestsCanAdd: Boolean = true,
+    val guestsCanControl: Boolean = false,
+) : NavKey {
+    companion object {
+        fun hosting(settings: de.yurtemre.sonora.shared.jam.JamSettings) =
+            Jam(host = true, guestsCanAdd = settings.guestsCanAdd, guestsCanControl = settings.guestsCanControl)
+    }
+}
 @Serializable data object Changelog : NavKey
 @Serializable data object Licenses : NavKey
 @Serializable data object DebugCaches : NavKey

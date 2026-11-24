@@ -66,6 +66,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Jam: keeps synchronized playback over the LAN running with the screen off -->
+        <service
+            android:name=".jam.JamService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- Media buttons (PLAY-23) -->
         <receiver
             android:name="androidx.media3.session.MediaButtonReceiver"

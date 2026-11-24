@@ -133,6 +133,8 @@
     <string name="settings_off">オフ</string>
     <string name="settings_skip_silence">無音をスキップ</string>
     <string name="settings_skip_silence_subtitle">曲の中の無音部分を飛ばします</string>
+    <string name="settings_smart_shuffle">スマートシャッフル</string>
+    <string name="settings_smart_shuffle_subtitle">スキップの少ない曲やお気に入りを多めに再生し、同じアーティストが続けて流れないようにします</string>
     <string name="settings_fade_songs">曲間のフェード</string>
     <string name="settings_fade_songs_subtitle">曲の終わりをフェードアウトし、次の曲をフェードインします。曲は重なりません。</string>
     <string name="settings_finish_song">今の曲を最後まで再生</string>

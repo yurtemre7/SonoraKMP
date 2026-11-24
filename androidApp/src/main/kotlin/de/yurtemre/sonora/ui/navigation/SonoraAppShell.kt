@@ -70,12 +70,23 @@ import de.yurtemre.sonora.ui.screens.artist.ArtistRoute
 import de.yurtemre.sonora.ui.screens.changelog.ChangelogRoute
 import de.yurtemre.sonora.ui.screens.debug.DebugCachesRoute
 import de.yurtemre.sonora.ui.screens.devicesync.DeviceSyncRoute
+import de.yurtemre.sonora.ui.screens.jam.JamRoute
+import de.yurtemre.sonora.ui.screens.jam.JamOwnPlaybackDialog
+import de.yurtemre.sonora.ui.screens.jam.jamPlayerUi
+import de.yurtemre.sonora.ui.screens.jam.miniPlayerControls
+import de.yurtemre.sonora.jam.JamGuestActions
+import de.yurtemre.sonora.ui.screens.jam.joinedOrNull
+import de.yurtemre.sonora.jam.JamController
+import de.yurtemre.sonora.shared.jam.JamSettings
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
+import androidx.compose.ui.platform.LocalResources
 import de.yurtemre.sonora.ui.screens.favorites.FavoritesRoute
 import de.yurtemre.sonora.ui.screens.home.HomeRoute
 import de.yurtemre.sonora.ui.screens.licenses.LicensesRoute
 import de.yurtemre.sonora.ui.screens.playlist.PlaylistRoute
 import de.yurtemre.sonora.ui.screens.recent.RecentlyPlayedRoute
 import de.yurtemre.sonora.ui.screens.smartlist.SmartListRoute
+import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixRoute
 import de.yurtemre.sonora.ui.screens.settings.SettingsRoute
 import de.yurtemre.sonora.ui.screens.settings.appearance.SettingsAppearanceRoute
 import de.yurtemre.sonora.ui.screens.settings.backup.SettingsBackupRoute
@@ -108,6 +119,9 @@ fun SonoraAppShell(
     val playback: PlaybackConnection = koinInject()
     val player by playback.player.collectAsStateWithLifecycle()
     val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
+    val jamController: JamController = koinInject()
+    val jamState by jamController.state.collectAsStateWithLifecycle()
+    val jamGuest = remember(jamController) { JamGuestActions(jamController) }
     var showMiniSleep by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     if (showMiniSleep) de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet(
         onDismiss = { showMiniSleep = false },
@@ -131,9 +145,18 @@ fun SonoraAppShell(
             onExpandDragStopped = { v -> nowPlaying.settle(v, flingPx) },
             sleepTimer = sleepTimer,
             onSleepTimerClick = { showMiniSleep = true },
-            onTogglePlay = { if (player.isCompleted) { playback.seekTo(0); playback.play() } else playback.togglePlayPause() },
-            onNext = playback::skipToNext,
-            onPrevious = playback::skipToPrevious,
+            controls = miniPlayerControls(jamPlayerUi(jamState)),
+            // A Jam guest's transport is a request to the host (and only when the host allows it).
+            onTogglePlay = {
+                val guest = jamState.joinedOrNull()
+                when {
+                    guest != null -> jamGuest.playPause(guest)
+                    player.isCompleted -> { playback.seekTo(0); playback.play() }
+                    else -> playback.togglePlayPause()
+                }
+            },
+            onNext = { jamState.joinedOrNull()?.let(jamGuest::next) ?: playback.skipToNext() },
+            onPrevious = { jamState.joinedOrNull()?.let(jamGuest::previous) ?: playback.skipToPrevious() },
             onClose = {
                 playback.closePlayer()
                 scope.launch {
@@ -180,6 +203,7 @@ fun SonoraAppShell(
                 entry<Favorites> { FavoritesRoute(goBack, navigate) }
                 entry<RecentlyPlayed> { RecentlyPlayedRoute(goBack, navigate) }
                 entry<SmartList> { SmartListRoute(it.kind, goBack, navigate) }
+                entry<WeeklyMix> { WeeklyMixRoute(goBack, navigate) }
                 entry<Stats> { StatsRoute(goBack, navigate) }
                 entry<Settings> { TextWidth { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) } }
                 entry<SettingsAppearance> { TextWidth { SettingsAppearanceRoute(goBack) } }
@@ -189,6 +213,16 @@ fun SonoraAppShell(
                 entry<SettingsBackup> { TextWidth { SettingsBackupRoute(goBack) } }
                 entry<SettingsDeviceSync> { TextWidth { DeviceSyncRoute(goBack) } }
                 entry<SettingsInfo> { TextWidth { SettingsInfoRoute(goBack, navigate) } }
+                entry<Jam> { key ->
+                    TextWidth {
+                        JamRoute(
+                            join = key.join,
+                            host = if (key.host) JamSettings(key.guestsCanAdd, key.guestsCanControl) else null,
+                            onBack = goBack,
+                            onOpenPlayer = { if (player.currentSong != null) controller.expand() },
+                        )
+                    }
+                }
                 entry<Changelog> { TextWidth { ChangelogRoute(goBack) } }
                 entry<Licenses> { TextWidth { LicensesRoute(goBack) } }
                 entry<DebugCaches> { DebugCachesRoute(goBack) }
@@ -267,6 +301,7 @@ fun SonoraAppShell(
                                 onOpenAlbum = { nowPlaying.expanded = false; navigate(albumKeyOf(it)) },
                                 onOpenArtist = { nowPlaying.expanded = false; navigate(artistKeyOf(it)) },
                                 snackbarHostState = snackbar,
+                                onJam = { nowPlaying.expanded = false; navigate(it) },
                                 modifier = m.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.End)),
                             )
                         }
@@ -291,6 +326,16 @@ fun SonoraAppShell(
         if (!overlayMode && nowPlaying.expanded) BackHandler { nowPlaying.expanded = false }
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
+        // A Jam guest's own playback asks first: leave the Jam, add to the Jam queue, or stay.
+        val res = LocalResources.current
+        JamOwnPlaybackDialog(onSentToJam = { sent ->
+            val message = if (sent > 0) res.getQuantityString(R.plurals.jam_sent_songs_to_jam, sent, sent)
+            else res.getString(R.string.jam_queue_full, MAX_JAM_QUEUE)
+            scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                snackbar.showSnackbar(message, duration = SnackbarDuration.Short)
+            }
+        })
     } }
 }
 

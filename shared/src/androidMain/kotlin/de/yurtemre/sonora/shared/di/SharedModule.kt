@@ -1,6 +1,10 @@
 package de.yurtemre.sonora.shared.di
 
 import de.yurtemre.sonora.shared.db.SonoraDatabase
+import de.yurtemre.sonora.shared.library.DataStoreWeeklyMixStore
+import de.yurtemre.sonora.shared.library.WeeklyMixRepository
+import de.yurtemre.sonora.shared.library.WeeklyMixRepositoryImpl
+import de.yurtemre.sonora.shared.library.WeeklyMixStore
 import de.yurtemre.sonora.shared.platform.AndroidFileStore
 import de.yurtemre.sonora.shared.platform.SystemClock
 import de.yurtemre.sonora.shared.platform.createSettingsDataStore
@@ -71,6 +75,10 @@ val sharedModule = module {
     single<PlaylistRepository> { PlaylistRepositoryImpl(get(), get(), get()) }
     single<FavoritesRepository> { FavoritesRepositoryImpl(get(), get()) }
     single<StatsRepository> { StatsRepositoryImpl(get()) }
+    single<WeeklyMixStore> { DataStoreWeeklyMixStore(get()) }
+    single<WeeklyMixRepository> {
+        WeeklyMixRepositoryImpl(get(), get(), get(), get(), get())
+    }
     single<BackupRepository> {
         BackupRepositoryImpl(get(), get(), get(), get(), get(), appVersion = get<AppInfo>().versionName)
     }

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.artist
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.navigation3.runtime.NavKey
 import de.yurtemre.sonora.ui.components.preferredArtistImage
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
@@ -173,8 +174,8 @@ fun ArtistRoute(
                             selected = selection.isSelected(song.id),
                             onClick = { if (!selection.onTap(song.id)) playback.playSong(song, top) },
                             onLongClick = { selection.onLongPress(song.id) },
-                            onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
-                            onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
+                            onPlayNext = { if (playback.ranNow { playNext(listOf(song)) }) snack(R.string.library_snack_play_next) },
+                            onAddToQueue = { if (playback.ranNow { addToQueue(listOf(song)) }) snack(R.string.library_snack_queued) },
                             onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
                             onMore = { actions.show(song) },
                             selectionActive = selection.active,
@@ -190,8 +191,8 @@ fun ArtistRoute(
                         selected = selection.isSelected(song.id),
                         onClick = { if (!selection.onTap(song.id)) playback.playSong(song, tracks) },
                         onLongClick = { selection.onLongPress(song.id) },
-                        onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
-                        onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
+                        onPlayNext = { if (playback.ranNow { playNext(listOf(song)) }) snack(R.string.library_snack_play_next) },
+                        onAddToQueue = { if (playback.ranNow { addToQueue(listOf(song)) }) snack(R.string.library_snack_queued) },
                         onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
                         onMore = { actions.show(song) },
                         selectionActive = selection.active,

@@ -1,0 +1,104 @@
+package de.yurtemre.sonora.jam
+
+import de.yurtemre.sonora.shared.model.Song
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/**
+ * A guest's transport, mapped to requests to the host. Every call checks the host's current permission, so a
+ * stale button can never act on the guest's own (mirrored) player. The one exception: after a system pause
+ * ([JamUiState.Joined.pausedBySystem]) play only resumes this phone's own output, which needs no permission.
+ */
+class JamGuestActions(private val jam: JamControls) {
+    fun playPause(state: JamUiState.Joined) {
+        if (state.pausedBySystem) return jam.resumeAfterSystemPause()
+        if (!state.canControl) return
+        if (state.playing) jam.requestPause() else jam.requestPlay()
+    }
+
+    /** Idempotent: sends a play only while the host is paused (a stale "play" never pauses the host). */
+    fun play(state: JamUiState.Joined) {
+        if (state.pausedBySystem) return jam.resumeAfterSystemPause()
+        if (state.canControl && !state.playing) jam.requestPlay()
+    }
+
+    /** Idempotent: sends a pause only while the host plays. */
+    fun pause(state: JamUiState.Joined) {
+        if (state.canControl && state.playing) jam.requestPause()
+    }
+
+    fun next(state: JamUiState.Joined) {
+        if (state.canControl) jam.requestNext()
+    }
+
+    fun previous(state: JamUiState.Joined) {
+        if (state.canControl) jam.requestPrevious()
+    }
+
+    /** Asks the host to add [songs]; how many were sent (0 when guests may not add songs or the Jam queue is full). */
+    fun add(state: JamUiState.Joined, songs: List<Song>): Int = if (state.canAdd) jam.requestAdd(songs) else 0
+}
+
+/** A "play my own music" call held while this phone is a Jam guest. [isAdd]: play next / add to queue. */
+class OwnPlayback(val songs: List<Song>, val isAdd: Boolean, internal val run: () -> Unit)
+
+/**
+ * The one place that keeps a Jam guest's own playback from fighting the mirrored queue. While the controller is
+ * [JamUiState.Joined], a "play my own music" call ([request]) does not run: it becomes [pending], which the app
+ * shows as "Leave the Jam to play your own music?". [leaveAndPlay] leaves the Jam (the own queue comes back) and
+ * then runs it once; [stay] drops it; for an add the host allows, [addToJam] sends the songs to the host instead.
+ * Hosts and phones outside a Jam are never affected.
+ */
+class JamPlaybackGuard(private val jam: JamControls, scope: CoroutineScope? = null) {
+    private val _pending = MutableStateFlow<OwnPlayback?>(null)
+    val pending: StateFlow<OwnPlayback?> = _pending.asStateFlow()
+
+    init {
+        // A held action belongs to the Jam it was held for: once that Jam is over (ended, left), drop it rather than
+        // start music the user may no longer expect, and never ask about a Jam that no longer exists.
+        scope?.launch { jam.state.collect { if (it !is JamUiState.Joined) _pending.value = null } }
+    }
+
+    val guestActions = JamGuestActions(jam)
+
+    /** The Jam state while this phone is a guest (mirroring the host), else null. */
+    fun guest(): JamUiState.Joined? = jam.state.value as? JamUiState.Joined
+
+    /** Runs [run] now (true) unless this phone is a Jam guest; then it waits as [pending] (false). */
+    fun request(songs: List<Song>, isAdd: Boolean, run: () -> Unit): Boolean {
+        if (guest() == null) {
+            run()
+            return true
+        }
+        _pending.value = OwnPlayback(songs, isAdd, run)
+        return false
+    }
+
+    fun canAddToJam(p: OwnPlayback): Boolean = p.isAdd && guest()?.canAdd == true
+
+    fun leaveAndPlay() {
+        val p = _pending.value ?: return
+        _pending.value = null
+        jam.leave()
+        p.run()
+    }
+
+    /**
+     * Sends the held songs to the host as one request (batched); returns how many were sent (the app then says "Sent
+     * N songs to the Jam"), 0 when nothing was (not allowed, or the Jam queue is full).
+     */
+    fun addToJam(): Int {
+        val p = _pending.value ?: return 0
+        val state = guest() ?: return 0
+        if (!canAddToJam(p)) return 0
+        _pending.value = null
+        return guestActions.add(state, p.songs)
+    }
+
+    fun stay() {
+        _pending.value = null
+    }
+}

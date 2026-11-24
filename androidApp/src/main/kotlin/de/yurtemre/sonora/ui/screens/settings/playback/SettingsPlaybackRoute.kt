@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Headset
 import androidx.compose.material.icons.rounded.HeadsetOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.NotificationsPaused
@@ -71,6 +72,12 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
             SwitchRow(
                 stringResource(R.string.settings_skip_silence), s.skipSilence, { save { setSkipSilence(it) } },
                 icon = Icons.Rounded.SkipNext, subtitle = stringResource(R.string.settings_skip_silence_subtitle),
+            )
+        }
+        item(key = "smart_shuffle") {
+            SwitchRow(
+                stringResource(R.string.settings_smart_shuffle), s.smartShuffle, { save { setSmartShuffle(it) } },
+                icon = Icons.Rounded.Shuffle, subtitle = stringResource(R.string.settings_smart_shuffle_subtitle),
             )
         }
         item(key = "fade_between_songs") {
@@ -156,6 +163,11 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
                 stringResource(R.string.settings_finish_song), s.sleepTimerFinishSong, { save { setSleepTimerFinishSong(it) } },
                 icon = Icons.Rounded.MusicNote, subtitle = stringResource(R.string.settings_finish_song_subtitle),
             )
+        }
+
+        settingsHeader("jam") { stringResource(R.string.settings_section_jam) }
+        item(key = "jam_speaker_delay") {
+            SpeakerDelayRow(s.jamSpeakerDelayMs) { save { setJamSpeakerDelayMs(it) } }
         }
 
         settingsHeader("startup") { stringResource(R.string.settings_section_startup) }

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.playlist
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.compose.runtime.snapshotFlow
 import de.yurtemre.sonora.ui.components.displayTitle
 import de.yurtemre.sonora.ui.components.rememberQueueSwipeActions
@@ -263,8 +264,8 @@ private fun PlaylistDetailScreen(
                     selection = selection,
                     allIds = { songs.map { it.id } },
                     snackbarHostState = snackbar,
-                    onPlayNext = { ids -> playback.playNext(pick(ids)) },
-                    onAddToQueue = { ids -> playback.addToQueue(pick(ids)) },
+                    onPlayNext = { ids -> playback.ranNow { playNext(pick(ids)) } },
+                    onAddToQueue = { ids -> playback.ranNow { addToQueue(pick(ids)) } },
                     onAddToPlaylist = { ids -> multiTargets = ids.toList(); dialog = Dialog.AddToPlaylist },
                     allFavorite = selection.active && selection.selected.all { it in s.favoriteIds },
                     onFavoriteToggle = { ids, fav -> vm.setFavorite(pick(ids), fav) },

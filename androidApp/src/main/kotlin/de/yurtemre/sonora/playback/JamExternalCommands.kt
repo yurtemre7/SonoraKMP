@@ -1,0 +1,76 @@
+package de.yurtemre.sonora.playback
+
+import androidx.annotation.OptIn
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+
+/**
+ * Player commands outside controllers (notification and lock-screen seek bar, Bluetooth/headset, Android Auto)
+ * lose while a Jam guest mirrors the host: seeking and changing the queue would make the guest drift. Play/pause
+ * stay (they become a play or a pause request to the host, see [jamExternalTransport]), and next/previous stay because the service turns them
+ * into requests to the host (or ignores them when the host does not allow guests to skip).
+ */
+private val JAM_GUEST_BLOCKED = intArrayOf(
+    Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+    Player.COMMAND_SEEK_TO_DEFAULT_POSITION,
+    Player.COMMAND_SEEK_TO_MEDIA_ITEM,
+    Player.COMMAND_SEEK_BACK,
+    Player.COMMAND_SEEK_FORWARD,
+    Player.COMMAND_SET_MEDIA_ITEM,
+    Player.COMMAND_CHANGE_MEDIA_ITEMS,
+    Player.COMMAND_SET_SHUFFLE_MODE,
+    Player.COMMAND_SET_REPEAT_MODE,
+)
+
+/** [base] for an outside controller, minus the Jam-guest-blocked commands while [mirroring]. */
+@OptIn(UnstableApi::class)
+fun externalPlayerCommands(base: Player.Commands, mirroring: Boolean): Player.Commands =
+    if (!mirroring) base else base.buildUpon().removeAll(*JAM_GUEST_BLOCKED).build()
+
+/**
+ * Every controller except the app's own UI controller: other packages (system UI, Bluetooth, Auto) and the media
+ * notification's controller, which is in-process but serves the notification buttons.
+ */
+fun isExternalController(controllerPackage: String, ownPackage: String, isNotificationController: Boolean): Boolean =
+    controllerPackage != ownPackage || isNotificationController
+
+/**
+ * Whether ExoPlayer's own pause ([Player.Listener.onPlayWhenReadyChanged]) was made for the audio route (focus lost
+ * for good, or becoming noisy): a Jam guest then stays paused until the user resumes.
+ */
+fun isSystemPause(playWhenReady: Boolean, reason: Int): Boolean =
+    !playWhenReady && (
+        reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS ||
+            reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+        )
+
+/** What the session does with a player command from a controller while a Jam guest may be mirroring. */
+enum class ExternalCommand { Allow, Reject }
+
+/**
+ * An outside controller's (notification, lock screen, headset, Bluetooth, Auto) seeks and queue changes while
+ * mirroring are rejected. Play/pause is allowed (the command succeeds, so no controller shows an error) and reaches
+ * the player, whose play()/pause() [jamExternalTransport] turns into a request to the host; next/previous pass on to
+ * the navigator, which maps them the same way. The app's own controller (the Jam mirror) and everything outside a Jam
+ * act as usual.
+ */
+fun jamExternalCommand(command: Int, mirroring: Boolean, external: Boolean): ExternalCommand = when {
+    !mirroring || !external -> ExternalCommand.Allow
+    command in JAM_GUEST_BLOCKED -> ExternalCommand.Reject
+    else -> ExternalCommand.Allow
+}
+
+/** Where an outside controller's play or pause goes ([jamExternalTransport]). */
+enum class ExternalTransport { Local, HostPlay, HostPause }
+
+/**
+ * An outside controller's play ([play]) or pause while mirroring is a play or a pause for the host, never a toggle
+ * and never a local pause the host would undo. The request is idempotent ([de.yurtemre.sonora.jam.JamGuestActions]):
+ * a "play" while the host already plays (or a "pause" while it is paused) sends nothing, so a stale headset button
+ * cannot flip the host. Everything else plays or pauses locally.
+ */
+fun jamExternalTransport(play: Boolean, mirroring: Boolean, external: Boolean): ExternalTransport = when {
+    !mirroring || !external -> ExternalTransport.Local
+    play -> ExternalTransport.HostPlay
+    else -> ExternalTransport.HostPause
+}

@@ -16,6 +16,7 @@ import de.yurtemre.sonora.playback.api.MfxUiState
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.QueueItemUi
+import de.yurtemre.sonora.playback.api.QueueSnapshot
 import de.yurtemre.sonora.playback.api.QueueUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.audio.EqGains
@@ -191,6 +192,7 @@ class PlaybackConnectionImpl(
             hasPrevious = cur != null && (curIndex > 0 || wraps),
             userVolume = c?.volume ?: settings.volume.toFloat(),
             playlistContext = qs.playlistContext,
+            systemPauseId = extras.systemPauseId,
         )
         if (itemsFor?.first !== qs.entries || itemsFor?.second !== songs) {
             items = qs.entries.mapNotNull { e -> songs[e.songId]?.let { QueueItemUi(e.uid, it) } }
@@ -363,6 +365,27 @@ class PlaybackConnectionImpl(
 
     override fun extendSleepTimer(deltaMs: Long) = send(C.SLEEP_EXTEND, Bundle().apply { putLong(C.ARG_SECONDS, deltaMs / 1000) })
     override fun cancelSleepTimer() = send(C.SLEEP_STOP)
+
+    override fun currentPositionMs(): Long = controller?.currentPosition ?: 0L
+
+    override fun queueSnapshot(): QueueSnapshot? =
+        queueState.takeIf { it.entries.isNotEmpty() }?.let { QueueSnapshot(it, controller?.currentPosition ?: 0L) }
+
+    override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean) = send(
+        C.SET_MIRROR,
+        Bundle().apply {
+            putLongArray(C.ARG_IDS, ids(songs)); putInt(C.ARG_INDEX, index)
+            putLong(C.ARG_POSITION, positionMs); putBoolean(C.ARG_PLAY, playWhenReady)
+            putBoolean(C.ARG_REPEAT_ONE, repeatOne)
+        },
+    )
+
+    override fun endMirror(snapshot: QueueSnapshot?) = send(
+        C.END_MIRROR,
+        Bundle().apply {
+            snapshot?.let { putString(C.ARG_QUEUE_JSON, C.encodeQueue(it.queue)); putLong(C.ARG_POSITION, it.positionMs) }
+        },
+    )
 
     private fun bool(v: Boolean) = Bundle().apply { putBoolean(C.ARG_ENABLED, v) }
     private fun float(v: Float) = Bundle().apply { putFloat(C.ARG_VALUE, v) }

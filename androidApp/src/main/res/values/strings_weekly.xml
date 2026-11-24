@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="weekly_mix_title">Weekly mix</string>
+    <!-- %1$s is the remaining time, built from the three unit strings below. -->
+    <string name="weekly_mix_refreshes_in">Refreshes in %1$s</string>
+    <string name="weekly_mix_unit_days" tools:ignore="PluralsCandidate">%1$d d</string>
+    <string name="weekly_mix_unit_hours" tools:ignore="PluralsCandidate">%1$d h</string>
+    <string name="weekly_mix_unit_minutes" tools:ignore="PluralsCandidate">%1$d min</string>
+    <string name="weekly_mix_empty">Play a few songs and your weekly mix will fill up.</string>
+    <string name="weekly_mix_save">Save as playlist</string>
+    <!-- %1$s is the localized short date of the week the mix belongs to. -->
+    <string name="weekly_mix_playlist_name">Weekly mix · %1$s</string>
+    <string name="weekly_mix_saved">Saved as “%1$s”</string>
+    <string name="weekly_mix_save_failed">Could not save the playlist</string>
+    <string name="weekly_mix_play">Play</string>
+    <string name="weekly_mix_shuffle">Shuffle</string>
+    <string name="weekly_mix_add_to_queue">Add to queue</string>
+    <string name="weekly_mix_less_than_minute">less than a minute</string>
+    <plurals name="weekly_mix_added_to_queue">
+        <item quantity="one">Added %1$d song to queue</item>
+        <item quantity="other">Added %1$d songs to queue</item>
+    </plurals>
+</resources>

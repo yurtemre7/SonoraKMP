@@ -23,10 +23,27 @@ class PlaybackPersistence(
 ) {
     private var periodic: Job? = null
 
+    /** A Jam guest's mirrored queue is loaded: nothing is saved, so the store keeps the guest's own queue. */
+    private var mirroring = false
+
+    /** Saves the current (own) queue one last time, then stops saving until [endMirror]. */
+    fun beginMirror() {
+        if (mirroring) return
+        saveNow()
+        periodic?.cancel(); periodic = null
+        mirroring = true
+    }
+
+    /** Saving resumes; the next save stores whatever is loaded then (the restored own queue). */
+    fun endMirror() {
+        mirroring = false
+    }
+
     /** Also called after every queue edit (see `QueueController.onCurrentChanged`). */
     fun onTrackChanged() = saveNow()
 
     fun onIsPlayingChanged(playing: Boolean) {
+        if (mirroring) return
         if (playing) {
             if (periodic?.isActive == true) return
             periodic = scope.launch {
@@ -43,6 +60,7 @@ class PlaybackPersistence(
     }
 
     fun saveNow() {
+        if (mirroring) return
         val s = snapshot() ?: return
         scope.launch { store.save(s) }
     }
@@ -53,6 +71,7 @@ class PlaybackPersistence(
 
     /** Close player / notification swipe-away / task removed. */
     fun clear() {
+        if (mirroring) return // the saved session is a Jam guest's own queue: it must survive
         periodic?.cancel(); periodic = null
         scope.launch { store.clear() }
     }

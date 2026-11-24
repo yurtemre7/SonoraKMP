@@ -22,6 +22,7 @@ import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.RecentlyPlayed
 import de.yurtemre.sonora.ui.navigation.Settings
 import de.yurtemre.sonora.ui.navigation.SmartList
+import de.yurtemre.sonora.ui.navigation.WeeklyMix
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 
@@ -69,6 +70,7 @@ fun HomeRoute(
                     s, snackbar,
                     onOpen = { onNavigate(Playlist(it.id)) },
                     onOpenSmartList = { onNavigate(SmartList(it.key)) },
+                    onOpenWeeklyMix = { onNavigate(WeeklyMix) },
                 )
             }
         },

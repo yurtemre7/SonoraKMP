@@ -28,6 +28,8 @@ class AudioFocusController(
     private val player: ExoPlayer,
     private val settings: Flow<AppSettings>,
     private val scope: CoroutineScope,
+    /** Called after a pause for a permanent focus loss (custom focus mode): a Jam guest stays paused. */
+    private val onPermanentLoss: () -> Unit = {},
 ) {
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val attrs = AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build()
@@ -50,6 +52,7 @@ class AudioFocusController(
                 hasFocus = false; pausedByFocus = false
                 player.pause()
                 abandon()
+                onPermanentLoss()
             }
         }
     }

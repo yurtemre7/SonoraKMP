@@ -29,6 +29,12 @@ class SonoraForwardingPlayer(
 ) : ForwardingPlayer(player) {
 
     var navigator: QueueNavigator? = null
+
+    /**
+     * Sees every [play] / [pause] (true = play) first; returns true when it handled the call instead (a Jam guest's
+     * outside controller: the play or pause goes to the host). Not consulted by [pauseImmediately].
+     */
+    var transportInterceptor: ((play: Boolean) -> Boolean)? = null
     private var fadeJob: Job? = null
     private var wantsPlayback = false
 
@@ -42,6 +48,7 @@ class SonoraForwardingPlayer(
     override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
 
     override fun play() {
+        if (transportInterceptor?.invoke(true) == true) return
         wantsPlayback = true
         if (playbackState == Player.STATE_ENDED) super.seekTo(0)
         if (super.getPlayWhenReady() && !isFading) return
@@ -54,6 +61,7 @@ class SonoraForwardingPlayer(
     }
 
     override fun pause() {
+        if (transportInterceptor?.invoke(false) == true) return
         wantsPlayback = false
         if (!super.getPlayWhenReady()) { finishFade(); return }
         rampTo(0.0) { super.pause(); finishFade() }

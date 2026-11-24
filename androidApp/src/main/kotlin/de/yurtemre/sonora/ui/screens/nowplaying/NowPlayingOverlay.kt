@@ -40,6 +40,24 @@ import de.yurtemre.sonora.ui.screens.nowplaying.sheets.EffectsSheet
 import de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet
 import de.yurtemre.sonora.ui.sheets.SongInfoSheet
 import org.koin.compose.koinInject
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalResources
+import de.yurtemre.sonora.shared.jam.MAX_JAM_QUEUE
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.navigation3.runtime.NavKey
+import de.yurtemre.sonora.jam.JamController
+import de.yurtemre.sonora.ui.navigation.Jam
+import de.yurtemre.sonora.ui.screens.jam.JamBanner
+import de.yurtemre.sonora.ui.screens.jam.JamMenu
+import de.yurtemre.sonora.jam.JamGuestActions
+import de.yurtemre.sonora.ui.screens.jam.JamGuestProgress
+import de.yurtemre.sonora.ui.screens.jam.JamQueueView
+import de.yurtemre.sonora.ui.screens.jam.JamStartSheet
+import de.yurtemre.sonora.ui.screens.jam.LocalJamPlayerUi
+import de.yurtemre.sonora.ui.screens.jam.joinedOrNull
+import de.yurtemre.sonora.ui.screens.jam.jamPlayerUi
 
 /**
  * Full-screen Now Playing (UI-16/17/22). Back from a non-player view returns to the player first;
@@ -57,6 +75,7 @@ fun NowPlayingOverlay(
     snackbarHostState: SnackbarHostState? = null,
     upNext: (@Composable () -> Unit)? = null,
     dragModifier: Modifier = Modifier,
+    onJam: (NavKey) -> Unit = {},
 ) {
     val playback = koinInject<de.yurtemre.sonora.playback.api.PlaybackConnection>()
     val favorites = koinInject<de.yurtemre.sonora.shared.repo.api.FavoritesRepository>()
@@ -76,6 +95,19 @@ fun NowPlayingOverlay(
     var showEffects by rememberSaveable { mutableStateOf(false) }
     var showSleep by rememberSaveable { mutableStateOf(false) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
+    var showJamStart by rememberSaveable { mutableStateOf(false) }
+    // Jam: a guest's player mirrors the host, so controls that would diverge are hidden or become requests.
+    val jamController = koinInject<JamController>()
+    val jamState by jamController.state.collectAsStateWithLifecycle()
+    val jamUi = jamPlayerUi(jamState)
+    val joined by rememberUpdatedState(jamState.joinedOrNull())
+    val guestActions = remember(jamController) { JamGuestActions(jamController) }
+    val scope = rememberCoroutineScope()
+    val res = LocalResources.current
+    if (showJamStart) JamStartSheet(
+        onDismiss = { showJamStart = false },
+        onStart = { settings -> showJamStart = false; onJam(Jam.hosting(settings)) },
+    )
     val openMfx: () -> Unit = onMfx ?: { showEffects = true }
     val openSleep: () -> Unit = onSleepTimer ?: { showSleep = true }
     if (showEffects) EffectsSheet(onDismiss = { showEffects = false }, connection = playback)
@@ -105,20 +137,33 @@ fun NowPlayingOverlay(
                 Spacer(Modifier.weight(1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     MfxBadge(mfx, onClick = openMfx)
-                    SleepTimerBadge(sleepTimer, onClick = openSleep)
+                    if (jamUi.showSleepTimer) SleepTimerBadge(sleepTimer, onClick = openSleep)
                 }
                 if (song != null) {
                     IconButton(onClick = { showInfo = true }) {
                         Icon(Icons.Outlined.Info, stringResource(R.string.song_info))
                     }
                 }
+                JamMenu(
+                    jamUi,
+                    onStart = { showJamStart = true },
+                    onJoin = { onJam(Jam(join = true)) },
+                    onOpen = { onJam(Jam()) },
+                    onLeave = jamController::leave,
+                )
             }
+            JamBanner(
+                jamUi,
+                onOpen = { onJam(Jam()) },
+                onLeave = jamController::leave,
+                onDismissEnded = jamController::dismiss,
+            )
             if (song == null) return@Column
             if (showInfo) SongInfoSheet(song, onDismiss = { showInfo = false })
-            val actions = remember(vm, onOpenAlbum, onOpenArtist, openMfx, openSleep) { PlayerActions(
-                onTogglePlayPause = vm::togglePlayPause,
-                onPrevious = vm::previous,
-                onNext = vm::next,
+            val actions = remember(vm, onOpenAlbum, onOpenArtist, openMfx, openSleep, guestActions) { PlayerActions(
+                onTogglePlayPause = { joined?.let(guestActions::playPause) ?: vm.togglePlayPause() },
+                onPrevious = { joined?.let(guestActions::previous) ?: vm.previous() },
+                onNext = { joined?.let(guestActions::next) ?: vm.next() },
                 onToggleShuffle = vm::toggleShuffle,
                 onCycleRepeat = vm::cycleRepeat,
                 onToggleFavorite = vm::toggleFavorite,
@@ -128,6 +173,8 @@ fun NowPlayingOverlay(
                 onMfx = openMfx,
                 onSleepTimer = openSleep,
             ) }
+            CompositionLocalProvider(LocalJamPlayerUi provides jamUi) {
+            val guest = joined
             PlayerView(
                 song = song,
                 state = state,
@@ -136,8 +183,8 @@ fun NowPlayingOverlay(
                 view = view,
                 onViewChange = { view = it },
                 actions = actions,
-                queue = queue,
-                onSkipTo = vm::skipTo,
+                queue = if (guest != null) null else queue,
+                onSkipTo = { if (guest == null) vm.skipTo(it) },
                 style = style,
                 titleStyle = titleStyle,
                 visualizer = if (showVisualizer) {
@@ -146,14 +193,29 @@ fun NowPlayingOverlay(
                 elapsed = { LiveElapsed(vm, state.durationMs) },
                 sleepTimerActive = sleepTimer !is SleepTimerUiState.Inactive,
                 mfxActive = mfx.isActive,
-                seekBar = { if (seekBar != null) seekBar() else LiveSeekBar(vm, state.durationMs, state.isPlaying) },
+                seekBar = {
+                    when {
+                        !jamUi.showSeek -> LiveGuestProgress(vm, state.durationMs)
+                        seekBar != null -> seekBar()
+                        else -> LiveSeekBar(vm, state.durationMs, state.isPlaying)
+                    }
+                },
                 upNext = {
-                    if (upNext != null) upNext()
+                    if (guest != null) JamQueueView(guest, onAdd = { s ->
+                        val sent = joined?.let { guestActions.add(it, listOf(s)) } ?: return@JamQueueView
+                        val message = if (sent > 0) res.getString(R.string.jam_add_sent, s.title)
+                        else res.getString(R.string.jam_queue_full, MAX_JAM_QUEUE)
+                        if (snackbarHostState != null) scope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(message)
+                        }
+                    })
+                    else if (upNext != null) upNext()
                     else UpNextView(snackbarHostState ?: remember { SnackbarHostState() }, connection = playback)
                 },
                 lyrics = {
                     val position by vm.positionMs.collectAsStateWithLifecycle(0L)
-                    LyricsView(song, position, vm::seekTo, Modifier.fillMaxSize())
+                    LyricsView(song, position, { if (guest == null) vm.seekTo(it) }, Modifier.fillMaxSize())
                 },
                 related = {
                     RelatedView(
@@ -165,6 +227,7 @@ fun NowPlayingOverlay(
                     )
                 },
             )
+            }
         }
         }
     }
@@ -181,6 +244,13 @@ private fun LiveSeekBar(vm: NowPlayingViewModel, durationMs: Long, isPlaying: Bo
         onSeek = vm::seekTo,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/** A Jam guest's position without seeking. */
+@Composable
+private fun LiveGuestProgress(vm: NowPlayingViewModel, durationMs: Long) {
+    val position by vm.positionMs.collectAsStateWithLifecycle(0L)
+    JamGuestProgress(position, maxOf(durationMs, position))
 }
 
 /** Large tabular elapsed / total time for the minimalist style. */

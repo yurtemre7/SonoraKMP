@@ -4,7 +4,7 @@ Suggestions collected for what users expect from a local music player. Only the
 ones marked **Planned** are being built and **Done** ones are merged; the rest is a backlog, each
 to be picked up on its own branch (`feat/<name>`) with its own pull request.
 
-Status: **Planned** · **Done** · Idea (not requested yet)
+Status: **Planned** · **Done** · Idea (not requested yet) · Not planned (decided against)
 
 ## Library and browsing
 
@@ -12,6 +12,7 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 | --- | --- | --- |
 | Embedded lyrics (ID3 `USLT`, Vorbis `LYRICS`) as a fallback to `.lrc`/`.txt` sidecars | Done | #20 |
 | Smart lists: recently added, never played, most played | Done | #22 |
+| Weekly mix (auto-generated every Monday from what you play, saveable as a playlist) | Done | Playlists tab card |
 | Folder browsing (file-tree view next to Songs/Albums/Artists) | Idea | |
 | Genre and year browsing | Idea | `genre` and `year` are already on `Song` |
 | Exclude folders and a minimum track length | Idea | keeps voice memos and ringtones out |
@@ -25,6 +26,11 @@ Status: **Planned** · **Done** · Idea (not requested yet)
 | Save queue as playlist | Done | #21 |
 | Fade between songs (fade out and in, no overlap) | Done | settings → Playback; a true overlapping crossfade needs a second player and is still an idea |
 | Skip silence | Done | settings → Playback |
+| Smart shuffle (weights skips, favourites and recency; avoids back-to-back artists) | Done | settings → Playback |
+| Jam: synchronized playback on up to 8 phones on the same Wi-Fi (6-digit code, each phone plays its own copy) | Done | settings → Jam, Now Playing menu, weekly mix; see [JAM.md](JAM.md) |
+| Jam: stream or fetch songs a guest lacks (via device sync) | Idea | today such songs show as "Not on this phone" and are skipped on that phone |
+| Jam: QR-code joining | Not planned | omitted on purpose: no camera permission, the 6-digit code is the way in |
+| Jam: host seek mirrored mid-song | Idea | guests correct at the next pause or song change, by design (sound quality over sync) |
 | Remember position for long files (audiobooks, podcasts) | Idea | |
 | Sleep timer by number of songs (2, 3, 5, 10) | Done | #23 |
 | Sleep timer until the end of the album | Idea | "finish this song" and song counts exist |

@@ -2,6 +2,7 @@ package de.yurtemre.sonora.playback
 
 import android.os.Bundle
 import androidx.media3.session.SessionCommand
+import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.model.QueueState
 import kotlinx.serialization.json.Json
@@ -38,12 +39,14 @@ object SessionCommands {
     const val SLEEP_EXTEND = P + "SLEEP_EXTEND"
     const val SLEEP_STOP = P + "SLEEP_STOP"
     const val CLOSE_PLAYER = P + "CLOSE_PLAYER"
+    const val SET_MIRROR = P + "SET_MIRROR"
+    const val END_MIRROR = P + "END_MIRROR"
 
     val ALL = listOf(
         SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, INSERT_AT, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
         CYCLE_REPEAT, SKIP_NEXT, SKIP_PREVIOUS, SET_VOLUME, SET_SPEED, SET_PITCH, SET_MFX_PRESET, SET_BASS_BOOST, SET_WARMTH,
         SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_START_TRACKS, SLEEP_EXTEND,
-        SLEEP_STOP, CLOSE_PLAYER,
+        SLEEP_STOP, CLOSE_PLAYER, SET_MIRROR, END_MIRROR,
     )
 
     fun command(action: String) = SessionCommand(action, Bundle.EMPTY)
@@ -67,6 +70,9 @@ object SessionCommands {
     const val ARG_COUNT = "count"
     const val ARG_QUEUE_JSON = "queueJson"
     const val ARG_POSITION = "position"
+    const val ARG_INDEX = "index"
+    const val ARG_PLAY = "play"
+    const val ARG_REPEAT_ONE = "repeatOne"
 
     // Session extras keys
     private const val X_SLEEP_KIND = "x.sleep.kind"
@@ -84,6 +90,7 @@ object SessionCommands {
     private const val X_ERR_SONG = "x.err.song"
     private const val X_ERR_CODE = "x.err.code"
     private const val X_ERR_STOPPED = "x.err.stopped"
+    private const val X_SYSTEM_PAUSE = "x.pause.system"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -98,6 +105,8 @@ object SessionCommands {
         val eq: AudioEffects.EqInfo? = null,
         /** Last unplayable-item event; a new [PlaybackErrorEvent.id] means "show once". */
         val playbackError: PlaybackErrorEvent? = null,
+        /** Count of pauses the service made for the audio route ([PlayerUiState.systemPauseId]). */
+        val systemPauseId: Long = 0,
     )
 
     /**
@@ -128,6 +137,7 @@ object SessionCommands {
                 putInt(X_SLEEP_TRACKS, s.remaining); putInt(X_SLEEP_FADE, s.fadeSeconds)
             }
         }
+        putLong(X_SYSTEM_PAUSE, e.systemPauseId)
         putBoolean(X_EQ_SUPPORTED, e.eqSupported)
         e.eq?.let {
             putIntArray(X_EQ_CENTERS, it.centersHz.toIntArray()); putInt(X_EQ_MIN, it.minMb); putInt(X_EQ_MAX, it.maxMb)
@@ -148,6 +158,6 @@ object SessionCommands {
             b.getLong(X_ERR_ID), if (b.containsKey(X_ERR_SONG)) b.getLong(X_ERR_SONG) else null,
             b.getInt(X_ERR_CODE), b.getBoolean(X_ERR_STOPPED),
         ) else null
-        return Extras(sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err)
+        return Extras(sleep, b.getBoolean(X_EQ_SUPPORTED), eq, err, b.getLong(X_SYSTEM_PAUSE, 0L))
     }
 }

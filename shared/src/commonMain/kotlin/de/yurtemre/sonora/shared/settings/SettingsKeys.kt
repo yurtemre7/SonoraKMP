@@ -39,8 +39,11 @@ object SettingsKeys {
     val SLEEP_TIMER_FINISH_SONG = booleanPreferencesKey("sleep_timer_finish_song")
     /** Native-only. */
     val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
+    val SMART_SHUFFLE = booleanPreferencesKey("smart_shuffle")
     /** Native-only. */
     val FADE_BETWEEN_SONGS_SECONDS = intPreferencesKey("fade_between_songs_seconds")
+    /** Native-only and per device: never in backups (see `SettingsWhitelist`). */
+    val JAM_SPEAKER_DELAY_MS = intPreferencesKey("jam_speaker_delay_ms")
     /** Native-only: persisted repeat mode (`off`/`all`/`one`). */
     val REPEAT_MODE = stringPreferencesKey("repeat_mode")
     val FILTER_TITLE_FEATURES = booleanPreferencesKey("filter_title_features")
@@ -81,6 +84,9 @@ object SettingsKeys {
     val LAST_PLAYED_ORIGINAL_QUEUE_IDS = stringPreferencesKey("last_played_original_queue_ids")
     val LAST_PLAYED_POSITION_MS = longPreferencesKey("last_played_position_ms")
     val LAST_PLAYED_IS_SHUFFLED = booleanPreferencesKey("last_played_is_shuffled")
+
+    /** JSON `{weekStartMs, songPaths[]}` — accessed via WeeklyMixStore. */
+    val WEEKLY_MIX = stringPreferencesKey("weekly_mix")
 
     val SCAN_FOLDER_PATH = stringPreferencesKey("scan_folder_path")
     val SCAN_FOLDER_URI = stringPreferencesKey("scan_folder_uri")
