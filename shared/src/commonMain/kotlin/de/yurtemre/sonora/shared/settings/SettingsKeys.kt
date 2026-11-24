@@ -83,6 +83,9 @@ object SettingsKeys {
     val LAST_PLAYED_POSITION_MS = longPreferencesKey("last_played_position_ms")
     val LAST_PLAYED_IS_SHUFFLED = booleanPreferencesKey("last_played_is_shuffled")
 
+    /** JSON `{weekStartMs, songPaths[]}` — accessed via WeeklyMixStore. */
+    val WEEKLY_MIX = stringPreferencesKey("weekly_mix")
+
     val SCAN_FOLDER_PATH = stringPreferencesKey("scan_folder_path")
     val SCAN_FOLDER_URI = stringPreferencesKey("scan_folder_uri")
     val LAST_SYNC_TIMESTAMP = longPreferencesKey("last_sync_timestamp")
