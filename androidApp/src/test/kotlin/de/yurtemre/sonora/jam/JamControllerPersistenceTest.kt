@@ -62,4 +62,14 @@ class JamControllerPersistenceTest {
         runCurrent()
         assertEquals(3L, store.load()?.songId)
     }
+
+    @Test fun closingThePlayerMidJamKeepsTheOwnSavedQueue() = runTest {
+        val store = PlaybackStateStore(MemoryDataStore())
+        val persistence = PlaybackPersistence(store, backgroundScope, { own }, { 0L }, { true })
+        persistence.beginMirror()
+        runCurrent()
+        persistence.clear() // "Close" on the notification while the Jam mirror is loaded
+        runCurrent()
+        assertEquals(own, store.load())
+    }
 }

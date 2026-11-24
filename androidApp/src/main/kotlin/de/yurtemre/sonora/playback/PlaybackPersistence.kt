@@ -71,6 +71,7 @@ class PlaybackPersistence(
 
     /** Close player / notification swipe-away / task removed. */
     fun clear() {
+        if (mirroring) return // the saved session is a Jam guest's own queue: it must survive
         periodic?.cancel(); periodic = null
         scope.launch { store.clear() }
     }

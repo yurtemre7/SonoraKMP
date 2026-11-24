@@ -107,8 +107,9 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     /** Items that failed in a row without anything playing in between (error skip, see [handlePlayerError]). */
     private var consecutiveErrors = 0
     private var lastError: C.PlaybackErrorEvent? = null
-    /** A Jam guest's mirrored queue is loaded (see [setMirror]); never persisted. */
-    private var mirroring = false
+    /** Jam guest mode: a mirrored queue is loaded (see [setMirror]); never persisted. */
+    private lateinit var mirrorMode: JamMirrorMode
+    private val mirroring: Boolean get() = mirrorMode.active
 
     private val host = object : SleepTimerHost {
         override val isPlaying: Boolean get() = exo.isPlaying
@@ -185,6 +186,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         )
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
+        mirrorMode = JamMirrorMode(setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
         focus = AudioFocusController(this, exo, settingsRepo.settings, scope).also { it.start() }
         noisy = NoisyAndReconnectHandler(this, exo, settingsRepo.settings, scope, resume = { player.play() })
             .also { it.start() }
@@ -222,7 +224,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             settingsRepo.settings.collect {
                 settings = it
                 queue.replayGainMode = it.replayGainMode
-                exo.skipSilenceEnabled = it.skipSilence
+                mirrorMode.userSkipSilence = it.skipSilence // stays off while a Jam mirror is loaded
                 fader.setFadeSeconds(it.fadeBetweenSongsSeconds)
             }
         }
@@ -458,52 +460,55 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
     private fun extendTimer(sec: Long) =
         sleepTimer.extend(sec, settings.sleepTimerFinishSong, settings.sleepTimerFadeOutSeconds)
 
-    /** PLAY-21: clear queue + saved session + widget; Media3 drops the foreground notification once idle/empty. */
+    /**
+     * PLAY-21: clear queue + saved session + widget; Media3 drops the foreground notification once idle/empty.
+     * During a Jam mirror the saved session is the guest's own queue: it is kept (it comes back on the next start),
+     * the mirror mode ends here, and the Jam controller sees the emptied queue and leaves the Jam.
+     */
     private fun closePlayer() {
+        val wasMirroring = mirroring
+        if (wasMirroring) {
+            mirrorMode.end()
+            persistence.endMirror()
+        }
         sleepTimer.stop()
         player.pauseImmediately()
         queue.setQueue(queue.state.value.cleared(), 0, playWhenReady = false)
         exo.stop()
-        persistence.clear()
+        if (!wasMirroring) persistence.clear()
         widget.clear()
     }
 
     /**
      * Jam guest mirror: the first call saves the guest's own session once, then persistence pauses (an app killed
-     * mid-Jam restores the guest's own queue). Repeat off, normal speed. When [ids] keeps the playing entry current
-     * it stays loaded (no gap); otherwise the mirror loads at [positionMs], paused unless [play].
+     * mid-Jam restores the guest's own queue). Repeat off, normal speed, skip silence off. When [ids] keeps the
+     * playing entry current it stays loaded (no gap) and [play] is honoured; otherwise the mirror loads at
+     * [positionMs], paused unless [play].
      */
     private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean) {
-        val s = queue.latestState
-        val cur = s.currentEntry
-        val keep = mirroring && cur != null && ids.getOrNull(index) == cur.songId
-        if (!mirroring) {
+        val starting = !mirroring
+        if (starting) {
             persistence.beginMirror()
-            mirroring = true
             userLoaded = true
             sleepTimer.stop()
-            effects.normalSpeed = true
         }
-        var uid = s.nextUid
-        val entries = ids.mapIndexed { i, id -> if (keep && i == index) cur!! else QueueEntry(uid++, id) }
-        val ns = QueueState(
-            entries = entries, original = entries, currentIndex = if (entries.isEmpty()) -1 else index.coerceIn(0, entries.lastIndex),
-            repeat = RepeatMode.Off, nextUid = uid,
-        )
-        when {
-            keep -> queue.applyEdit(ns)
-            else -> {
-                if (!play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
-                queue.setQueue(ns, positionMs, playWhenReady = play)
+        when (val edit = mirrorEdit(queue.state.value, queue.latestState, mirroring, ids, index, positionMs, play)) {
+            is MirrorEdit.Keep -> {
+                queue.applyEdit(edit.state)
+                if (edit.play && !exo.playWhenReady) player.play()
+            }
+            is MirrorEdit.Load -> {
+                if (!edit.play) player.pauseImmediately() // a paused start: never let the old item play on meanwhile
+                queue.setQueue(edit.state, edit.positionMs, playWhenReady = edit.play)
             }
         }
+        if (starting) mirrorMode.begin() // after the load: normal speed and no skip silence for the Jam items
     }
 
     /** Ends the Jam mirror: [restored] (the guest's own queue) comes back paused at [positionMs]. */
     private fun endMirror(restored: QueueState?, positionMs: Long) {
         if (!mirroring) return
-        mirroring = false
-        effects.normalSpeed = false
+        mirrorMode.end()
         persistence.endMirror()
         player.pauseImmediately()
         if (restored != null) {
