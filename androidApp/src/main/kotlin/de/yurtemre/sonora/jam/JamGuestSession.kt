@@ -2,6 +2,7 @@ package de.yurtemre.sonora.jam
 
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
+import de.yurtemre.sonora.shared.jam.ClockSync
 import de.yurtemre.sonora.shared.jam.GuestPlan
 import de.yurtemre.sonora.shared.jam.JamAction
 import de.yurtemre.sonora.shared.jam.JamAddRequest
@@ -55,6 +56,8 @@ internal class JamGuestSession(
     /** Drift above the threshold was seen while playing: seek at the next pause or resume. */
     private var pendingSeek = false
     private var startJob: Job? = null
+    private var clockJob: Job? = null
+    private var clockJobFor: ClockSync? = null
     private var job: Job? = null
     /** Set when this side ends the connection on purpose (the network changed). */
     private var closing: JamEndReason? = null
@@ -70,6 +73,7 @@ internal class JamGuestSession(
         left = true
         job?.cancel()
         startJob?.cancel()
+        clockJob?.cancel()
         link.close()
         mirror.restore()
     }
@@ -147,6 +151,7 @@ internal class JamGuestSession(
     /** The current song plays to its end (nothing after it), then the guest's own queue comes back. */
     private suspend fun finish(reason: JamEndReason) {
         startJob?.cancel()
+        clockJob?.cancel()
         link.close()
         sync = JamSyncState.Ending
         publishJoined()
@@ -177,6 +182,11 @@ internal class JamGuestSession(
         state = s
         sync = clockState()
         publishJoined()
+        if (sync == JamSyncState.Syncing) {
+            // Uptime clocks of two phones differ by hours: never plan a start before the first pong is in.
+            awaitClock()
+            return
+        }
         startJob?.cancel()
         val now = env.nowMs()
         val p = playback.player.value
@@ -188,6 +198,18 @@ internal class JamGuestSession(
             plan is GuestPlan.Skip -> onMissing(s, p)
             sameSong -> onSameSong(s, plan as GuestPlan.Play, p, now)
             else -> onNewSong(s, plan as GuestPlan.Play, p, now)
+        }
+    }
+
+    /** Re-plans the latest state as soon as the connection's clock offset is known. */
+    private fun awaitClock() {
+        val clock = link.clock
+        if (clockJob?.isActive == true && clockJobFor === clock) return
+        clockJob?.cancel()
+        clockJobFor = clock // a reconnect brings a new connection with its own clock
+        clockJob = scope.launch {
+            while (synchronized(clock) { clock.offsetMs() } == null) delay(CLOCK_POLL_MS)
+            state?.let(::onState)
         }
     }
 
@@ -312,6 +334,8 @@ internal class JamGuestSession(
     companion object {
         /** Retry pause while reconnecting after a drop. */
         const val RECONNECT_RETRY_MS = 2_000L
+        /** How often a state that arrived before the first clock sample is re-checked. */
+        const val CLOCK_POLL_MS = 50L
         /** A song this close to its end finishes by itself instead of being cut by a load. */
         const val NATURAL_END_MS = 3_000L
         private const val START_LOG_TIMEOUT_MS = 10_000L

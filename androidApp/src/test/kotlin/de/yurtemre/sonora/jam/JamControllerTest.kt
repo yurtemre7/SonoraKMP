@@ -178,6 +178,24 @@ class JamControllerTest : JamControllerTestBase() {
         assertNoEffects()
     }
 
+    @Test fun nothingStartsBeforeTheClockOffsetIsKnown() = runTest {
+        val jam = controller()
+        advanceTimeBy(10_000)
+        val link = joined(jam, FakeLink(offsetMs = null))
+        // Host clock (another phone's uptime) is an hour ahead: planning on the raw clock would wait an hour.
+        link.deliver(JamStateFrame(state(a, b, positionMs = 0, hostTimeMs = testScheduler.currentTime + 3_600_000)))
+        advanceTimeBy(500)
+        assertTrue(playback.mirrorLoads.isEmpty())
+        assertEquals(JamSyncState.Syncing, (jam.state.value as JamUiState.Joined).sync)
+
+        val now = testScheduler.currentTime
+        link.clock.addSample(sentMs = now, hostMs = now + 3_600_000, receivedMs = now) // the first pong
+        advanceTimeBy(JamGuestSession.CLOCK_POLL_MS + 1)
+        assertEquals(1, playback.mirrorLoads.size)
+        assertTrue(playback.player.value.isPlaying)
+        assertEquals(JamSyncState.InSync, (jam.state.value as JamUiState.Joined).sync)
+    }
+
     @Test fun speakerDelayShiftsTheStartAndIsClamped() = runTest {
         speakerDelay = 200
         val jam = controller()
