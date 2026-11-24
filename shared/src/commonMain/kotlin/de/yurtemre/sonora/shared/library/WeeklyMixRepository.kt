@@ -40,9 +40,15 @@ interface WeeklyMixRepository {
      */
     suspend fun refreshIfNeeded(zone: TimeZone): Boolean
 
-    /** Copies the current mix into a new playlist; the playlist is unaffected by later refreshes. */
-    suspend fun saveAsPlaylist(name: String): Playlist
+    /**
+     * Copies the current mix into a new playlist; the playlist is unaffected by later refreshes.
+     * @throws StaleWeeklyMixException when the stored mix is not this week's ([state] shows it as empty then).
+     */
+    suspend fun saveAsPlaylist(name: String, zone: TimeZone): Playlist
 }
+
+/** The stored weekly mix belongs to another week than the current one: nothing is saved until it is refreshed. */
+class StaleWeeklyMixException : IllegalStateException("The stored weekly mix is not this week's")
 
 /** Persisted value; paths (not ids) so the list survives a re-index. */
 @Serializable
@@ -102,8 +108,10 @@ class WeeklyMixRepositoryImpl(
         true
     }
 
-    override suspend fun saveAsPlaylist(name: String): Playlist {
-        val songs = resolve(store.stored.first(), library.songs.first())
+    override suspend fun saveAsPlaylist(name: String, zone: TimeZone): Playlist {
+        val weekStart = WeeklyMix.weekStart(clock.nowMs(), zone)
+        val stored = store.stored.first()?.takeIf { it.weekStartMs == weekStart } ?: throw StaleWeeklyMixException()
+        val songs = resolve(stored, library.songs.first())
         return playlists.create(name, songs.map { it.id })
     }
 

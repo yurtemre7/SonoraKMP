@@ -93,9 +93,12 @@ class WeeklyMixViewModel(
     /** Call on resume. */
     fun onResume() { viewModelScope.launch { refresh() } }
 
-    /** Saves the shown mix as a playlist; null on failure. Only call while [WeeklyMixUi.songs] is non-empty. */
+    /**
+     * Saves the shown mix as a playlist; null on failure, also when the shown mix is last week's (stale, about to be
+     * replaced). Only call while [WeeklyMixUi.songs] is non-empty.
+     */
     suspend fun save(name: String): Playlist? = try {
-        repo.saveAsPlaylist(name)
+        repo.saveAsPlaylist(name, zone())
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {

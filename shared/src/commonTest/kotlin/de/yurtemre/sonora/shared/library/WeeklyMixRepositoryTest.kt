@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -176,7 +177,7 @@ class WeeklyMixRepositoryTest {
         val f = Fixture(tenSongs(), mon0800 + 1000)
         f.repo.refreshIfNeeded(zone)
         val expected = f.repo.state(zone).first().songs.map { it.id }
-        val pl = f.repo.saveAsPlaylist("Weekly Mix")
+        val pl = f.repo.saveAsPlaylist("Weekly Mix", zone)
         assertEquals("Weekly Mix", pl.name)
         assertEquals(expected, pl.songIds)
         f.now = mon0800 + week
@@ -184,6 +185,15 @@ class WeeklyMixRepositoryTest {
         f.repo.refreshIfNeeded(zone)
         assertEquals(expected, f.playlists.created.single().songIds)
         assertEquals(5, f.repo.state(zone).first().songs.size)
+    }
+
+    @Test fun saveAsPlaylistRefusesLastWeeksMix() = runTest {
+        val f = Fixture(tenSongs(), mon0800 + 1000)
+        f.repo.refreshIfNeeded(zone)
+        f.now = mon0800 + week // the stored mix is last week's until the next refresh
+        assertTrue(f.repo.state(zone).first().songs.isEmpty())
+        assertFailsWith<StaleWeeklyMixException> { f.repo.saveAsPlaylist("Weekly Mix", zone) }
+        assertTrue(f.playlists.created.isEmpty())
     }
 
     @Test fun concurrentRefreshesGenerateOnce() = runTest {

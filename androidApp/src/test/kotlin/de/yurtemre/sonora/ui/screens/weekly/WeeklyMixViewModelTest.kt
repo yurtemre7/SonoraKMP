@@ -59,7 +59,7 @@ class WeeklyMixViewModelTest {
             stored.value = week
             return true
         }
-        override suspend fun saveAsPlaylist(name: String): Playlist = error("unused")
+        override suspend fun saveAsPlaylist(name: String, zone: TimeZone): Playlist = error("unused")
     }
 
     private class MutableClock(var now: Long) : Clock { override fun nowMs() = now }
