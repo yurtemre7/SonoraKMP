@@ -113,6 +113,16 @@ class BackupCodecTest {
         assertEquals(1_000L, BackupCodec.parseDate("1970-01-01T00:00:01"))
     }
 
+    @Test fun smartShuffleIsInBackupWhitelist() {
+        val on = mapOf("smart_shuffle" to SettingValue.Bool(true))
+        assertEquals(on, SettingsWhitelist.toBackup(on))
+        assertEquals(on, SettingsWhitelist.fromBackup(on))
+        assertTrue("smart_shuffle" in SettingsWhitelist.exportKeys && "smart_shuffle" in SettingsWhitelist.parseKeys)
+        val wrong = mapOf("smart_shuffle" to SettingValue.Str("yes"))
+        assertTrue(SettingsWhitelist.toBackup(wrong).isEmpty())
+        assertTrue(SettingsWhitelist.fromBackup(wrong).isEmpty())
+    }
+
     private fun song(id: Long, fav: Boolean = false) = Song(
         id = id, title = "T$id", artist = "A", album = "B", durationMs = 1000L * id,
         filePath = "/m/$id.mp3", isFavorite = fav, favoriteDateMs = if (fav) 77L else null,

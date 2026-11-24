@@ -34,6 +34,7 @@ data class AppSettings(
     val sleepTimerFinishSong: Boolean = false,
     /** Skip silent passages in songs (native-only, not in backups). */
     val skipSilence: Boolean = false,
+    /** Weighted shuffle that favours liked, less-skipped songs and spreads artists (KMP-only key, included in backups). */
     val smartShuffle: Boolean = false,
     /** Fade out and in around song changes, in seconds; 0 = off (native-only, not in backups). */
     val fadeBetweenSongsSeconds: Int = 0,
