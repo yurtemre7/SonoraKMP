@@ -15,6 +15,10 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
+import de.yurtemre.sonora.jam.JamController
+import de.yurtemre.sonora.jam.JamGuestActions
+import de.yurtemre.sonora.jam.JamUiState
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -170,13 +174,14 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         // All transport routes (UI, notification, Bluetooth, widget) record skip/restart stats.
         player.navigator = object : QueueNavigator {
             // A Jam guest follows the host: local skips (notification, Bluetooth, widget) would diverge, so they
-            // are ignored; the Jam screen sends skip requests to the host instead.
+            // become requests to the host when it allows guests to skip, and are ignored otherwise. (The app's own
+            // UI never gets here while mirroring: JamGuardedPlayback sends its requests directly.)
             override fun skipNext() {
-                if (mirroring) return
+                if (mirroring) return jamGuestRequest { guest, actions -> actions.next(guest) }
                 recorder.onSkipNext(queue.state.value.isLast); queue.skipNext()
             }
             override fun skipPrevious(positionMs: Long) {
-                if (mirroring) return
+                if (mirroring) return jamGuestRequest { guest, actions -> actions.previous(guest) }
                 recorder.onPrevious(); queue.skipPrevious(positionMs)
             }
         }
@@ -286,17 +291,42 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         super.onDestroy()
     }
 
+    /** Runs [request] with the Jam guest state, if this phone is a guest (resolved lazily: no cycle at start-up). */
+    private fun jamGuestRequest(request: (JamUiState.Joined, JamGuestActions) -> Unit) {
+        val jam = getKoin().getOrNull<JamController>() ?: return
+        val guest = jam.state.value as? JamUiState.Joined ?: return
+        request(guest, JamGuestActions(jam))
+    }
+
+    private fun isExternal(controller: MediaSession.ControllerInfo): Boolean =
+        isExternalController(controller.packageName, packageName, session?.isMediaNotificationController(controller) == true)
+
+    /** Outside controllers lose seek and queue commands while mirroring ([externalPlayerCommands]); back after. */
+    private fun refreshExternalCommands() {
+        val s = session ?: return
+        s.connectedControllers.filter(::isExternal).forEach { c ->
+            s.setAvailableCommands(c, sessionCommandsFor(c), externalPlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS, mirroring))
+        }
+    }
+
+    private fun sessionCommandsFor(controller: MediaSession.ControllerInfo): SessionCommands {
+        // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
+        val trusted = controller.packageName == packageName || controller.isTrusted
+        val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+        if (trusted) C.ALL.forEach { cmds.add(C.command(it)) } // untrusted apps keep the default playback commands only
+        return cmds.build()
+    }
+
     // ---- session callback ----
 
     private val callback = object : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            // Own app, system UI (notification and lock screen buttons) and Auto; other apps get playback commands only.
-            val trusted = controller.packageName == packageName || controller.isTrusted
-            val cmds = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-            if (trusted) C.ALL.forEach { cmds.add(C.command(it)) } // untrusted apps keep the default playback commands only
-            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(cmds.build())
-                .build()
+            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(sessionCommandsFor(controller))
+            if (mirroring && isExternal(controller)) {
+                builder.setAvailablePlayerCommands(externalPlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS, true))
+            }
+            return builder.build()
         }
 
         override fun onCustomCommand(
@@ -474,6 +504,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         }
         if (mirroring) {
             mirrorMode.end(stop) // stops while still in mirror mode: the pause's save cannot store the Jam queue
+            refreshExternalCommands()
         } else {
             stop()
             persistence.clear()
@@ -488,7 +519,8 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
      * [positionMs], paused unless [play].
      */
     private fun setMirror(ids: List<Long>, index: Int, positionMs: Long, play: Boolean) {
-        if (!mirroring) {
+        val starting = !mirroring
+        if (starting) {
             userLoaded = true
             sleepTimer.stop()
         }
@@ -505,12 +537,14 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 }
             }
         }
+        if (starting) refreshExternalCommands()
     }
 
     /** Ends the Jam mirror: [restored] (the guest's own queue) comes back paused at [positionMs]. */
     private fun endMirror(restored: QueueState?, positionMs: Long) {
         if (!mirroring) return
         mirrorMode.end { player.pauseImmediately() } // pause first: still in mirror mode, still at Jam speed
+        refreshExternalCommands()
         if (restored != null) {
             queue.setQueue(restored, positionMs, playWhenReady = false)
         } else {

@@ -20,6 +20,8 @@ import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.jam.JamDiscovery
 import de.yurtemre.sonora.jam.JamEnvironment
 import de.yurtemre.sonora.jam.JamService
+import de.yurtemre.sonora.jam.JamPlaybackGuard
+import de.yurtemre.sonora.playback.RAW_PLAYBACK
 import de.yurtemre.sonora.jam.jamSpeakerDelay
 import de.yurtemre.sonora.jam.ServerHostTransport
 import de.yurtemre.sonora.shared.devicesync.PairingCode
@@ -74,7 +76,8 @@ val appModule = module {
         )
     }
 
-    // Jam: synchronized playback over the LAN
+    // Jam: synchronized playback over the LAN. A guest's own playback waits for a choice (JamPlaybackGuard).
+    single { JamPlaybackGuard(get<JamController>()) }
     single {
         val ctx = androidContext()
         // Main thread like the player; the Jam client and server stamp with the same monotonic clock.
@@ -85,7 +88,7 @@ val appModule = module {
         val stats = get<StatsRepository>()
         val discovery = JamDiscovery(ctx)
         JamController(
-            scope, get(),
+            scope, get(RAW_PLAYBACK),
             JamEnvironment(
                 hostTransport = { ServerHostTransport(JamServer(clock)) },
                 connector = ClientGuestConnector(JamClient(clock)),

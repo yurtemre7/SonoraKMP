@@ -19,6 +19,14 @@ join as guests (8 phones in all).
   the host allows. Songs a guest does not have are shown as "Not on this phone"
   and that phone stays silent until the next song it has. Every phone keeps its
   own volume, and a guest can leave at any time; its own queue comes back.
+- **A guest's own music**: while in a Jam, a guest cannot play its own music without leaving. Playing a
+  song, an album, a playlist, the weekly mix or a related song asks "Leave the Jam to play your own music?":
+  "Leave and play" leaves the Jam (the guest's own queue comes back) and then plays the choice; "Stay" keeps
+  the Jam and drops it. For "Play next" and "Add to queue", when the host allows guests to add songs, the
+  first choice is "Add to the Jam queue" (the host gets the songs; the guest stays). Seeking, shuffle,
+  repeat, reordering and the sleep timer are not available to a guest. Skip and pause, also from the
+  notification, a headset or the widget, are sent to the host when it allows guests to skip and pause, and
+  ignored otherwise.
 - **Ending**: the host taps End Jam. Guests finish the current song, then see
   "Jam ended". The host can also remove a single guest.
 

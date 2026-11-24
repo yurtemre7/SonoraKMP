@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import de.yurtemre.sonora.di.appModule
 import de.yurtemre.sonora.playback.api.MfxUiState
+import de.yurtemre.sonora.playback.RAW_PLAYBACK
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.playback.api.PlayerUiState
 import de.yurtemre.sonora.playback.api.QueueSnapshot
@@ -61,6 +62,7 @@ fun startTestKoin(context: Context, songs: List<Song> = emptyList(), playback: P
                 single { HttpClient(MockEngine { respondError(HttpStatusCode.NotFound) }) { expectSuccess = false } }
                 single<LibraryRepository> { FakeLibrary(songs) }
                 single<PlaybackConnection> { playback }
+                single<PlaybackConnection>(RAW_PLAYBACK) { playback }
             },
         )
     }
