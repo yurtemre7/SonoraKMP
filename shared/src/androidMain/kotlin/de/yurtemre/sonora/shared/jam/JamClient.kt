@@ -36,7 +36,7 @@ class JamReconnectTicket internal constructor(val guestId: String, internal val 
 /**
  * The guest side of a Jam. [join] pairs with the host's code (its own J-PAKE round); [reconnect] comes back after a
  * drop with the connection's [JamConnection.reconnectTicket], without the code. Failures are [JamException]s:
- * [JamError.WrongCode], [JamError.Locked], [JamError.CodeExhausted], [JamError.Full], [JamError.VersionMismatch], [JamError.HostGone],
+ * [JamError.WrongCode], [JamError.Locked], [JamError.Busy], [JamError.CodeExhausted], [JamError.Full], [JamError.VersionMismatch], [JamError.HostGone],
  * [JamError.ReconnectRefused].
  *
  * [clock] stamps pings for [ClockSync]; blocking IO runs on [dispatcher] (must allow blocking in parallel).
@@ -57,8 +57,8 @@ class JamClient(
             JamWire.writePreamble(output, JamWire.MODE_JOIN)
             when (input.readUnsignedByte()) {
                 JamWire.STATUS_OK -> Unit
-                // Busy (joins saturated) is reported like the cool-down: try again shortly.
-                JamWire.STATUS_LOCKED, JamWire.STATUS_BUSY -> throw JamException(JamError.Locked)
+                JamWire.STATUS_LOCKED -> throw JamException(JamError.Locked)
+                JamWire.STATUS_BUSY -> throw JamException(JamError.Busy)
                 JamWire.STATUS_EXHAUSTED -> throw JamException(JamError.CodeExhausted)
                 else -> throw JamException(JamError.HostGone)
             }

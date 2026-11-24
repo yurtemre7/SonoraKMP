@@ -156,7 +156,7 @@ class JamServerTest {
             async(Dispatchers.IO) { assertFailsWith<JamException> { client().join(loopback, port, "000000", "Mallory $it") }.error }
         }.awaitAll()
         assertEquals(3, errors.count { it == JamError.WrongCode }, "counted guesses: $errors")
-        assertTrue(errors.all { it == JamError.WrongCode || it == JamError.Locked }, "$errors")
+        assertTrue(errors.all { it == JamError.WrongCode || it == JamError.Locked || it == JamError.Busy }, "$errors")
     }
 
     @Test
@@ -221,7 +221,7 @@ class JamServerTest {
             val tricklers = (1..JamServer.MAX_JOIN_HANDSHAKES).map { trickler(port) }
             server.joinHandshakes.first { it == JamServer.MAX_JOIN_HANDSHAKES }
             // Joins are saturated: a newcomer is told to try again, a returning guest still gets in.
-            expectError(JamError.Locked) { join(port, "Late") }
+            expectError(JamError.Busy) { join(port, "Late") }
             client().reconnect(loopback, port, dropped.reconnectTicket, "Ana").also { connections += it }
             // Each trickler is closed by the total deadline although it never stops sending.
             tricklers.forEach { assertEquals(-1, withContext(Dispatchers.IO) { readOrEof(it.getInputStream()) }) }
