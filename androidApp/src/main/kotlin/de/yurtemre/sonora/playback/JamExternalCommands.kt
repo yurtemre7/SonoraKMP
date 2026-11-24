@@ -33,3 +33,19 @@ fun externalPlayerCommands(base: Player.Commands, mirroring: Boolean): Player.Co
  */
 fun isExternalController(controllerPackage: String, ownPackage: String, isNotificationController: Boolean): Boolean =
     controllerPackage != ownPackage || isNotificationController
+
+/** What the session does with a player command from a controller while a Jam guest may be mirroring. */
+enum class ExternalCommand { Allow, RequestPlayPause, Reject }
+
+/**
+ * An outside controller's (notification, lock screen, headset, Bluetooth, Auto) play/pause while mirroring becomes
+ * a request to the host (sent only when the host allows it) instead of a local pause the host would undo; its
+ * seeks and queue changes are rejected. Next/previous pass on to the navigator, which maps them the same way.
+ * The app's own controller (the Jam mirror) and everything outside a Jam act as usual.
+ */
+fun jamExternalCommand(command: Int, mirroring: Boolean, external: Boolean): ExternalCommand = when {
+    !mirroring || !external -> ExternalCommand.Allow
+    command == Player.COMMAND_PLAY_PAUSE -> ExternalCommand.RequestPlayPause
+    command in JAM_GUEST_BLOCKED -> ExternalCommand.Reject
+    else -> ExternalCommand.Allow
+}

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.album
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.navigation3.runtime.NavKey
 import de.yurtemre.sonora.ui.navigation.artistKeyOf
 import de.yurtemre.sonora.ui.navigation.albumKeyOf
@@ -130,8 +131,8 @@ fun AlbumRoute(name: String, artist: String, onBack: () -> Unit, onNavigate: (Na
                                 selected = selection.isSelected(song.id),
                                 onClick = { if (!selection.onTap(song.id)) playback.playSong(song, tracks) },
                                 onLongClick = { selection.onLongPress(song.id) },
-                                onPlayNext = { playback.playNext(listOf(song)); snack(R.string.library_snack_play_next) },
-                                onAddToQueue = { playback.addToQueue(listOf(song)); snack(R.string.library_snack_queued) },
+                                onPlayNext = { if (playback.ranNow { playNext(listOf(song)) }) snack(R.string.library_snack_play_next) },
+                                onAddToQueue = { if (playback.ranNow { addToQueue(listOf(song)) }) snack(R.string.library_snack_queued) },
                                 onFavorite = { scope.launch { favorites.toggleSong(song.id, song.filePath) } },
                                 onMore = { actions.show(song) },
                                 selectionActive = selection.active,
@@ -176,8 +177,8 @@ internal fun DetailSelectionBar(selection: SelectionState, songs: List<Song>, sn
         selection = selection,
         allIds = { songs.map { it.id } },
         snackbarHostState = snackbar,
-        onPlayNext = { playback.playNext(pick(it)) },
-        onAddToQueue = { playback.addToQueue(pick(it)) },
+        onPlayNext = { playback.ranNow { playNext(pick(it)) } },
+        onAddToQueue = { playback.ranNow { addToQueue(pick(it)) } },
         onAddToPlaylist = { addToPlaylistIds = it.toList() },
         allFavorite = selection.selected.isNotEmpty() && selection.selected.all { byId[it]?.isFavorite == true },
         onFavoriteToggle = { ids, fav -> scope.launch { favorites.setSongsFavorite(pick(ids).associate { it.id to it.filePath }, fav) } },

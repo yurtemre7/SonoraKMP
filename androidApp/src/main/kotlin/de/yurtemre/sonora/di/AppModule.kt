@@ -77,7 +77,7 @@ val appModule = module {
     }
 
     // Jam: synchronized playback over the LAN. A guest's own playback waits for a choice (JamPlaybackGuard).
-    single { JamPlaybackGuard(get<JamController>()) }
+    single { JamPlaybackGuard(get<JamController>(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
     single {
         val ctx = androidContext()
         // Main thread like the player; the Jam client and server stamp with the same monotonic clock.

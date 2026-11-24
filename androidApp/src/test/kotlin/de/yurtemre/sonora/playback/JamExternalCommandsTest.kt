@@ -32,6 +32,21 @@ class JamExternalCommandsTest {
         assertTrue(c.contains(Player.COMMAND_SEEK_TO_PREVIOUS))
     }
 
+    @Test fun outsidePlayPauseBecomesARequestWhileMirroring() {
+        assertEquals(ExternalCommand.RequestPlayPause, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = true, external = true))
+        // The app's own controller (the Jam mirror itself) and any controller outside a Jam act locally.
+        assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = true, external = false))
+        assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_PLAY_PAUSE, mirroring = false, external = true))
+    }
+
+    @Test fun outsideSeeksAreRejectedAndSkipsPassToTheNavigator() {
+        assertEquals(ExternalCommand.Reject, jamExternalCommand(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, mirroring = true, external = true))
+        assertEquals(ExternalCommand.Reject, jamExternalCommand(Player.COMMAND_CHANGE_MEDIA_ITEMS, mirroring = true, external = true))
+        // next/previous reach the navigator, which turns them into requests (or ignores them).
+        assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_SEEK_TO_NEXT, mirroring = true, external = true))
+        assertEquals(ExternalCommand.Allow, jamExternalCommand(Player.COMMAND_SET_VOLUME, mirroring = true, external = true))
+    }
+
     @Test fun onlyTheAppsOwnNonNotificationControllerIsInternal() {
         assertFalse(isExternalController("de.yurtemre.sonora", "de.yurtemre.sonora", isNotificationController = false))
         assertTrue(isExternalController("de.yurtemre.sonora", "de.yurtemre.sonora", isNotificationController = true))

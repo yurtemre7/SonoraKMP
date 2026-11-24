@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.home.tabs
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -134,8 +135,8 @@ fun AlbumsTab(state: HomeTabState, snackbar: SnackbarHostState, onOpen: (AlbumGr
                         onClick = { onOpen(album) },
                         onPlay = { playback.playSong(tracks.first(), tracks) },
                         onShuffle = { playback.playShuffled(tracks) },
-                        onPlayNext = { playback.playNext(tracks); snack(R.string.library_snack_play_next) },
-                        onAddToQueue = { playback.addToQueue(tracks); snack(R.string.library_snack_queued) },
+                        onPlayNext = { if (playback.ranNow { playNext(tracks) }) snack(R.string.library_snack_play_next) },
+                        onAddToQueue = { if (playback.ranNow { addToQueue(tracks) }) snack(R.string.library_snack_queued) },
                         onFavorite = { scope.launch { favorites.toggleAlbum(album.key()) } },
                     )
                 }

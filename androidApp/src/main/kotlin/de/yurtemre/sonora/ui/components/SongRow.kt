@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.components
 
+import de.yurtemre.sonora.jam.ranNow
 import de.yurtemre.sonora.ui.format.DurationFormat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -94,7 +95,8 @@ fun rememberQueueSwipeActions(song: Song, snackbar: SnackbarHostState?, left: So
     val cs = MaterialTheme.colorScheme
     fun withUndo(msg: String, act: () -> Unit) {
         val before = playback.queue.value.items.mapTo(HashSet()) { it.entryUid }
-        act()
+        // A Jam guest's add waits for the "Leave the Jam?" dialog: nothing happened yet, so no snackbar or Undo.
+        if (!playback.ranNow { act() }) return
         if (snackbar == null) return
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()

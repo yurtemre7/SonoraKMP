@@ -1,9 +1,11 @@
 package de.yurtemre.sonora.jam
 
 import de.yurtemre.sonora.shared.model.Song
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * A guest's transport, mapped to requests to the host. Every call checks the host's current permission, so a
@@ -49,9 +51,15 @@ class OwnPlayback(val songs: List<Song>, val isAdd: Boolean, internal val run: (
  * then runs it once; [stay] drops it; for an add the host allows, [addToJam] sends the songs to the host instead.
  * Hosts and phones outside a Jam are never affected.
  */
-class JamPlaybackGuard(private val jam: JamControls) {
+class JamPlaybackGuard(private val jam: JamControls, scope: CoroutineScope? = null) {
     private val _pending = MutableStateFlow<OwnPlayback?>(null)
     val pending: StateFlow<OwnPlayback?> = _pending.asStateFlow()
+
+    init {
+        // A held action belongs to the Jam it was held for: once that Jam is over (ended, left), drop it rather than
+        // start music the user may no longer expect, and never ask about a Jam that no longer exists.
+        scope?.launch { jam.state.collect { if (it !is JamUiState.Joined) _pending.value = null } }
+    }
 
     val guestActions = JamGuestActions(jam)
 
@@ -77,12 +85,14 @@ class JamPlaybackGuard(private val jam: JamControls) {
         p.run()
     }
 
-    fun addToJam() {
-        val p = _pending.value ?: return
-        val state = guest() ?: return
-        if (!canAddToJam(p)) return
+    /** Sends the held songs to the host; true when they were sent (the app then says "Sent to the Jam"). */
+    fun addToJam(): Boolean {
+        val p = _pending.value ?: return false
+        val state = guest() ?: return false
+        if (!canAddToJam(p)) return false
         _pending.value = null
         p.songs.forEach { guestActions.add(state, it) }
+        return true
     }
 
     fun stay() {

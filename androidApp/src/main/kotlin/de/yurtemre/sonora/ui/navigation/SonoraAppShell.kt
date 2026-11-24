@@ -325,7 +325,13 @@ fun SonoraAppShell(
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
         // A Jam guest's own playback asks first: leave the Jam, add to the Jam queue, or stay.
-        JamOwnPlaybackDialog()
+        val sentToJam = stringResource(R.string.jam_sent_to_jam)
+        JamOwnPlaybackDialog(onSentToJam = {
+            scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                snackbar.showSnackbar(sentToJam, duration = SnackbarDuration.Short)
+            }
+        })
     } }
 }
 

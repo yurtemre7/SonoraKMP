@@ -7,12 +7,16 @@ import de.yurtemre.sonora.testing.FakePlayback
 import de.yurtemre.sonora.testing.testSong
 import de.yurtemre.sonora.ui.screens.jam.FakeJamControls
 import java.lang.reflect.Proxy
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class JamPlaybackGuardTest {
     private val jam = FakeJamControls()
     private val guard = JamPlaybackGuard(jam)
@@ -91,6 +95,31 @@ class JamPlaybackGuardTest {
         guest(canAdd = true)
         guard.request(listOf(a), isAdd = false) { log += "run" }
         assertFalse(guard.canAddToJam(guard.pending.value!!))
+    }
+
+    @Test fun aPendingActionIsDroppedWhenTheJamEnds() = runTest(UnconfinedTestDispatcher()) {
+        val guard = JamPlaybackGuard(jam, backgroundScope)
+        guest()
+        guard.request(listOf(a), isAdd = false) { log += "run" }
+        jam.state.value = JamUiState.Ended(JamEndReason.HostGone)
+        assertNull(guard.pending.value) // no dialog about a Jam that is over ("playing along with .")
+        assertTrue(log.isEmpty())
+    }
+
+    @Test fun ranNowTellsCallersWhetherToConfirm() {
+        assertTrue(guarded.ranNow { addToQueue(listOf(a)) })
+        assertEquals(listOf("addToQueue"), delegated)
+        guest()
+        assertFalse(guarded.ranNow { playNext(listOf(a)) }) // held for the dialog: no "Added…", no Undo
+        assertEquals(listOf("addToQueue"), delegated)
+        assertTrue(recorder.ranNow { addToQueue(listOf(b)) }) // a plain connection always runs
+    }
+
+    @Test fun addingToTheJamReportsIt() {
+        guest(canAdd = true)
+        guard.request(listOf(a), isAdd = true) { log += "run" }
+        assertTrue(guard.addToJam())
+        assertFalse(guard.addToJam()) // nothing pending any more
     }
 
     // ---- the guarded PlaybackConnection -----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.sheets
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -100,14 +101,16 @@ fun SongActionsHost(
             isFavorite = isFavorite,
             onDismiss = state::dismiss,
             onPlayNext = {
-                playback.playNext(listOf(song))
-                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                snack(resources.getString(R.string.sheets_actions_snack_play_next, song.title))
+                if (playback.ranNow { playNext(listOf(song)) }) {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    snack(resources.getString(R.string.sheets_actions_snack_play_next, song.title))
+                }
             },
             onAddToQueue = {
-                playback.addToQueue(listOf(song))
-                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                snack(resources.getString(R.string.sheets_actions_snack_queued, song.title))
+                if (playback.ranNow { addToQueue(listOf(song)) }) {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    snack(resources.getString(R.string.sheets_actions_snack_queued, song.title))
+                }
             },
             onAddToPlaylist = { state.mode = SongActionsState.Mode.Playlist },
             onToggleFavorite = {

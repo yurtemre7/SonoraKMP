@@ -254,7 +254,11 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 scope.launch {
                     restoreJob?.join()
                     when (action) {
-                        WidgetActions.ACTION_PLAY_PAUSE -> if (exo.playWhenReady) player.pause() else player.play()
+                        WidgetActions.ACTION_PLAY_PAUSE -> when {
+                            mirroring -> jamGuestRequest { guest, actions -> actions.playPause(guest) } // the host decides
+                            exo.playWhenReady -> player.pause()
+                            else -> player.play()
+                        }
                         WidgetActions.ACTION_NEXT -> player.seekToNext()
                         WidgetActions.ACTION_PREVIOUS -> player.seekToPrevious()
                     }
@@ -328,6 +332,16 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
             }
             return builder.build()
         }
+
+        override fun onPlayerCommandRequest(session: MediaSession, controller: MediaSession.ControllerInfo, playerCommand: Int): Int =
+            when (jamExternalCommand(playerCommand, mirroring, isExternal(controller))) {
+                ExternalCommand.Allow -> super.onPlayerCommandRequest(session, controller, playerCommand)
+                ExternalCommand.RequestPlayPause -> {
+                    jamGuestRequest { guest, actions -> actions.playPause(guest) }
+                    SessionResult.RESULT_ERROR_NOT_SUPPORTED // never a local pause or play that the host would undo
+                }
+                ExternalCommand.Reject -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
+            }
 
         override fun onCustomCommand(
             session: MediaSession,

@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.weekly
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -152,8 +153,7 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                         }
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = {
-                                playback.addToQueue(ui.songs)
-                                scope.launch {
+                                if (playback.ranNow { addToQueue(ui.songs) }) scope.launch {
                                     snackbar.currentSnackbarData?.dismiss()
                                     snackbar.showSnackbar(
                                         res.getQuantityString(R.plurals.weekly_mix_added_to_queue, ui.songs.size, ui.songs.size),

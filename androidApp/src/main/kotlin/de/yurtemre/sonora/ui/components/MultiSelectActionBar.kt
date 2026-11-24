@@ -47,8 +47,9 @@ fun MultiSelectActionBar(
     selection: SelectionState,
     allIds: () -> Collection<Long>,
     snackbarHostState: SnackbarHostState,
-    onPlayNext: (Set<Long>) -> Unit,
-    onAddToQueue: (Set<Long>) -> Unit,
+    /** True when it took effect now (false: a Jam guest's call waits for the "Leave the Jam?" dialog, no snackbar). */
+    onPlayNext: (Set<Long>) -> Boolean,
+    onAddToQueue: (Set<Long>) -> Boolean,
     onAddToPlaylist: (Set<Long>) -> Unit,
     allFavorite: Boolean,
     onFavoriteToggle: (ids: Set<Long>, favorite: Boolean) -> Unit,
@@ -81,10 +82,10 @@ fun MultiSelectActionBar(
             Spacer(Modifier.weight(1f))
             BarAction(Icons.Rounded.SelectAll, R.string.selection_select_all) { selection.selectAll(allIds()) }
             BarAction(Icons.Rounded.PlaylistPlay, R.string.selection_play_next) {
-                onPlayNext(ids); snack(res.getQuantityString(R.plurals.selection_snack_play_next, n, n)); selection.clear()
+                if (onPlayNext(ids)) snack(res.getQuantityString(R.plurals.selection_snack_play_next, n, n)); selection.clear()
             }
             BarAction(Icons.AutoMirrored.Rounded.QueueMusic, R.string.selection_add_to_queue) {
-                onAddToQueue(ids); snack(res.getQuantityString(R.plurals.selection_snack_queued, n, n)); selection.clear()
+                if (onAddToQueue(ids)) snack(res.getQuantityString(R.plurals.selection_snack_queued, n, n)); selection.clear()
             }
             BarAction(Icons.AutoMirrored.Rounded.PlaylistAdd, R.string.selection_add_to_playlist) { onAddToPlaylist(ids) }
             BarAction(

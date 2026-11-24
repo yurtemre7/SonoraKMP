@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.ui.screens.recent
 
+import de.yurtemre.sonora.jam.ranNow
 import androidx.compose.runtime.mutableStateOf
 import de.yurtemre.sonora.ui.components.displayTitle
 import androidx.compose.runtime.setValue
@@ -136,8 +137,8 @@ fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                     selection = selection,
                     allIds = { ui.songs.map { it.id } },
                     snackbarHostState = snackbar,
-                    onPlayNext = { playback.playNext(pick(it)) },
-                    onAddToQueue = { playback.addToQueue(pick(it)) },
+                    onPlayNext = { playback.ranNow { playNext(pick(it)) } },
+                    onAddToQueue = { playback.ranNow { addToQueue(pick(it)) } },
                     onAddToPlaylist = { addToPlaylistIds = it.toList() },
                     allFavorite = selection.selected.isNotEmpty() && selection.selected.all { byId[it]?.isFavorite == true },
                     onFavoriteToggle = { ids, fav ->

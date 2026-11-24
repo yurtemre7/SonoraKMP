@@ -17,10 +17,10 @@ import org.koin.compose.koinInject
 /**
  * "Leave the Jam to play your own music?" for a guest's held own playback ([JamPlaybackGuard.pending]): Leave and
  * play, or Stay; for play next / add to queue while the host allows adds, "Add to the Jam queue" comes first.
- * Placed once in the app shell.
+ * Placed once in the app shell; [onSentToJam] confirms an add that went to the host.
  */
 @Composable
-fun JamOwnPlaybackDialog() {
+fun JamOwnPlaybackDialog(onSentToJam: () -> Unit = {}) {
     val guard: JamPlaybackGuard = koinInject()
     val controller: JamController = koinInject()
     val pending by guard.pending.collectAsStateWithLifecycle()
@@ -38,7 +38,7 @@ fun JamOwnPlaybackDialog() {
             )
         },
         confirmButton = {
-            if (addable) TextButton(onClick = guard::addToJam) { Text(stringResource(R.string.jam_own_add)) }
+            if (addable) TextButton(onClick = { if (guard.addToJam()) onSentToJam() }) { Text(stringResource(R.string.jam_own_add)) }
             else TextButton(onClick = guard::leaveAndPlay) { Text(stringResource(R.string.jam_own_leave)) }
         },
         dismissButton = {

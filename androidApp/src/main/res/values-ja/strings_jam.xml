@@ -121,6 +121,7 @@
     <string name="jam_own_body_add">ホストはゲストによる曲の追加を許可しています。選んだ曲を Jam のキューに追加するか、Jam から退出して自分で再生できます。</string>
     <string name="jam_own_add">Jam のキューに追加</string>
     <string name="jam_own_leave">退出して再生</string>
+    <string name="jam_sent_to_jam">Jam に送りました</string>
     <string name="jam_own_stay">このまま参加</string>
     <string name="jam_guests_header">ゲスト（%1$d / 7）</string>
     <string name="jam_ended_with_queue">%1$s 自分のキューに戻りました。</string>

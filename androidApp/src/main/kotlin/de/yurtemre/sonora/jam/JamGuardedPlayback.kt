@@ -16,6 +16,9 @@ class JamGuardedPlayback(
 ) : PlaybackConnection by delegate {
     private val guest: Boolean get() = guard.guest() != null
 
+    /** True while "play my own music" calls are held for the Jam dialog instead of running. */
+    val holdsOwnPlayback: Boolean get() = guest
+
     override fun playSong(song: Song, list: List<Song>, playlistId: String?) {
         guard.request(list.ifEmpty { listOf(song) }, isAdd = false) { delegate.playSong(song, list, playlistId) }
     }
@@ -47,4 +50,15 @@ class JamGuardedPlayback(
     override fun togglePlayPause() { guard.guest()?.let(guard.guestActions::playPause) ?: delegate.togglePlayPause() }
     override fun skipToNext() { guard.guest()?.let(guard.guestActions::next) ?: delegate.skipToNext() }
     override fun skipToPrevious() { guard.guest()?.let(guard.guestActions::previous) ?: delegate.skipToPrevious() }
+}
+
+/**
+ * Runs [block] (play next, add to queue, play…) on this connection and says whether it took effect now. False
+ * while a Jam guest's call waits for the "Leave the Jam?" dialog: callers then show no "Added…" snackbar and no
+ * Undo (there is nothing to undo yet).
+ */
+inline fun PlaybackConnection.ranNow(block: PlaybackConnection.() -> Unit): Boolean {
+    val now = (this as? JamGuardedPlayback)?.holdsOwnPlayback != true
+    block()
+    return now
 }

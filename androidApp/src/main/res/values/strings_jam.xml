@@ -123,6 +123,7 @@
     <string name="jam_own_body_add">The host lets guests add songs. Add your choice to the Jam queue, or leave the Jam and play it on your own.</string>
     <string name="jam_own_add">Add to the Jam queue</string>
     <string name="jam_own_leave">Leave and play</string>
+    <string name="jam_sent_to_jam">Sent to the Jam</string>
     <string name="jam_own_stay">Stay</string>
     <string name="jam_guests_header">Guests (%1$d of 7)</string>
     <string name="jam_ended_with_queue">%1$s Your own queue is back.</string>
