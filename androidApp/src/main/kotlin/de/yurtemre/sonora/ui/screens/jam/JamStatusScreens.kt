@@ -82,7 +82,7 @@ internal fun JamEndedScreen(state: JamUiState.Ended, onRejoin: () -> Unit, onDon
                 Icons.Rounded.MusicOff,
                 stringResource(R.string.jam_ended_title),
                 Modifier.fillMaxWidth(),
-                subtitle = stringResource(jamEndMessage(state.reason)) + " " + stringResource(R.string.jam_ended_queue_back),
+                subtitle = stringResource(R.string.jam_ended_with_queue, stringResource(jamEndMessage(state.reason))),
                 action = {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (state.rejoin != null) {

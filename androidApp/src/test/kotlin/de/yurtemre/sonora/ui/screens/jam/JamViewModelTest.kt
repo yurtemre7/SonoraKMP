@@ -2,6 +2,7 @@ package de.yurtemre.sonora.ui.screens.jam
 
 import de.yurtemre.sonora.jam.DiscoveredJam
 import de.yurtemre.sonora.jam.JamEndReason
+import de.yurtemre.sonora.jam.JamGuestActions
 import de.yurtemre.sonora.jam.JamGuestUi
 import de.yurtemre.sonora.jam.JamQueueItem
 import de.yurtemre.sonora.jam.JamRejoin
@@ -164,6 +165,51 @@ class JamViewModelTest {
         assertTrue(vm.join.value.joining)
         assertEquals("Living room phone", vm.join.value.joiningName)
         assertFalse(vm.join.value.canSubmit)
+    }
+
+    @Test fun aStaleErrorFromAnEarlierScreenIsDismissedByANewViewModel() = runTest(dispatcher) {
+        jam.state.value = JamUiState.Error(JamError.Locked)
+        val vm = vm()
+        assertTrue("dismiss" in jam.calls)
+        assertNull(vm.join.value.error)
+        assertEquals(0, vm.join.value.lockSecondsLeft)
+    }
+
+    @Test fun closingTheJoinFormStopsDiscoveryAndDropsTheError() = runTest(dispatcher) {
+        val vm = vm()
+        openJoin(vm)
+        assertEquals(1, found.subscriptionCount.value)
+        jam.state.value = JamUiState.Error(JamError.Full)
+        runCurrent()
+        vm.closeJoin()
+        runCurrent()
+        assertEquals(0, found.subscriptionCount.value)
+        assertTrue("dismiss" in jam.calls)
+        assertEquals(JamScreen.Start, vm.screen.value)
+    }
+
+    @Test fun cancellingAJoinKeepsTheForm() = runTest(dispatcher) {
+        val vm = vm()
+        openJoin(vm)
+        found.value = listOf(livingRoom)
+        runCurrent()
+        vm.setCode("123456")
+        runCurrent()
+        assertTrue(vm.join.value.joining)
+        vm.cancelJoin()
+        runCurrent()
+        assertEquals(listOf("leave"), jam.calls)
+        assertEquals(JamScreen.Join, vm.screen.value)
+        assertEquals(livingRoom.serviceName, vm.join.value.selected)
+        vm.cancelJoin() // not joining: nothing to cancel
+        assertEquals(listOf("leave"), jam.calls)
+    }
+
+    @Test fun busyIsShownAsBusyNotAsALockout() = runTest(dispatcher) {
+        val vm = vm()
+        failJoin(vm, JamError.Busy)
+        assertEquals(JamError.Busy, vm.join.value.error)
+        assertEquals(0, vm.join.value.lockSecondsLeft)
     }
 
     // ---- join: failures ---------------------------------------------------------------------------------------------

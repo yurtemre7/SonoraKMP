@@ -61,7 +61,16 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
     val scope = rememberCoroutineScope()
     val res = LocalResources.current
 
-    var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // What waits for the permission answer, as a saveable key (the activity may be recreated meanwhile).
+    var pending by rememberSaveable { mutableStateOf<String?>(null) }
+    fun run(action: String) {
+        when {
+            action == ACTION_JOIN -> vm.openJoin()
+            action == ACTION_REJOIN -> vm.rejoin()
+            action == ACTION_RETRY -> vm.retryHosting()
+            action.startsWith(ACTION_HOST) -> vm.startHosting(hostSettingsOf(action))
+        }
+    }
     fun showLocalNetworkDenied() {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
@@ -78,22 +87,22 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
         pending = null
         when {
             action == null -> Unit
-            MediaPermissions.hasLocalNetwork(context) -> action()
+            MediaPermissions.hasLocalNetwork(context) -> run(action)
             else -> showLocalNetworkDenied()
         }
     }
-    fun withPermissions(action: () -> Unit) {
+    fun withPermissions(action: String) {
         val missing = listOfNotNull(
             MediaPermissions.localNetwork?.takeUnless { MediaPermissions.hasLocalNetwork(context) },
             MediaPermissions.notifications?.takeUnless { MediaPermissions.hasNotifications(context) },
         )
-        if (missing.isEmpty()) return action()
+        if (missing.isEmpty()) return run(action)
         pending = action
         try {
             permissionLauncher.launch(missing.toTypedArray())
         } catch (_: ActivityNotFoundException) {
             pending = null
-            if (MediaPermissions.hasLocalNetwork(context)) action() else showLocalNetworkDenied()
+            if (MediaPermissions.hasLocalNetwork(context)) run(action) else showLocalNetworkDenied()
         }
     }
 
@@ -101,8 +110,8 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
         if (entryHandled) return@LaunchedEffect
         entryHandled = true
         when {
-            host != null -> withPermissions { vm.startHosting(host) }
-            join && state !is JamUiState.Hosting && state !is JamUiState.Joined -> withPermissions { vm.openJoin() }
+            host != null -> withPermissions(hostAction(host))
+            join && state !is JamUiState.Hosting && state !is JamUiState.Joined -> withPermissions(ACTION_JOIN)
         }
     }
 
@@ -126,7 +135,7 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
         JamScreen.Start -> JamStartScreen(
             starting = starting,
             onStart = { showStartSheet = true },
-            onJoin = { withPermissions { vm.openJoin() } },
+            onJoin = { withPermissions(ACTION_JOIN) },
             onBack = onBack,
         )
         JamScreen.Join -> JamJoinScreen(
@@ -151,12 +160,12 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
         JamScreen.Ended -> (state as? JamUiState.Ended)?.let { s ->
             JamEndedScreen(
                 s,
-                onRejoin = { withPermissions { vm.rejoin() } },
+                onRejoin = { withPermissions(ACTION_REJOIN) },
                 onDone = { vm.dismiss(); onBack() },
                 onBack = { vm.dismiss(); onBack() },
             )
         }
-        JamScreen.HostFailed -> JamHostFailedScreen(onRetry = { withPermissions { vm.retryHosting() } }, onBack = { vm.dismiss(); onBack() })
+        JamScreen.HostFailed -> JamHostFailedScreen(onRetry = { withPermissions(ACTION_RETRY) }, onBack = { vm.dismiss(); onBack() })
     }
     SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
@@ -166,7 +175,7 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
             onDismiss = { showStartSheet = false },
             onStart = { settings ->
                 showStartSheet = false
-                withPermissions { vm.startHosting(settings) }
+                withPermissions(hostAction(settings))
             },
         )
     }
@@ -190,4 +199,18 @@ fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer
         )
         null -> Unit
     }
+}
+
+private const val ACTION_JOIN = "join"
+private const val ACTION_REJOIN = "rejoin"
+private const val ACTION_RETRY = "retry"
+private const val ACTION_HOST = "host:"
+
+/** "host:<add>:<control>" with 1/0 flags. */
+private fun hostAction(settings: JamSettings): String =
+    ACTION_HOST + (if (settings.guestsCanAdd) "1" else "0") + ":" + (if (settings.guestsCanControl) "1" else "0")
+
+private fun hostSettingsOf(action: String): JamSettings {
+    val flags = action.removePrefix(ACTION_HOST).split(':')
+    return JamSettings(guestsCanAdd = flags.getOrNull(0) == "1", guestsCanControl = flags.getOrNull(1) == "1")
 }

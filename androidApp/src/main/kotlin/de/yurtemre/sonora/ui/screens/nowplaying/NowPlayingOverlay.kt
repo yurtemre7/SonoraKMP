@@ -50,7 +50,7 @@ import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.ui.navigation.Jam
 import de.yurtemre.sonora.ui.screens.jam.JamBanner
 import de.yurtemre.sonora.ui.screens.jam.JamMenu
-import de.yurtemre.sonora.ui.screens.jam.JamGuestActions
+import de.yurtemre.sonora.jam.JamGuestActions
 import de.yurtemre.sonora.ui.screens.jam.JamGuestProgress
 import de.yurtemre.sonora.ui.screens.jam.JamQueueView
 import de.yurtemre.sonora.ui.screens.jam.JamStartSheet

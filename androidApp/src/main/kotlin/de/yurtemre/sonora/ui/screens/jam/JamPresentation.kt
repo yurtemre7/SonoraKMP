@@ -2,12 +2,10 @@ package de.yurtemre.sonora.ui.screens.jam
 
 import androidx.annotation.StringRes
 import de.yurtemre.sonora.R
-import de.yurtemre.sonora.jam.JamControls
 import de.yurtemre.sonora.jam.JamEndReason
 import de.yurtemre.sonora.jam.JamSyncState
 import de.yurtemre.sonora.jam.JamUiState
 import de.yurtemre.sonora.shared.jam.JamError
-import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.screens.devicesync.groupCode
 import de.yurtemre.sonora.ui.screens.devicesync.spokenDigits
 
@@ -73,7 +71,8 @@ enum class JamErrorAction {
 @StringRes
 fun jamErrorMessage(error: JamError): Int = when (error) {
     JamError.WrongCode -> R.string.jam_error_wrong_code
-    JamError.Locked -> R.string.jam_error_locked
+    JamError.Locked -> R.string.jam_error_locked_plain
+    JamError.Busy -> R.string.jam_error_busy
     JamError.CodeExhausted -> R.string.jam_error_code_exhausted
     JamError.Full -> R.string.jam_error_full
     JamError.VersionMismatch -> R.string.jam_error_version
@@ -82,7 +81,7 @@ fun jamErrorMessage(error: JamError): Int = when (error) {
 }
 
 fun jamErrorAction(error: JamError): JamErrorAction = when (error) {
-    JamError.WrongCode, JamError.HostGone, JamError.ReconnectRefused -> JamErrorAction.TryAgain
+    JamError.WrongCode, JamError.HostGone, JamError.ReconnectRefused, JamError.Busy -> JamErrorAction.TryAgain
     JamError.Locked -> JamErrorAction.Wait
     JamError.CodeExhausted -> JamErrorAction.AskForNewCode
     JamError.VersionMismatch -> JamErrorAction.UpdateApp
@@ -162,28 +161,25 @@ fun jamPlayerUi(state: JamUiState): JamPlayerUi = when (state) {
     else -> JamPlayerUi.None
 }
 
-/**
- * A guest's transport, mapped to requests to the host. Every call checks the host's current permission, so a
- * stale button can never act on the guest's own (mirrored) player.
- */
-class JamGuestActions(private val jam: JamControls) {
-    fun playPause(state: JamUiState.Joined) {
-        if (!state.canControl) return
-        if (state.playing) jam.requestPause() else jam.requestPlay()
-    }
-
-    fun next(state: JamUiState.Joined) {
-        if (state.canControl) jam.requestNext()
-    }
-
-    fun previous(state: JamUiState.Joined) {
-        if (state.canControl) jam.requestPrevious()
-    }
-
-    /** Asks the host to add [song]; false when guests may not add songs. */
-    fun add(state: JamUiState.Joined, song: Song): Boolean {
-        if (!state.canAdd) return false
-        jam.requestAdd(song)
-        return true
-    }
+/** What the mini player shows ([miniPlayerControls]); the bar reads it instead of assuming local playback. */
+data class MiniPlayerControls(
+    val showPlayPause: Boolean = true,
+    val showSkip: Boolean = true,
+    /** A Jam guest's skip goes to the host, so it does not depend on the local (mirrored) queue's next song. */
+    val skipAlwaysEnabled: Boolean = false,
+    val showSleepTimer: Boolean = true,
+    /** Show "Only the host can skip or pause" instead of the buttons. */
+    val hostOnlyHint: Boolean = false,
+) {
+    fun canSkipNext(hasNext: Boolean): Boolean = showSkip && (skipAlwaysEnabled || hasNext)
+    fun canSkipPrevious(hasPrevious: Boolean): Boolean = showSkip && (skipAlwaysEnabled || hasPrevious)
 }
+
+/** The mini player's controls for the Jam state, matching the full player's ([JamPlayerUi]). */
+fun miniPlayerControls(jam: JamPlayerUi): MiniPlayerControls = MiniPlayerControls(
+    showPlayPause = jam.showPlayPause,
+    showSkip = jam.showSkip,
+    skipAlwaysEnabled = jam.isGuest,
+    showSleepTimer = jam.showSleepTimer,
+    hostOnlyHint = jam.isGuest && !jam.showSkip && !jam.showPlayPause,
+)

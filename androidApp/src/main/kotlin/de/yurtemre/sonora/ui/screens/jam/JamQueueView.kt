@@ -90,13 +90,10 @@ private fun JamQueueRow(item: JamQueueItem, current: Boolean) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            listOfNotNull(item.song.artist.takeIf { it.isNotBlank() }, note).joinToString("  "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = cs.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (item.song.artist.isNotBlank()) {
+            Text(item.song.artist, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (note != null) Text(note, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
     }
 }
 

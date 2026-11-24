@@ -47,11 +47,6 @@
     <string name="jam_host_address">Not listed on the other phone? Type this address instead: %1$s</string>
     <string name="jam_host_code_blocked">Someone typed a wrong code too often, so this code no longer works. Make a new code to let more guests join.</string>
     <string name="jam_new_code">New code</string>
-    <string name="jam_guests_title">Guests</string>
-    <plurals name="jam_guests_count">
-        <item quantity="one">%1$d of 7</item>
-        <item quantity="other">%1$d of 7</item>
-    </plurals>
     <string name="jam_no_guests">No guests yet</string>
     <string name="jam_remove_guest">Remove %1$s</string>
     <string name="jam_remove_title">Remove %1$s?</string>
@@ -88,6 +83,8 @@
     <string name="jam_rejoin_target">Rejoining %1$s. Type the code again.</string>
     <string name="jam_error_wrong_code">That code doesn\'t match. Check it and try again.</string>
     <string name="jam_error_locked">Too many tries. Try again in %1$s.</string>
+    <string name="jam_error_busy">This Jam is busy right now. Try again in a moment.</string>
+    <string name="jam_error_locked_plain">Too many tries. Wait a moment, then try again.</string>
     <string name="jam_error_code_exhausted">This code can\'t be used anymore. Ask the host for a new code.</string>
     <string name="jam_error_full">This Jam is full. A Jam has room for 8 phones.</string>
     <string name="jam_error_version">This Jam uses a different version of SonoraKMP. Update SonoraKMP on both phones, then try again.</string>
@@ -118,7 +115,15 @@
     <string name="jam_ended_kicked">The host removed this phone from the Jam.</string>
     <string name="jam_ended_host_gone">The host left or lost the connection.</string>
     <string name="jam_ended_network">The Wi-Fi changed, so this phone left the Jam.</string>
-    <string name="jam_ended_queue_back">Your own queue is back.</string>
     <string name="jam_rejoin">Rejoin</string>
     <string name="jam_done">Done</string>
+    <!-- A guest's own playback -->
+    <string name="jam_own_title">Leave the Jam to play your own music?</string>
+    <string name="jam_own_body">You\'re playing along with %1$s. Leaving brings back your own queue, then plays your choice.</string>
+    <string name="jam_own_body_add">The host lets guests add songs. Add your choice to the Jam queue, or leave the Jam and play it on your own.</string>
+    <string name="jam_own_add">Add to the Jam queue</string>
+    <string name="jam_own_leave">Leave and play</string>
+    <string name="jam_own_stay">Stay</string>
+    <string name="jam_guests_header">Guests (%1$d of 7)</string>
+    <string name="jam_ended_with_queue">%1$s Your own queue is back.</string>
 </resources>

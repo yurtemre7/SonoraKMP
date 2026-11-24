@@ -140,6 +140,9 @@ class JamViewModel(
     }
 
     init {
+        // An error left from an earlier screen belongs to an attempt that is over (its lockout may have ended long
+        // ago): never restart a countdown for it.
+        if (jam.state.value is JamUiState.Error) jam.dismiss()
         viewModelScope.launch {
             jam.state.collect { s ->
                 if (s !is JamUiState.Hosting) _confirm.value = null

@@ -71,7 +71,10 @@ import de.yurtemre.sonora.ui.screens.changelog.ChangelogRoute
 import de.yurtemre.sonora.ui.screens.debug.DebugCachesRoute
 import de.yurtemre.sonora.ui.screens.devicesync.DeviceSyncRoute
 import de.yurtemre.sonora.ui.screens.jam.JamRoute
-import de.yurtemre.sonora.ui.screens.jam.JamGuestActions
+import de.yurtemre.sonora.ui.screens.jam.JamOwnPlaybackDialog
+import de.yurtemre.sonora.ui.screens.jam.jamPlayerUi
+import de.yurtemre.sonora.ui.screens.jam.miniPlayerControls
+import de.yurtemre.sonora.jam.JamGuestActions
 import de.yurtemre.sonora.ui.screens.jam.joinedOrNull
 import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.shared.jam.JamSettings
@@ -140,6 +143,7 @@ fun SonoraAppShell(
             onExpandDragStopped = { v -> nowPlaying.settle(v, flingPx) },
             sleepTimer = sleepTimer,
             onSleepTimerClick = { showMiniSleep = true },
+            controls = miniPlayerControls(jamPlayerUi(jamState)),
             // A Jam guest's transport is a request to the host (and only when the host allows it).
             onTogglePlay = {
                 val guest = jamState.joinedOrNull()
@@ -320,6 +324,8 @@ fun SonoraAppShell(
         if (!overlayMode && nowPlaying.expanded) BackHandler { nowPlaying.expanded = false }
         // Automatic launch update check + update sheet (UPD-05); placed once.
         de.yurtemre.sonora.update.UpdatePromptHost()
+        // A Jam guest's own playback asks first: leave the Jam, add to the Jam queue, or stay.
+        JamOwnPlaybackDialog()
     } }
 }
 

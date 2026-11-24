@@ -21,7 +21,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -82,10 +81,7 @@ internal fun JamHostScreen(
             item(key = "speed") { ErrorNote(stringResource(R.string.jam_speed_note)) }
         }
 
-        settingsHeader("guests") {
-            stringResource(R.string.jam_guests_title) + "  " +
-                pluralStringResource(R.plurals.jam_guests_count, state.guests.size, state.guests.size)
-        }
+        settingsHeader("guests") { stringResource(R.string.jam_guests_header, state.guests.size) }
         if (state.guests.isEmpty()) {
             item(key = "no_guests") { SettingsNote(stringResource(R.string.jam_no_guests)) }
         }
@@ -131,7 +127,11 @@ private fun JamCodeCard(code: String) {
     val cs = MaterialTheme.colorScheme
     val spoken = stringResource(R.string.jam_code_a11y, spokenJamCode(code))
     DeviceSyncCard(color = cs.primaryContainer) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // One announcement for the whole card: "Jam code 1 2 3 4 5 6" (the title is part of it).
+        Column(
+            Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(stringResource(R.string.jam_code_title), style = MaterialTheme.typography.labelLarge, color = cs.onPrimaryContainer)
             Text(
                 formatJamCode(code),
@@ -142,7 +142,6 @@ private fun JamCodeCard(code: String) {
                 ),
                 textAlign = TextAlign.Center,
                 color = cs.onPrimaryContainer,
-                modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
             )
         }
     }

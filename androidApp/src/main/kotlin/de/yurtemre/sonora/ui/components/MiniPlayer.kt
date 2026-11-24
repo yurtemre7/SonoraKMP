@@ -59,6 +59,9 @@ import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.ui.theme.LocalReduceMotion
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.rounded.Groups
+import de.yurtemre.sonora.ui.screens.jam.MiniPlayerControls
 
 /**
  * Mini player (DESIGN §6.4, SPEC UI-15): flat surfaceContainerHigh bar with a 2dp Cobalt progress line on top.
@@ -81,6 +84,7 @@ fun MiniPlayer(
     onExpandDragStopped: (Float) -> Unit = {},
     sleepTimer: SleepTimerUiState = SleepTimerUiState.Inactive,
     onSleepTimerClick: () -> Unit = onOpen,
+    controls: MiniPlayerControls = MiniPlayerControls(),
 ) {
     val song = state.currentSong ?: return
     val density = LocalDensity.current
@@ -94,8 +98,10 @@ fun MiniPlayer(
     val cbClose by rememberUpdatedState(onClose)
     val cbDrag by rememberUpdatedState(onExpandDrag)
     val cbDragStop by rememberUpdatedState(onExpandDragStopped)
-    val canNext by rememberUpdatedState(state.hasNext)
-    val canPrev by rememberUpdatedState(state.hasPrevious)
+    // A Jam guest's controls follow the host's permissions (miniPlayerControls), like the full player's.
+    val canNext by rememberUpdatedState(controls.canSkipNext(state.hasNext))
+    val canPrev by rememberUpdatedState(controls.canSkipPrevious(state.hasPrevious))
+    val canPlayPause by rememberUpdatedState(controls.showPlayPause)
     val offsetX = remember { Animatable(0f) }
     var closeDrag by remember { mutableFloatStateOf(0f) }
     var verticalTotal by remember { mutableFloatStateOf(0f) }
@@ -193,10 +199,10 @@ fun MiniPlayer(
             .clickable(onClickLabel = openLabel, onClick = onOpen)
             .semantics(mergeDescendants = false) {
                 contentDescription = desc
-                customActions = listOf(
-                    CustomAccessibilityAction(playPauseLabel) { cbToggle(); true },
-                    CustomAccessibilityAction(nextLabel) { if (canNext) { cbNext(); true } else false },
-                    CustomAccessibilityAction(prevLabel) { cbPrev(); true },
+                customActions = listOfNotNull(
+                    CustomAccessibilityAction(playPauseLabel) { cbToggle(); true }.takeIf { canPlayPause },
+                    CustomAccessibilityAction(nextLabel) { if (canNext) { cbNext(); true } else false }.takeIf { canNext },
+                    CustomAccessibilityAction(prevLabel) { cbPrev(); true }.takeIf { canPrev },
                     CustomAccessibilityAction(closeLabel) { cbClose(); true },
                 )
             }
@@ -240,10 +246,20 @@ fun MiniPlayer(
                 }
             }
         }
-        SleepTimerBadge(sleepTimer, onClick = onSleepTimerClick, modifier = Modifier.padding(start = 6.dp))
-        PulseButton(state.isPlaying, onTogglePlay, Modifier.padding(horizontal = 4.dp), size = 48.dp, isCompleted = state.isCompleted)
-        IconButton(onClick = { direction = 1; onNext() }, enabled = state.hasNext, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Rounded.SkipNext, stringResource(R.string.miniplayer_next))
+        if (controls.showSleepTimer) SleepTimerBadge(sleepTimer, onClick = onSleepTimerClick, modifier = Modifier.padding(start = 6.dp))
+        if (controls.hostOnlyHint) {
+            val hint = stringResource(R.string.jam_guest_controls_host_only)
+            Box(Modifier.size(48.dp).semantics { contentDescription = hint }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Groups, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (controls.showPlayPause) {
+            PulseButton(state.isPlaying, onTogglePlay, Modifier.padding(horizontal = 4.dp), size = 48.dp, isCompleted = state.isCompleted && !controls.skipAlwaysEnabled)
+        }
+        if (controls.showSkip) {
+            IconButton(onClick = { direction = 1; onNext() }, enabled = controls.canSkipNext(state.hasNext), modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Rounded.SkipNext, stringResource(R.string.miniplayer_next))
+            }
         }
     }
 }

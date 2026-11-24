@@ -65,6 +65,10 @@ class JamPresentationTest {
         assertEquals(R.string.jam_error_code_exhausted, jamErrorMessage(JamError.CodeExhausted))
         assertEquals(R.string.jam_error_host_gone, jamErrorMessage(JamError.HostGone))
         assertEquals(R.string.jam_error_reconnect_refused, jamErrorMessage(JamError.ReconnectRefused))
+        assertEquals(R.string.jam_error_busy, jamErrorMessage(JamError.Busy))
+        // Without a countdown the lock text takes no argument (never a raw placeholder on screen).
+        assertEquals(R.string.jam_error_locked_plain, jamErrorMessage(JamError.Locked))
+        assertEquals(JamErrorAction.TryAgain, jamErrorAction(JamError.Busy))
         assertEquals(JamErrorAction.TryAgain, jamErrorAction(JamError.WrongCode))
         assertEquals(JamErrorAction.Wait, jamErrorAction(JamError.Locked))
         assertEquals(JamErrorAction.AskForNewCode, jamErrorAction(JamError.CodeExhausted))
@@ -162,6 +166,35 @@ class JamPresentationTest {
         assertEquals(JamRole.Host, ui.role)
         assertEquals(1, ui.guestCount)
         assertTrue(ui.showSeek && ui.showQueueEditing && ui.showSkip && ui.showPlayPause)
+    }
+
+    // ---- mini player ------------------------------------------------------------------------------------------------
+
+    @Test fun miniPlayerShowsEverythingOutsideAJam() {
+        val c = miniPlayerControls(JamPlayerUi.None)
+        assertTrue(c.showPlayPause && c.showSkip && c.showSleepTimer)
+        assertFalse(c.skipAlwaysEnabled)
+        assertFalse(c.hostOnlyHint)
+    }
+
+    @Test fun miniPlayerHidesAGuestsControlsWithoutPermission() {
+        val c = miniPlayerControls(jamPlayerUi(joined(canControl = false)))
+        assertFalse(c.showPlayPause)
+        assertFalse(c.showSkip)
+        assertFalse(c.showSleepTimer)
+        assertTrue(c.hostOnlyHint)
+        assertFalse(c.canSkipNext(hasNext = true))
+        assertFalse(c.canSkipPrevious(hasPrevious = true))
+    }
+
+    @Test fun miniPlayerLetsAGuestWithPermissionSkipLikeThePlayerView() {
+        val c = miniPlayerControls(jamPlayerUi(joined(canControl = true)))
+        assertTrue(c.showPlayPause && c.showSkip)
+        assertFalse(c.showSleepTimer)
+        // The guest's own player only holds a run of the Jam queue: "next" goes to the host, so it is always enabled.
+        assertTrue(c.canSkipNext(hasNext = false))
+        assertTrue(c.canSkipPrevious(hasPrevious = false))
+        assertFalse(miniPlayerControls(JamPlayerUi.None).canSkipNext(hasNext = false))
     }
 
     @Test fun endReasonsHaveMessages() {

@@ -74,6 +74,7 @@ import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.ui.navigation.Jam
 import de.yurtemre.sonora.ui.screens.jam.JamStartSheet
 import de.yurtemre.sonora.ui.screens.jam.jamPlayerUi
+import de.yurtemre.sonora.ui.screens.jam.JamRole
 import java.time.Instant
 
 /** The weekly mix: play, shuffle, add to queue, save as playlist, and the songs with the usual actions. */
@@ -168,9 +169,17 @@ fun WeeklyMixRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                                 Text(stringResource(R.string.weekly_mix_save), Modifier.padding(start = 8.dp))
                             }
                             // Not while a guest in someone else's Jam: hosting would end it and bring the own queue back.
-                            if (!jamUi.isGuest) TextButton(onClick = { showJamStart = true }) {
-                                Icon(Icons.Rounded.Groups, null)
-                                Text(stringResource(R.string.jam_start), Modifier.padding(start = 8.dp))
+                            // While hosting, the Jam already shares whatever plays: open it instead of starting another.
+                            when (jamUi.role) {
+                                JamRole.None -> TextButton(onClick = { showJamStart = true }) {
+                                    Icon(Icons.Rounded.Groups, null)
+                                    Text(stringResource(R.string.jam_start), Modifier.padding(start = 8.dp))
+                                }
+                                JamRole.Host -> TextButton(onClick = { onNavigate(Jam()) }) {
+                                    Icon(Icons.Rounded.Groups, null)
+                                    Text(stringResource(R.string.jam_open), Modifier.padding(start = 8.dp))
+                                }
+                                JamRole.Guest -> Unit
                             }
                         }
                     }
