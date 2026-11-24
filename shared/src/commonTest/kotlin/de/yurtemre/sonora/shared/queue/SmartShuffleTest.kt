@@ -90,4 +90,75 @@ class SmartShuffleTest {
         }
         assertTrue(skippedSum > lovedSum, "skipped=$skippedSum loved=$lovedSum")
     }
+
+    @Test
+    fun fallbackMatchesTheSimpleGreedyRebuild() {
+        // The incremental fallback must pick exactly what the straightforward (quadratic) version picks.
+        repeat(200) { seed ->
+            val r = Random(seed)
+            val n = 2 + r.nextInt(60)
+            val artists = 1 + r.nextInt(5)
+            val songs = (1L..n).map { song(it, "A${r.nextInt(artists)}", fav = r.nextBoolean()) }
+            val stats = songs.filter { r.nextBoolean() }.associate { it.id to SongStats(plays = r.nextInt(6), skips = r.nextInt(4)) }
+            val expected = referenceOrder(songs, stats, Random(seed * 31 + 7))
+            val actual = SmartShuffle.order(songs, stats, now, Random(seed * 31 + 7))
+            assertEquals(expected.map { it.id }, actual.map { it.id }, "seed $seed")
+        }
+    }
+
+    /** The pre-optimisation algorithm, kept as the reference for [fallbackMatchesTheSimpleGreedyRebuild]. */
+    private fun referenceOrder(songs: List<Song>, stats: Map<Long, SongStats>, random: Random): List<Song> {
+        val l = songs.map { s -> s to kotlin.math.ln(1.0 - random.nextDouble()) / smartWeight(s, stats[s.id], now) }
+            .sortedByDescending { it.second }.map { it.first }.toMutableList()
+        for (i in 1 until l.size) {
+            if (l[i].artist != l[i - 1].artist) continue
+            val end = minOf(i + 5, l.size - 1)
+            val j = (i + 1..end).firstOrNull { l[it].artist != l[i - 1].artist && (i + 1 >= l.size || l[i + 1].artist != l[it].artist) }
+                ?: continue
+            val t = l[i]; l[i] = l[j]; l[j] = t
+        }
+        if ((1 until l.size).none { l[it].artist == l[it - 1].artist }) return l
+        val rest = l.toMutableList()
+        l.clear()
+        while (rest.isNotEmpty()) {
+            val prev = l.lastOrNull()?.artist
+            val top = rest.groupingBy { it.artist }.eachCount().maxByOrNull { it.value }!!
+            val pick = if (top.key != prev && top.value * 2 > rest.size) rest.indexOfFirst { it.artist == top.key }
+            else rest.indexOfFirst { it.artist != prev }.takeIf { it >= 0 } ?: 0
+            l.add(rest.removeAt(pick))
+        }
+        return l
+    }
+
+    @Test
+    fun largeLibraryWithDominantArtistsStaysFast() {
+        // 10 000 songs, ~60% from three artists: the clash fallback runs. The bound is generous: the quadratic
+        // fallback took ~2 s here, the incremental one ~0.1 s. The result must still keep every song once and separate artists where it can.
+        val songs = (1L..10_000L).map { id ->
+            val artist = when {
+                id % 5 == 0L -> "Big1"
+                id % 5 == 1L -> "Big2"
+                id % 5 == 2L -> "Big3"
+                else -> "Other${id % 400}"
+            }
+            song(id, artist)
+        }
+        val started = kotlin.time.TimeSource.Monotonic.markNow()
+        val out = SmartShuffle.order(songs, emptyMap(), now, Random(11))
+        val elapsed = started.elapsedNow().inWholeMilliseconds
+        assertEquals(songs.map { it.id }.sorted(), out.map { it.id }.sorted())
+        assertEquals(0, out.zipWithNext().count { (a, b) -> a.artist == b.artist })
+        assertTrue(elapsed < 750, "took $elapsed ms")
+    }
+
+    @Test
+    fun dominantArtistIsSpreadWhenItCannotBeFullySeparated() {
+        // 7 A and 3 B: at best A B A B A B A A A A -> the fallback still alternates while it can.
+        val songs = (1L..7L).map { song(it, "A") } + (8L..10L).map { song(it, "B") }
+        repeat(20) { seed ->
+            val out = SmartShuffle.order(songs, emptyMap(), now, Random(seed))
+            assertEquals(songs.map { it.id }.toSet(), out.map { it.id }.toSet())
+            assertEquals(3, out.zipWithNext().count { (a, b) -> a.artist == b.artist }, "seed $seed: ${out.map { it.artist }}")
+        }
+    }
 }

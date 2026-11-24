@@ -59,18 +59,66 @@ object SmartShuffle {
         // Leftover clashes (e.g. a clustered tail): rebuild greedily, keeping the weighted order as
         // the preference but forcing the dominant artist in when it would otherwise be stranded.
         if ((1 until l.size).none { l[it].artist == l[it - 1].artist }) return
-        val rest = l.toMutableList()
+        greedyRebuild(l)
+    }
+
+    /**
+     * Each step takes the earliest remaining song whose artist differs from the previous one (or the earliest at all
+     * when only that artist is left), except that an artist holding more than half of the remaining songs goes
+     * first whenever it may. Incremental: per-artist queues of positions, a min-heap of each artist's earliest
+     * position and per-count artist buckets for the majority check, so O(n log k) for n songs of k artists.
+     */
+    private fun greedyRebuild(l: MutableList<Song>) {
+        val rest = l.toList()
+        val artistIds = HashMap<String, Int>()
+        val artistOf = IntArray(rest.size) { i -> artistIds.getOrPut(rest[i].artist) { artistIds.size } }
+        val k = artistIds.size
+        val positions = Array(k) { ArrayDeque<Int>() }
+        rest.indices.forEach { positions[artistOf[it]].addLast(it) }
+        val count = IntArray(k) { positions[it].size }
+        // byCount[c]: artists with exactly c songs left; maxCount only ever falls.
+        val byCount = HashMap<Int, MutableSet<Int>>()
+        for (a in 0 until k) byCount.getOrPut(count[a]) { LinkedHashSet() }.add(a)
+        var maxCount = count.maxOrNull() ?: 0
+        val heads = IntHeap(rest.size)
+        for (a in 0 until k) heads.push(positions[a].first())
+        var left = rest.size
         l.clear()
-        while (rest.isNotEmpty()) {
-            val prev = l.lastOrNull()?.artist
-            val counts = rest.groupingBy { it.artist }.eachCount()
-            val top = counts.maxByOrNull { it.value }!!
-            val pick = if (top.key != prev && top.value * 2 > rest.size) {
-                rest.indexOfFirst { it.artist == top.key }
+        var prev = -1
+
+        fun earliestExcept(excluded: Int): Int? {
+            // Heap entries are positions; one is current when it is still its artist's earliest remaining song.
+            fun clean() { while (!heads.isEmpty() && positions[artistOf[heads.peek()]].firstOrNull() != heads.peek()) heads.pop() }
+            clean()
+            if (heads.isEmpty()) return null
+            val top = heads.peek()
+            if (artistOf[top] != excluded) return top
+            heads.pop()
+            clean()
+            val second = if (heads.isEmpty()) null else heads.peek()
+            heads.push(top)
+            return second
+        }
+
+        while (left > 0) {
+            while (maxCount > 0 && byCount[maxCount].isNullOrEmpty()) maxCount--
+            val majority = if (maxCount * 2 > left) byCount.getValue(maxCount).first() else -1
+            val pos = if (majority >= 0 && majority != prev) {
+                positions[majority].first()
             } else {
-                rest.indexOfFirst { it.artist != prev }.takeIf { it >= 0 } ?: 0
+                earliestExcept(prev) ?: earliestExcept(-1)!!
             }
-            l.add(rest.removeAt(pick))
+            val a = artistOf[pos]
+            positions[a].removeFirst()
+            byCount.getValue(count[a]).remove(a)
+            count[a]--
+            if (count[a] > 0) {
+                byCount.getOrPut(count[a]) { LinkedHashSet() }.add(a)
+                heads.push(positions[a].first())
+            }
+            l.add(rest[pos])
+            left--
+            prev = a
         }
     }
 
@@ -80,5 +128,43 @@ object SmartShuffle {
 
     private fun swap(l: MutableList<Song>, a: Int, b: Int) {
         val t = l[a]; l[a] = l[b]; l[b] = t
+    }
+}
+
+/** A binary min-heap of ints (positions). */
+private class IntHeap(capacity: Int) {
+    private var a = IntArray(maxOf(capacity, 1))
+    private var size = 0
+
+    fun isEmpty() = size == 0
+    fun peek(): Int = a[0]
+
+    fun push(v: Int) {
+        if (size == a.size) a = a.copyOf(size * 2)
+        var i = size++
+        a[i] = v
+        while (i > 0) {
+            val p = (i - 1) / 2
+            if (a[p] <= a[i]) break
+            val t = a[p]; a[p] = a[i]; a[i] = t
+            i = p
+        }
+    }
+
+    fun pop(): Int {
+        val top = a[0]
+        a[0] = a[--size]
+        var i = 0
+        while (true) {
+            val l = 2 * i + 1
+            val r = l + 1
+            var m = i
+            if (l < size && a[l] < a[m]) m = l
+            if (r < size && a[r] < a[m]) m = r
+            if (m == i) break
+            val t = a[m]; a[m] = a[i]; a[i] = t
+            i = m
+        }
+        return top
     }
 }
