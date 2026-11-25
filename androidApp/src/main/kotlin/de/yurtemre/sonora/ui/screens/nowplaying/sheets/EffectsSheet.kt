@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.ui.screens.nowplaying.sheets
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -8,7 +9,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Timelapse
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ButtonGroupDefaults
@@ -57,6 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -74,6 +80,8 @@ import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.model.EqMode
 import de.yurtemre.sonora.shared.model.EqPreset
 import de.yurtemre.sonora.shared.model.MfxPreset
+import de.yurtemre.sonora.ui.format.DurationFormat
+import de.yurtemre.sonora.ui.format.SpeedLength
 import de.yurtemre.sonora.ui.format.currentLocale
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -91,6 +99,7 @@ fun EffectsSheet(
     connection: PlaybackConnection = koinInject(),
 ) {
     val remote by connection.mfx.collectAsState()
+    val song = connection.player.collectAsState().value.currentSong
     // Optimistic copy: updated immediately on tap, reconciled whenever the player state changes.
     var mfx by remember { mutableStateOf(remote) }
     // A just-picked preset wins over updates that still carry the previous one (settings write in flight),
@@ -139,6 +148,9 @@ fun EffectsSheet(
                     connection.setMfxPreset(p)
                 },
             )
+
+            val originalMs = song?.durationMs ?: 0L
+            SpeedLength.of(originalMs, mfx.effectiveSpeed)?.let { SongLengthSection(it) }
 
             if (mfx.isEqAvailable) {
                 EqualizerSection(
@@ -363,6 +375,82 @@ private fun PresetsSection(mfx: MfxUiState, onSelectPreset: (MfxPreset) -> Unit)
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * What the speed does to this song: the original and the new length side by side, a bar pair drawn to scale
+ * (the original is the full width; the new one is shorter or overshoots it in the accent colour), and a chip
+ * with the difference. Hidden while there is no current song.
+ */
+@Composable
+private fun SongLengthSection(length: SpeedLength) {
+    val cs = MaterialTheme.colorScheme
+    val changed = !length.isUnchanged
+    val original = DurationFormat.clockMs(length.originalMs)
+    val effective = DurationFormat.clockMs(length.effectiveMs)
+    val delta = DurationFormat.clock(kotlin.math.abs(length.deltaMs) / 1000)
+    val summary = stringResource(R.string.effects_length_desc, original, effective)
+    SectionCard(
+        icon = Icons.Rounded.Timelapse,
+        title = stringResource(R.string.effects_length_title),
+        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = summary },
+        trailing = {
+            ValueBadge(
+                text = when {
+                    !changed -> stringResource(R.string.effects_length_same)
+                    length.deltaMs < 0 -> stringResource(R.string.effects_length_shorter, delta)
+                    else -> stringResource(R.string.effects_length_longer, delta)
+                },
+                highlighted = changed,
+            )
+        },
+    ) {
+        // Both bars are drawn to scale against the longer of the two, so a slowed song never overflows the card.
+        val longer = maxOf(1f, length.ratio)
+        LengthRow(stringResource(R.string.effects_length_original), original, 1f / longer, cs.outline, cs.onSurfaceVariant)
+        LengthRow(
+            label = stringResource(R.string.effects_length_new),
+            time = effective,
+            fill = (length.ratio / longer).coerceIn(0.02f, 1f),
+            barColor = if (changed) cs.primary else cs.outline,
+            textColor = if (changed) cs.onSurface else cs.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun LengthRow(
+    label: String,
+    time: String,
+    fill: Float,
+    barColor: Color,
+    textColor: Color,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor,
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        ) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(fill).background(barColor))
         }
     }
 }

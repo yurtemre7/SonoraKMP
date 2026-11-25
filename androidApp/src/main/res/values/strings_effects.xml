@@ -25,6 +25,13 @@
     <string name="effects_custom_pitch_label">Pitch</string>
     <string name="effects_speed_pitch_value">%1$s×</string>
     <string name="effects_speed_pitch_preset_hint">Controlled by the active preset</string>
+    <string name="effects_length_title">Song length</string>
+    <string name="effects_length_original">Original</string>
+    <string name="effects_length_new">With effects</string>
+    <string name="effects_length_shorter">%1$s shorter</string>
+    <string name="effects_length_longer">%1$s longer</string>
+    <string name="effects_length_same">Same length</string>
+    <string name="effects_length_desc">%1$s originally, %2$s with effects</string>
     <string name="effects_reset_short">Reset</string>
     <string name="effects_preset_superSlowed">Super slowed</string>
     <string name="effects_preset_slowed075">Slowed 0.75×</string>

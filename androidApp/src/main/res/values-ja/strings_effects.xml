@@ -25,6 +25,13 @@
     <string name="effects_custom_pitch_label">ピッチ</string>
     <string name="effects_speed_pitch_value">%1$s×</string>
     <string name="effects_speed_pitch_preset_hint">プリセットによって制御されています</string>
+    <string name="effects_length_title">曲の長さ</string>
+    <string name="effects_length_original">元の長さ</string>
+    <string name="effects_length_new">エフェクト適用後</string>
+    <string name="effects_length_shorter">%1$s短縮</string>
+    <string name="effects_length_longer">%1$s延長</string>
+    <string name="effects_length_same">長さは変わりません</string>
+    <string name="effects_length_desc">元は%1$s、エフェクト適用後は%2$s</string>
     <string name="effects_reset_short">リセット</string>
     <string name="effects_preset_superSlowed">超スロー</string>
     <string name="effects_preset_slowed075">スロー 0.75×</string>
