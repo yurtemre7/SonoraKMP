@@ -46,6 +46,12 @@ class SettingsTest {
             check("appLocale", AppLocale.entries.last(), ::setAppLocale) { it.appLocale }
             check("defaultStartPage", 3, ::setDefaultStartPage) { it.defaultStartPage }
             setDefaultStartPage(9); assertEquals(3, settings.first().defaultStartPage, "startPage clamp")
+            setStartView(home = true, page = 2)
+            settings.first().let { assertEquals(true to 3, it.startOnHome to it.defaultStartPage, "home keeps page") }
+            setStartView(home = false, page = 1)
+            settings.first().let { assertEquals(false to 1, it.startOnHome to it.defaultStartPage, "tab view") }
+            setStartView(home = false, page = 9)
+            assertEquals(3, settings.first().defaultStartPage, "setStartView clamp")
             check("keepPlayingOnClose", true, ::setKeepPlayingOnClose) { it.keepPlayingOnClose }
             check("restoreLastPlayedSong", false, ::setRestoreLastPlayedSong) { it.restoreLastPlayedSong }
             check("replayGainMode", ReplayGainMode.entries.last(), ::setReplayGainMode) { it.replayGainMode }

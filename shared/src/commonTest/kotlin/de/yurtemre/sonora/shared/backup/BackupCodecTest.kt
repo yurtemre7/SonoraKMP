@@ -123,6 +123,16 @@ class BackupCodecTest {
         assertTrue(SettingsWhitelist.fromBackup(wrong).isEmpty())
     }
 
+    @Test fun startOnHomeIsInBackupWhitelist() {
+        val on = mapOf("start_on_home" to SettingValue.Bool(true))
+        assertEquals(on, SettingsWhitelist.toBackup(on))
+        assertEquals(on, SettingsWhitelist.fromBackup(on))
+        assertTrue("start_on_home" in SettingsWhitelist.exportKeys && "start_on_home" in SettingsWhitelist.parseKeys)
+        val wrong = mapOf("start_on_home" to SettingValue.Str("yes"))
+        assertTrue(SettingsWhitelist.toBackup(wrong).isEmpty())
+        assertTrue(SettingsWhitelist.fromBackup(wrong).isEmpty())
+    }
+
     @Test fun jamWarmDiscoveryIsNotBackedUp() {
         val warm = mapOf("jam_warm_discovery" to SettingValue.Bool(false))
         assertTrue(SettingsWhitelist.toBackup(warm).isEmpty())

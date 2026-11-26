@@ -22,6 +22,8 @@ data class AppSettings(
     val appLocale: AppLocale = AppLocale.System,
     /** 0..3 */
     val defaultStartPage: Int = 0,
+    /** Home dashboard is the start view; [defaultStartPage] keeps meaning the 0..3 tab used otherwise. */
+    val startOnHome: Boolean = false,
     val keepPlayingOnClose: Boolean = false,
     val restoreLastPlayedSong: Boolean = true,
     val replayGainMode: ReplayGainMode = ReplayGainMode.Off,
