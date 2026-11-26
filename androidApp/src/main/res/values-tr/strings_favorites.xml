@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fav_title">Favoriler</string>
+    <string name="fav_section_songs">Şarkılar</string>
+    <string name="fav_section_albums">Albümler</string>
+    <string name="fav_section_artists">Sanatçılar</string>
+    <string name="fav_songs_summary">%1$s · %2$s</string>
+    <string name="fav_play">Çal</string>
+    <string name="fav_shuffle">Karıştır</string>
+    <string name="fav_sort">Favori şarkıları sırala</string>
+    <string name="fav_sort_title">Favori şarkıları sırala</string>
+    <string name="fav_sort_name">Ad</string>
+    <string name="fav_sort_duration">Süre</string>
+    <string name="fav_sort_date">Favoriye eklenme tarihi</string>
+    <string name="fav_sort_ascending">Artan</string>
+    <string name="fav_sort_descending">Azalan</string>
+    <string name="fav_remove">Favorilerden çıkar</string>
+    <string name="fav_removed">“%1$s” favorilerden çıkarıldı</string>
+    <string name="fav_undo">Geri al</string>
+    <string name="fav_empty_title">Henüz favorin yok</string>
+    <string name="fav_empty_subtitle">Bir şarkıda, albümde ya da sanatçıda kalbe dokun, buraya düşsün.</string>
+    <string name="fav_swipe_hint">Çıkarmak için şarkıyı kaydır</string>
+    <plurals name="fav_song_count">
+        <item quantity="one">%d şarkı</item>
+        <item quantity="other">%d şarkı</item>
+    </plurals>
+    <string name="recent_title">Son çalınanlar</string>
+    <string name="recent_shuffle">Son çalınanları karıştır</string>
+    <string name="recent_row_artist">%1$s · %2$s</string>
+    <plurals name="recent_plays">
+        <item quantity="one">%d çalma</item>
+        <item quantity="other">%d çalma</item>
+    </plurals>
+    <string name="recent_empty_title">Henüz bir şey çalmadı</string>
+    <string name="recent_empty_subtitle">Bir şarkıyı biraz dinle, burada belirsin.</string>
+    <string name="recent_empty_action">Kitaplığa dön</string>
+</resources>

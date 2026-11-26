@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="duration_part_days" tools:ignore="PluralsCandidate">%1$dg</string>
+    <string name="duration_part_hours" tools:ignore="PluralsCandidate">%1$dsa</string>
+    <string name="duration_part_minutes" tools:ignore="PluralsCandidate">%1$ddk</string>
+    <string name="duration_part_separator">" "</string>
+</resources>

@@ -30,7 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.jam.JamController
-import de.yurtemre.sonora.jam.JamDiscovery
+import de.yurtemre.sonora.jam.JamDiscoveryHub
 import de.yurtemre.sonora.jam.JamUiState
 import de.yurtemre.sonora.permissions.MediaPermissions
 import de.yurtemre.sonora.shared.jam.JamSettings
@@ -48,8 +48,8 @@ import org.koin.compose.koinInject
 fun JamRoute(join: Boolean, host: JamSettings?, onBack: () -> Unit, onOpenPlayer: () -> Unit) {
     val controller: JamController = koinInject()
     val context = LocalContext.current
-    val discovery = remember(context) { JamDiscovery(context.applicationContext) }
-    val vm = viewModel { JamViewModel(controller, { discovery.discover() }, { SystemClock.elapsedRealtime() }) }
+    val hub: JamDiscoveryHub = koinInject()
+    val vm = viewModel { JamViewModel(controller, { hub.discover() }, { SystemClock.elapsedRealtime() }) }
     val state by vm.state.collectAsStateWithLifecycle()
     val screen by vm.screen.collectAsStateWithLifecycle()
     val joinUi by vm.join.collectAsStateWithLifecycle()

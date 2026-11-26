@@ -40,6 +40,7 @@ class AndroidSenderSessionFactory(
     private val builder: SenderManifestBuilder,
     private val discovery: DeviceSyncDiscovery,
     private val clock: Clock,
+    private val remembered: RememberedPeers? = null,
 ) : SenderSessionFactory {
     override suspend fun start(deviceName: String): SenderSession {
         val (manifest, source) = builder.build(deviceName)
@@ -52,7 +53,8 @@ class AndroidSenderSessionFactory(
         // Once start() binds, the server listens with a live code: any failure or cancellation must stop it,
         // including a cancellation that surfaces when withContext returns.
         return stopOnFailure(stopAll) {
-            val port = withContext(Dispatchers.IO) { server.start() }
+            val port = withContext(Dispatchers.IO) { server.start(remembered?.listenPort() ?: 0) }
+            remembered?.rememberListenPort(port)
             advertisement = try {
                 discovery.advertise(port, manifest.deviceId, deviceName)
             } catch (e: Exception) {
@@ -96,8 +98,20 @@ class DeviceSyncClientAdapter(private val client: DeviceSyncClient = DeviceSyncC
     override suspend fun abort() = client.abort()
 }
 
-class AndroidSenderDiscovery(private val discovery: DeviceSyncDiscovery) : SenderDiscoverySource {
-    override fun discover(): Flow<List<DiscoveredSender>> = discovery.discover()
+class AndroidSenderDiscovery(
+    private val discovery: DeviceSyncDiscovery,
+    private val remembered: RememberedPeers? = null,
+) : SenderDiscoverySource {
+    override fun discover(): Flow<List<DiscoveredSender>> {
+        val found = discovery.discover()
+        val peers = remembered ?: return found
+        return found.mergeRemembered(
+            peers = peers::peers,
+            probe = { tcpProbe(it) },
+            toItem = { DiscoveredSender("remembered:${it.host}:${it.port}", it.name, it.host, it.port) },
+            endpoint = { it.host to it.port },
+        )
+    }
 }
 
 /** DSYNC-08..11 on SAF: destination from the scan folder, index, fingerprints, free space, sink. */

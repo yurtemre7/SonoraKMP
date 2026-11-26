@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="songs_header">Tüm şarkılar</string>
+    <string name="songs_shuffle_all">Hepsini karıştır</string>
+    <string name="songs_empty_title">Henüz şarkı yok</string>
+    <string name="songs_empty_subtitle">Müzik klasörüne müzik dosyaları ekle, sonra yeniden tara.</string>
+    <string name="songs_rescan">Yeniden tara</string>
+    <string name="songs_no_results_title">Sonuç yok</string>
+    <string name="songs_no_results_subtitle">“%1$s” ile eşleşen bir şey yok.</string>
+    <string name="songs_play_next">Sıradaki yap</string>
+    <string name="songs_add_to_queue">Sıraya ekle</string>
+    <string name="songs_favorite">Favorilere ekle</string>
+    <string name="songs_unfavorite">Favorilerden çıkar</string>
+    <string name="songs_snack_play_next">Sıradaki olarak eklendi</string>
+    <string name="songs_snack_queued">Sıraya eklendi</string>
+    <plurals name="songs_listens_count">
+        <item quantity="one">%1$d çalma</item>
+        <item quantity="other">%1$d çalma</item>
+    </plurals>
+    <plurals name="songs_sync_done">
+        <item quantity="one">%2$d ms\'de %1$d şarkı eşitlendi</item>
+        <item quantity="other">%2$d ms\'de %1$d şarkı eşitlendi</item>
+    </plurals>
+    <string name="songs_sync_folder_missing">Müzik klasörü bulunamadı. Kitaplığın korundu.</string>
+    <string name="songs_sync_failed">Eşitleme olmadı. Kitaplığın korundu.</string>
+    <string name="songs_banner_title">Kitaplık eşitlensin mi?</string>
+    <string name="songs_banner_subtitle">Son eşitlemeden bir ay geçti. Yeni müzik dosyalarını almak için şimdi eşitle.</string>
+    <string name="songs_banner_sync_now">Şimdi eşitle</string>
+    <string name="songs_banner_remind_later">Gelecek ay hatırlat</string>
+    <string name="songs_banner_postponed">Bir ay sonra yine hatırlatırız</string>
+</resources>

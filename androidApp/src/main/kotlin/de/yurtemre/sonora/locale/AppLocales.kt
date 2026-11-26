@@ -11,6 +11,7 @@ object AppLocales {
             AppLocale.System -> LocaleListCompat.getEmptyLocaleList()
             AppLocale.English -> LocaleListCompat.forLanguageTags("en")
             AppLocale.Japanese -> LocaleListCompat.forLanguageTags("ja")
+            AppLocale.Turkish -> LocaleListCompat.forLanguageTags("tr")
         }
         if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != list.toLanguageTags()) {
             AppCompatDelegate.setApplicationLocales(list)
@@ -23,6 +24,7 @@ object AppLocales {
         return when (tag) {
             "en" -> AppLocale.English
             "ja" -> AppLocale.Japanese
+            "tr" -> AppLocale.Turkish
             else -> AppLocale.System
         }
     }

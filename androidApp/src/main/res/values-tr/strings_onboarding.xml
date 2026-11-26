@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_step">Adım %1$d / %2$d</string>
+    <string name="onboarding_next">İleri</string>
+    <string name="onboarding_get_started">Başlayalım</string>
+    <string name="onboarding_fab_disabled">henüz yok</string>
+    <string name="onboarding_welcome_title">SonoraKMP\'ye hoş geldin</string>
+    <string name="onboarding_welcome_body">Müziğin, kendi dosyalarından çalar. Çevrimdışı, gizli ve eşitlemesi çabuk.</string>
+    <string name="onboarding_name_label">Adın (isteğe bağlı)</string>
+    <string name="onboarding_name_hint">Ana ekranda sana selam vermek için kullanılır. Boş bırakırsan atlanır.</string>
+    <string name="onboarding_permissions_title">Birkaç izin</string>
+    <string name="onboarding_permissions_body">SonoraKMP kitaplığını kurmak için ses dosyalarını okur ve çalma kontrollerini bildirimde gösterir.</string>
+    <string name="onboarding_permission_audio">Müzik ve ses</string>
+    <string name="onboarding_permission_audio_body">Şarkılarını bulup çalmak için gerekli</string>
+    <string name="onboarding_permission_notifications">Bildirimler</string>
+    <string name="onboarding_permission_notifications_body">Kilit ekranı ve bildirim panelindeki kontroller</string>
+    <string name="onboarding_permissions_allow">İzin ver</string>
+    <string name="onboarding_status_granted">izinli</string>
+    <string name="onboarding_status_not_granted">izin yok</string>
+    <string name="onboarding_folder_title">Müzik klasörünü seç</string>
+    <string name="onboarding_folder_body">Şarkılarının durduğu klasörü seç (MP3, FLAC, M4A ve daha fazlası). Sonra ayarlardan değiştirebilirsin.</string>
+    <string name="onboarding_folder_selected">Müzik klasörü</string>
+    <string name="onboarding_folder_none">Henüz klasör seçilmedi</string>
+    <string name="onboarding_folder_choose">Klasör seç</string>
+    <string name="onboarding_folder_change">Klasörü değiştir</string>
+    <string name="onboarding_folder_unsupported">Bu klasör kullanılamaz. Dahili depolamadan ya da SD karttan bir klasör seç.</string>
+    <string name="onboarding_scanning">Müziğin taranıyor</string>
+    <string name="onboarding_scanning_body">Büyük kitaplıklarda bir dakika sürebilir.</string>
+    <string name="onboarding_folder_configured">Müzik klasörü ayarlandı</string>
+    <plurals name="onboarding_folder_imported">
+        <item quantity="one">Müzik klasörü ayarlandı. %1$d şarkı alındı.</item>
+        <item quantity="other">Müzik klasörü ayarlandı. %1$d şarkı alındı.</item>
+    </plurals>
+</resources>

@@ -47,9 +47,17 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Device sync: send songs, lyrics, covers, playlists, favorites, settings and
   stats to another phone on the same Wi-Fi with a 6-digit code (one way, encrypted)
 - Light, dark and pitch-black themes; Material You, album-art or custom colours
-- English and Japanese, with a per-app language setting
+- English, Japanese and Turkish, with a per-app language setting
 - Updates itself from GitHub releases, with checksum verification and a
   choice of channel: Stable, Pre-release or Nightly
+
+## Permissions
+
+SonoraKMP asks only for what it uses: audio files (the folder you pick), notifications for playback controls,
+the internet for update checks, and (only when you update) permission to hand the download to Android's installer. **Jam** and **Device sync** talk to other phones on your Wi-Fi, so on Android 17 and
+later they ask for **local network access** before they start (Wi-Fi multicast is used for discovery on every
+version). Without it neither feature runs; music playback is unaffected. Nothing leaves your Wi-Fi. The full list is
+in *Settings → Privacy*.
 
 ## Install
 
@@ -96,7 +104,7 @@ keyPassword=...
 | Path | What |
 | --- | --- |
 | `shared/` | Kotlin Multiplatform module (Android target): models, library logic, queue, ReplayGain, lyrics, M3U, stats, backup, update checker, Room database, settings |
-| `androidApp/` | Compose UI, Media3 playback service, widget, updater, resources (`values/` English, `values-ja/` Japanese) |
+| `androidApp/` | Compose UI, Media3 playback service, widget, updater, resources (`values/` English, `values-ja/` Japanese, `values-tr/` Turkish) |
 | `docs/` | [SPEC](docs/SPEC.md), [TASKS](docs/TASKS.md), [DESIGN](docs/DESIGN.md), and the audit of the Flutter app |
 | `site/` | Static landing page, deployed to GitHub Pages |
 | `scripts/strings/` | Generator for the string resources |
@@ -154,8 +162,8 @@ and back it up: losing it means existing installs can't be updated.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
 (`feat:`, `fix:`, `docs:` …); the release notes are built from them. All
-user-visible text lives in string resources, in English and Japanese, in
-sentence case, and the product name is always "SonoraKMP"
+user-visible text lives in string resources, in English, Japanese and Turkish
+(see [`docs/TRANSLATING.md`](docs/TRANSLATING.md)), in sentence case, and the product name is always "SonoraKMP"
 (`scripts/check_product_name.sh`). The test suite (29 tests) and Room schema
 migrations must pass before a release. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the details.

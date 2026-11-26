@@ -156,7 +156,7 @@
     <string name="settings_perm_wake_title">スリープの防止</string>
     <string name="settings_perm_wake_body">曲の途中で端末がスリープしないようにします。</string>
     <string name="settings_perm_internet_title">インターネット</string>
-    <string name="settings_perm_internet_body">GitHubからリリース情報と更新履歴を取得するとき、またデバイス同期で同じWi-Fiの別のスマートフォンに直接つなぐときに使います。音楽やデータがインターネットにアップロードされることはありません。</string>
+    <string name="settings_perm_internet_body">GitHubからリリース情報と更新履歴を取得するとき、またデバイス同期とJamで同じWi-Fiの別のスマートフォンに直接つなぐときに使います。音楽やデータがインターネットにアップロードされることはありません。</string>
     <string name="settings_perm_install_title">アップデートのインストール</string>
     <string name="settings_perm_install_body">ダウンロードしたアップデートをAndroidのインストーラーに渡します。あなたの確認なしにインストールされることはありません。</string>
     <string name="settings_privacy_delete_title">すべてを削除</string>

@@ -63,6 +63,7 @@ class SettingsTest {
             check("smartShuffle", true, ::setSmartShuffle) { it.smartShuffle }
             check("fadeBetweenSongsSeconds", 8, ::setFadeBetweenSongsSeconds) { it.fadeBetweenSongsSeconds }
             setFadeBetweenSongsSeconds(5); assertEquals(4, settings.first().fadeBetweenSongsSeconds, "fade snaps")
+            check("jamWarmDiscovery", false, ::setJamWarmDiscovery) { it.jamWarmDiscovery }
             check("jamSpeakerDelayMs", -120, ::setJamSpeakerDelayMs) { it.jamSpeakerDelayMs }
             setJamSpeakerDelayMs(900); assertEquals(500, settings.first().jamSpeakerDelayMs, "speaker delay clamps up")
             setJamSpeakerDelayMs(-900); assertEquals(-500, settings.first().jamSpeakerDelayMs, "speaker delay clamps down")

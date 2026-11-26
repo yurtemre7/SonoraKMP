@@ -123,6 +123,12 @@ class BackupCodecTest {
         assertTrue(SettingsWhitelist.fromBackup(wrong).isEmpty())
     }
 
+    @Test fun jamWarmDiscoveryIsNotBackedUp() {
+        val warm = mapOf("jam_warm_discovery" to SettingValue.Bool(false))
+        assertTrue(SettingsWhitelist.toBackup(warm).isEmpty())
+        assertTrue(SettingsWhitelist.fromBackup(warm).isEmpty())
+    }
+
     @Test fun jamSpeakerDelayIsNotBackedUp() {
         // Per device (it depends on this phone's speaker or headphones): never exported, never restored.
         val delay = mapOf("jam_speaker_delay_ms" to SettingValue.Int(200L))

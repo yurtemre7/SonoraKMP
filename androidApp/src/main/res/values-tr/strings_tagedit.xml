@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tag_edit_action">Etiketleri düzenle</string>
+    <string name="tag_edit_title">Etiketleri düzenle</string>
+    <string name="tag_edit_lyrics">Sözler</string>
+    <string name="tag_edit_save">Kaydet</string>
+    <string name="tag_edit_saving">Kaydediliyor…</string>
+    <string name="tag_edit_cancel">Vazgeç</string>
+    <string name="tag_edit_saved">Etiketler kaydedildi</string>
+    <string name="tag_edit_error_title">Başlık boş olamaz</string>
+    <string name="tag_edit_error_number">Bir sayı gir</string>
+    <string name="tag_edit_not_indexed">Bu dosya sistemin medya kitaplığında olmadığı için etiketleri düzenlenemez.</string>
+    <string name="tag_edit_permission_denied">Dosyayı değiştirme izni verilmedi.</string>
+    <string name="tag_edit_save_failed">Etiketler yazılamadı. Bu dosya biçimi düzenlemeyi desteklemiyor olabilir.</string>
+    <string name="tag_edit_unreadable">Bu dosyanın mevcut etiketleri okunamadı, bu yüzden güvenle düzenlenemez.</string>
+</resources>

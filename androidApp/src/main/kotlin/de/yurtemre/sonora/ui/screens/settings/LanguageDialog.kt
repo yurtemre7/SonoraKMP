@@ -23,12 +23,13 @@ import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.model.AppLocale
 
-/** Language names are shown in their own language (L10N-03); "System default" follows the UI language. */
+/** Language names are shown in their own language (L10N-03); "Follow system" follows the UI language. */
 @Composable
 fun languageLabel(locale: AppLocale): String = when (locale) {
     AppLocale.System -> stringResource(R.string.language_system)
     AppLocale.English -> stringResource(R.string.settings_language_english)
     AppLocale.Japanese -> stringResource(R.string.settings_language_japanese)
+    AppLocale.Turkish -> stringResource(R.string.settings_language_turkish)
 }
 
 @Composable

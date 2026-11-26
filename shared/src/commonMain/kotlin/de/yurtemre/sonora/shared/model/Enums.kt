@@ -68,7 +68,7 @@ enum class ThemeModeSetting(override val storageName: String) : StorageEnum {
 
 /** App language (`app_locale`). */
 enum class AppLocale(override val storageName: String) : StorageEnum {
-    System("system"), English("en"), Japanese("ja");
+    System("system"), English("en"), Japanese("ja"), Turkish("tr");
 
     companion object {
         fun fromStorage(value: String?): AppLocale = enumFromStorage(value, System)

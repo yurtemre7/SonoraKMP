@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">İstatistikler</string>
+    <string name="stats_tab_overview">Genel</string>
+    <string name="stats_tab_songs">Şarkılar</string>
+    <string name="stats_tab_albums">Albümler</string>
+    <string name="stats_tab_artists">Sanatçılar</string>
+    <string name="stats_tab_playlists">Listeler</string>
+    <string name="stats_complete_listens">Sonuna kadar dinleme</string>
+    <string name="stats_songs_played">Çalınan şarkı</string>
+    <string name="stats_albums_heard">Dinlenen albüm</string>
+    <string name="stats_artists_heard">Dinlenen sanatçı</string>
+    <string name="stats_playlists_played">Çalınan liste</string>
+    <string name="stats_shuffle_sessions">Karışık çalma oturumu</string>
+    <string name="stats_skips">Atlanan</string>
+    <string name="stats_restarts">Baştan çalınan</string>
+    <string name="stats_most_active_day">En hareketli gün</string>
+    <string name="stats_first_song">İlk şarkı</string>
+    <string name="stats_first_song_since">%1$s tarihinden beri dinliyorsun</string>
+    <string name="stats_recently_played">Son çalınanlar</string>
+    <string name="stats_recently_played_sub">Dinlediğin her şarkı, güne göre</string>
+    <string name="stats_top_songs">En iyi şarkılar</string>
+    <string name="stats_top_albums">En iyi albümler</string>
+    <string name="stats_top_artists">En iyi sanatçılar</string>
+    <string name="stats_top_playlists">En iyi listeler</string>
+    <string name="stats_rank">%1$d. sıra</string>
+    <string name="stats_song_detail">%1$s · %2$s atlama · %3$s baştan</string>
+    <plurals name="stats_plays">
+        <item quantity="one">%d çalma</item>
+        <item quantity="other">%d çalma</item>
+    </plurals>
+    <plurals name="stats_playlist_songs">
+        <item quantity="one">%d şarkı</item>
+        <item quantity="other">%d şarkı</item>
+    </plurals>
+    <string name="stats_page_empty">Burada henüz çalma yok. Dinlemeye devam.</string>
+    <string name="stats_playlists_empty">Bir listeden müzik çal, burada görünsün.</string>
+    <string name="stats_empty_title">Henüz kayıt yok</string>
+    <string name="stats_empty_subtitle">Bir şarkıyı sonuna kadar dinle, rakamların burada başlasın.</string>
+    <string name="stats_reset">İstatistikleri sıfırla</string>
+    <string name="stats_reset_title">İstatistikler sıfırlansın mı?</string>
+    <string name="stats_reset_message">Tüm çalma sayıları, atlamalar, en iyi listeler ve dinleme geçmişin silinir. Bu işlem geri alınamaz.</string>
+    <string name="stats_reset_confirm">Sıfırla</string>
+    <string name="stats_reset_done">İstatistikler sıfırlandı</string>
+</resources>

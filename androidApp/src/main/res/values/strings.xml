@@ -18,7 +18,7 @@
     <string name="amoled_dark_subtitle">Use pitch black backgrounds in dark mode instead of dark gray</string>
     <string name="blurred_backgrounds">Blurred backgrounds</string>
     <string name="blurred_backgrounds_subtitle">Show a blurred cover behind the player and detail screens. Uses more GPU on weak phones</string>
-    <string name="app_description">A beautiful local music player for Android, built with Flutter and Material 3 Expressive design.</string>
+    <string name="app_description">A beautiful local music player for Android, built with Kotlin Multiplatform and Material 3 Expressive.</string>
     <string name="app_language">App language</string>
     <string name="app_title">SonoraKMP</string>
     <string name="appearance">Appearance</string>
@@ -87,10 +87,10 @@
     <string name="filter_title_features_subtitle">Hides featured artists from the song title if present.</string>
     <string name="formatting_subtitle">Configure how song titles are displayed</string>
     <string name="get_started">Get started</string>
-    <string name="good_afternoon">Good afternoon, %1$s</string>
-    <string name="good_evening">Good evening, %1$s</string>
-    <string name="good_night">Good night, %1$s</string>
-    <string name="good_morning">Good morning, %1$s</string>
+    <string name="good_afternoon">Afternoon, %1$s. Press play?</string>
+    <string name="good_evening">Evening, %1$s. Wind down?</string>
+    <string name="good_night">Hello, night owl %1$s</string>
+    <string name="good_morning">Rise and shine, %1$s</string>
     <string name="info_settings">Info &amp; support</string>
     <string name="info_subtitle">About, updates, changelog, danger zone</string>
     <string name="keep_playing_on_close">Keep playing on app close</string>
@@ -459,7 +459,7 @@
     <string name="add_music">Add music</string>
     <string name="add_music_hint">Add songs with the button below, or copy them into SonoraKMP\'s folder in the Files app (On My iPhone &gt; SonoraKMP &gt; Music).</string>
     <string name="app_name" translatable="false">SonoraKMP</string>
-    <string name="language_system">System default</string>
+    <string name="language_system">Follow system</string>
     <string name="language_english" translatable="false">English</string>
     <string name="language_japanese" translatable="false">日本語</string>
     <string name="listens_never">Never played</string>

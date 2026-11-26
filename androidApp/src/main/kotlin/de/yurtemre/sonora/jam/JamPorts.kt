@@ -43,10 +43,15 @@ interface JamGuestConnector {
     suspend fun reconnect(host: String, port: Int, dropped: JamGuestLink, name: String): JamGuestLink
 }
 
-class ServerHostTransport(private val server: JamServer) : JamHostTransport {
+class ServerHostTransport(
+    private val server: JamServer,
+    /** The port to try first (0 = any): a host that keeps its port stays at the address guests remember. */
+    private val preferredPort: () -> Int = { 0 },
+    private val onListening: (Int) -> Unit = {},
+) : JamHostTransport {
     override val events get() = server.events
     override val codeExhausted get() = server.codeExhausted
-    override suspend fun start(code: String) = server.start(code)
+    override suspend fun start(code: String): Int = server.start(code, preferredPort()).also { onListening(it) }
     override fun broadcast(frame: JamFrame) = server.broadcast(frame)
     override fun sendTo(guestId: String, frame: JamFrame) = server.sendTo(guestId, frame)
     override fun kick(guestId: String) = server.kick(guestId)

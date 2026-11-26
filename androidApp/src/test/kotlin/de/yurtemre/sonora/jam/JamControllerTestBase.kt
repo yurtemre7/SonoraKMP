@@ -25,6 +25,7 @@ abstract class JamControllerTestBase {
     protected val logs = mutableListOf<String>()
     protected var speakerDelay = 0
     protected var codes = 0
+    protected val joinedHosts = mutableListOf<Triple<String, Int, String>>()
     protected val skipSilence = MutableStateFlow(false)
     protected lateinit var playback: RecordingPlayback
 
@@ -44,6 +45,7 @@ abstract class JamControllerTestBase {
                 newCode = { (123_456 + codes++).toString() },
                 debugLog = { logs += it },
                 skipSilence = skipSilence,
+                onJoined = { h, p, n -> joinedHosts += Triple(h, p, n) },
             ),
         )
     }

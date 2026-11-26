@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lyrics_empty_title">Söz yok</string>
+    <string name="lyrics_empty_subtitle">Şarkının yanına aynı adlı bir .lrc veya .txt dosyası koy ya da sözleri dosyanın etiketlerine göm.</string>
+    <string name="lyrics_line_seek">Bu satıra git</string>
+    <string name="related_from_album">Bu albümden</string>
+    <string name="related_more_by_artist">Bu sanatçıdan daha fazlası</string>
+    <string name="related_open_album">Albümü aç</string>
+    <string name="related_open_artist">Sanatçıyı aç</string>
+    <string name="related_empty">Kitaplığında benzer bir şey yok</string>
+</resources>

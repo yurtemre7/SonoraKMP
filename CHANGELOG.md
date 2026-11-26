@@ -2,6 +2,12 @@
 
 All notable changes to SonoraKMP. Generated from Conventional Commits.
 
+## Unreleased
+
+### Features
+
+- **l10n:** Turkish language support, with fresh greetings in English, Japanese and Turkish; translation rules for contributors in `docs/TRANSLATING.md`
+
 ## 1.29.0 - 2026-11-17
 
 First regular release.

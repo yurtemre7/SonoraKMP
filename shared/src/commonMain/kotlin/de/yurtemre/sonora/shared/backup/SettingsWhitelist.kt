@@ -64,8 +64,9 @@ object SettingsWhitelist {
     )
 
     // Deliberately absent: native-only keys such as `skip_silence`, `fade_between_songs_seconds` and the Jam's
-    // `jam_speaker_delay_ms`. The speaker delay depends on this phone's speaker or headphones, so restoring it on
-    // another device would be wrong.
+    // `jam_speaker_delay_ms` and `jam_warm_discovery`. The speaker delay depends on this phone's speaker or
+    // headphones, and the background search on this phone's battery and network, so restoring them on another device
+    // would be wrong.
 
     /** Keys KMP writes on export (backup types); Flutter ignores the KMP-only [THEME_COLOR_SOURCE], [UPDATE_CHANNEL] and [SMART_SHUFFLE] as unknown. */
     val exportKeys: Map<String, PrefType> =

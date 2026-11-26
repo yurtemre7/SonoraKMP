@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep2_notification_then_finish">Geri sayıyor, sonra şarkıyı bitirecek</string>
+    <string name="sleep2_notification_finishing">Bu şarkıdan sonra duracak</string>
+    <string name="sleep2_finish_song_desc">Son şarkı sonuna kadar çalsın</string>
+    <string name="sleep2_start">Sayacı başlat</string>
+    <string name="sleep2_start_finish_only">Bu şarkıdan sonra dur</string>
+    <string name="sleep2_then_finish">sonra şarkıyı bitirir</string>
+    <string name="sleep2_finishing_status">Bu şarkıdan sonra duracak</string>
+</resources>

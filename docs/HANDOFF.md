@@ -86,8 +86,8 @@ Definition of done for a release build: `./gradlew testDebugUnitTest assembleRel
 
 **Rules that keep CI green**
 
-- No user-visible text in code: add it to `res/values/strings_<feature>.xml` and `res/values-ja/…`
-  (`StringsParityTest` fails if en and ja differ). The product name is "SonoraKMP".
+- No user-visible text in code: add it to `res/values/strings_<feature>.xml`, `res/values-ja/…` and `res/values-tr/…`
+  (`StringsParityTest` fails if the languages differ; style rules in `docs/TRANSLATING.md`). The product name is "SonoraKMP".
 - In composables read strings with `LocalResources.current`, not `LocalContext.current` (lint error), and
   locale with `currentLocale()`, not `Locale.getDefault()`.
 - English strings are sentence case; generated ones are overridden in `scripts/strings/en_overrides.tsv`
