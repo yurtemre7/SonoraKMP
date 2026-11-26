@@ -51,6 +51,14 @@ components. See [docs/DESIGN.md](docs/DESIGN.md).
 - Updates itself from GitHub releases, with checksum verification and a
   choice of channel: Stable, Pre-release or Nightly
 
+## Permissions
+
+SonoraKMP asks only for what it uses: audio files (the folder you pick), notifications for playback controls,
+the internet for update checks, and (only when you update) permission to hand the download to Android's installer. **Jam** and **Device sync** talk to other phones on your Wi-Fi, so on Android 17 and
+later they ask for **local network access** before they start (Wi-Fi multicast is used for discovery on every
+version). Without it neither feature runs; music playback is unaffected. Nothing leaves your Wi-Fi. The full list is
+in *Settings → Privacy*.
+
 ## Install
 
 Download `sonora-<version>.apk` from the [latest release](https://github.com/yurtemre7/SonoraKMP/releases/latest)

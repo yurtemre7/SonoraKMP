@@ -74,6 +74,9 @@ join as guests (8 phones in all).
   phone's hotspot.
 - Host and guests need the same Jam version of SonoraKMP; otherwise the guest
   sees "This Jam uses a different version of SonoraKMP".
+- On Android 17 and later the Jam needs the **local network** permission (asked
+  when you start or join one); without it the Jam does not start. It is listed
+  under Settings › Privacy.
 - There is no QR-code joining (on purpose: no camera permission), and songs a
   guest lacks are not streamed or copied. Device sync can copy them beforehand.
 

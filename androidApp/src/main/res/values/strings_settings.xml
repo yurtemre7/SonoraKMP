@@ -168,7 +168,7 @@
     <string name="settings_perm_wake_title">Keep awake</string>
     <string name="settings_perm_wake_body">Stops the device from sleeping in the middle of a song.</string>
     <string name="settings_perm_internet_title">Internet</string>
-    <string name="settings_perm_internet_body">Used to fetch release information and the changelog from GitHub, and by Device sync to connect directly to your other phone on the same Wi-Fi. Your music and data are never uploaded to the internet.</string>
+    <string name="settings_perm_internet_body">Used to fetch release information and the changelog from GitHub, by Device sync and Jam to connect directly to your other phone on the same Wi-Fi. Your music and data are never uploaded to the internet.</string>
     <string name="settings_perm_install_title">Install updates</string>
     <string name="settings_perm_install_body">Lets SonoraKMP hand a downloaded update to the Android installer. Nothing is installed without your confirmation.</string>
     <string name="settings_privacy_delete_title">Delete everything</string>

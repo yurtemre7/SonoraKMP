@@ -29,6 +29,8 @@
     <string name="jam_join_body">Play along with a Jam on the same Wi-Fi</string>
     <string name="jam_open">Open Jam</string>
     <string name="jam_how_it_works">Songs play from each phone\'s own library, so nothing is streamed and no internet is needed. Up to 8 phones can join.</string>
+    <string name="settings_perm_jam_title">Jam and local network</string>
+    <string name="settings_perm_jam_body">Jam finds and joins other phones on the same Wi-Fi (mDNS and Wi-Fi multicast; on Android 17 and later it asks for local network access, which Device sync needs as well). Guests connect directly to the host with the 6-digit code, encrypted; nothing goes through the internet. While a Jam runs, a media foreground service keeps it playing in the background. You can also join with the host\'s IP address and port if your router blocks discovery.</string>
     <string name="jam_local_network_denied">SonoraKMP needs access to the local network to start or join a Jam</string>
 
     <!-- Start sheet -->
