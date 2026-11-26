@@ -71,6 +71,17 @@ fun HomeScreen(
             currentPullToHome()
         }
     }
+    // One-time hint (per install, kept in app-private prefs) about the pull-down-to-Home gesture.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val hintText = androidx.compose.ui.res.stringResource(de.yurtemre.sonora.R.string.home_hint_pull_down)
+    val hintAction = androidx.compose.ui.res.stringResource(de.yurtemre.sonora.R.string.home_hint_got_it)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val prefs = runCatching { context.getSharedPreferences("home_hints", android.content.Context.MODE_PRIVATE) }.getOrNull()
+        if (prefs != null && !prefs.getBoolean("pull_to_home_seen", false)) {
+            prefs.edit().putBoolean("pull_to_home_seen", true).apply()
+            snackbarHostState.showSnackbar(hintText, hintAction, withDismissAction = true, duration = androidx.compose.material3.SnackbarDuration.Long)
+        }
+    }
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },

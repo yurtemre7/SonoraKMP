@@ -184,14 +184,25 @@ fun HomeDashboard(
                 }
             }
             item(key = "tiles") { HomeTiles(onOpenTab) }
-            if (recommended.isNotEmpty()) {
+            // Rows with no data: a short message once the library has songs; nothing at all on a fresh install
+            // (the Scan CTA above already covers that) or while the first stats emission is pending.
+            val hasSongs = (glance?.songCount ?: 0) > 0
+            if (recommended.isNotEmpty() || hasSongs) {
                 item(key = "recommended_header") { SectionHeader(stringResource(R.string.home_recommended)) }
-                item(key = "recommended") { SongCarousel(recommended, playback) }
+                item(key = "recommended") {
+                    if (recommended.isNotEmpty()) SongCarousel(recommended, playback)
+                    else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
+                }
             }
-            item(key = "weekly") { WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier) }
-            if (recent.isNotEmpty()) {
+            if (weekly.loaded && weekly.songs.isNotEmpty()) {
+                item(key = "weekly") { WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier) }
+            }
+            if (recent.isNotEmpty() || hasSongs) {
                 item(key = "recent_header") { SectionHeader(stringResource(R.string.home_recent)) }
-                item(key = "recent") { SongCarousel(recent, playback) }
+                item(key = "recent") {
+                    if (recent.isNotEmpty()) SongCarousel(recent, playback)
+                    else EmptyRowMessage(stringResource(R.string.home_recent_empty))
+                }
             }
             item(key = "end") { Spacer(Modifier.height(16.dp)) }
         }
@@ -245,6 +256,16 @@ private fun DashboardHeader(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
         )
     }
+}
+
+@Composable
+private fun EmptyRowMessage(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+    )
 }
 
 /** Horizontal row of song cards; tapping one plays it with the whole row as the queue. */

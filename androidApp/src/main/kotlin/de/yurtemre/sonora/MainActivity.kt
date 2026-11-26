@@ -59,7 +59,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         setContent {
-            val settings by settingsRepository.settings.collectAsStateWithLifecycle(AppSettings())
+            // null until the first real emission: the shell captures defaultTab/startOnHome once, so it waits for it.
+            val loadedSettings: AppSettings? by settingsRepository.settings.collectAsStateWithLifecycle<AppSettings?>(null)
+            val settings = loadedSettings ?: AppSettings()
             val windowSize = calculateWindowSizeClass(this)
             val audioPlaying by remember { playback.player.map { it.isPlaying }.distinctUntilChanged() }
                 .collectAsStateWithLifecycle(false)
@@ -85,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 CompositionLocalProvider(LocalDisplayPrefs provides prefs, LocalAudioPlaying provides audioPlaying) {
                     GateHost {
-                        SonoraAppShell(
+                        if (loadedSettings != null) SonoraAppShell(
                             widthSizeClass = windowSize.widthSizeClass,
                             defaultTab = LibraryTab.fromStartPage(settings.defaultStartPage),
                             startOnHome = settings.startOnHome,
