@@ -1,0 +1,105 @@
+name: Gradle cache save
+description: >
+  Saves the Gradle cache with a size budget. Measures the compressed size (what GitHub counts
+  against the 10 GB repo limit), drops the least valuable parts if the entry is over budget so it
+  is never evicted for size, and reports total repo cache usage. Call it on main, on a cache miss.
+
+inputs:
+  key:
+    description: "Exact cache key (gradle-setup's cache-key output)."
+    required: true
+  budget-mb:
+    description: >
+      Max compressed size of one entry. A dependency change leaves two generations of two entries
+      (build, test) alive until cache-cleanup runs, so 4 x budget must stay well under 10 GB.
+    default: "1800"
+  repo-warn-mb:
+    description: "Warn when total repo cache usage exceeds this."
+    default: "8000"
+  token:
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Measure, trim to budget, report
+      shell: bash
+      env:
+        BUDGET: ${{ inputs.budget-mb }}
+        REPO_WARN: ${{ inputs.repo-warn-mb }}
+        GH_TOKEN: ${{ inputs.token }}
+        KEY: ${{ inputs.key }}
+      run: |
+        set -uo pipefail
+        shopt -s nullglob
+        G="$HOME/.gradle"
+        core=("$G"/caches/modules-2 "$G"/caches/jars-* "$G"/wrapper/dists)   # never trimmed
+        tier1=("$G"/caches/build-cache-1)                                    # cheapest to lose
+        tier2=("$G"/caches/transforms-* "$G"/caches/[0-9]*/transforms)
+        tier3=("$G"/caches/[0-9]*/kotlin-dsl)
+
+        # Compressed MB of everything that would be cached (what GitHub counts). Never fail open:
+        # without zstd use gzip, and if measuring yields nothing, fall back to the raw size.
+        compress() { if command -v zstd >/dev/null; then zstd -T0 -3 -c; else gzip -1 -c; fi; }
+        csize() {
+          local all=("${core[@]}" "${tier1[@]}" "${tier2[@]}" "${tier3[@]}")
+          (( ${#all[@]} )) || { echo 0; return; }
+          local mb
+          mb=$(tar -cf - "${all[@]}" 2>/dev/null | compress | wc -c | awk '{printf "%d", $1/1048576}')
+          if (( mb > 0 )); then echo "$mb"; else du -sm "${all[@]}" 2>/dev/null | awk '{s+=$1} END {print s+0}'; fi
+        }
+        rawmb() { (( $# )) && du -sm "$@" 2>/dev/null | awk '{s+=$1} END {print s+0}' || echo 0; }
+
+        {
+          echo "### Gradle cache \`$KEY\`"
+          echo
+          echo "| Part | Raw MB |"
+          echo "|---|---|"
+          echo "| core (modules-2, jars, wrapper) | $(rawmb "${core[@]}") |"
+          echo "| build-cache-1 | $(rawmb "${tier1[@]}") |"
+          echo "| transforms | $(rawmb "${tier2[@]}") |"
+          echo "| kotlin-dsl | $(rawmb "${tier3[@]}") |"
+          echo
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        total=$(csize)
+        echo "Compressed size: ${total} MB (budget ${BUDGET} MB)"
+        for name in tier1 tier2 tier3; do
+          (( total > BUDGET )) || break
+          declare -n t=$name
+          (( ${#t[@]} )) || continue
+          echo "::warning title=Gradle cache over budget::${total} MB > ${BUDGET} MB, dropping $name (${t[*]##*/})"
+          rm -rf "${t[@]}"
+          t=()
+          total=$(csize)
+          echo "After dropping $name: ${total} MB"
+        done
+        if (( total > BUDGET )); then
+          echo "::error title=Gradle cache still over budget::${total} MB > ${BUDGET} MB with only core left. Raise budget-mb or shrink dependencies; the entry may be evicted by GitHub."
+        fi
+        echo "Compressed size to save: **${total} MB** of ${BUDGET} MB budget" >> "$GITHUB_STEP_SUMMARY"
+
+        usage=$(gh api "repos/$GITHUB_REPOSITORY/actions/cache/usage" --jq '[.active_caches_count, (.active_caches_size_in_bytes/1048576|floor)]|@tsv' 2>/dev/null || true)
+        if [[ "$usage" =~ ^[0-9]+[[:space:]]+[0-9]+$ ]]; then
+          count=${usage%%[[:space:]]*}; used=${usage##*[[:space:]]}
+          echo "Repo cache usage before this save: ${used} MB in ${count} entries (limit 10240 MB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          if (( used + total > REPO_WARN )); then
+            echo "::warning title=Repo cache nearing 10 GB::${used} MB + ${total} MB new > ${REPO_WARN} MB. GitHub evicts least-recently-used entries past 10 GB; run cache-cleanup."
+          fi
+        else
+          echo "Repo cache usage unavailable (needs 'actions: read'); skipping the repo-wide check."
+        fi
+
+    - name: Save Gradle cache
+      uses: actions/cache/save@v5
+      with:
+        key: ${{ inputs.key }}
+        # Keep this list identical to gradle-setup (the cache version is derived from it).
+        path: |
+          ~/.gradle/caches/modules-2
+          ~/.gradle/caches/jars-*
+          ~/.gradle/caches/transforms-*
+          ~/.gradle/caches/[0-9]*/transforms
+          ~/.gradle/caches/[0-9]*/kotlin-dsl
+          ~/.gradle/caches/build-cache-1
+          ~/.gradle/wrapper/dists

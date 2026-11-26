@@ -19,7 +19,9 @@ set -euo pipefail
 
 DRY_RUN=false
 ONLY_PR=""
-MAX_IDLE_DAYS="${MAX_IDLE_DAYS:-3}"
+# GitHub itself evicts entries idle for 7 days; stay just under that so a quiet weekend never
+# turns the next run into a cold build.
+MAX_IDLE_DAYS="${MAX_IDLE_DAYS:-6}"
 REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
 
 while [[ $# -gt 0 ]]; do
