@@ -18,8 +18,8 @@ class JamDiscoveryTest {
         assertEquals(60, JamDiscovery.txtRecord("a".repeat(100)).getValue("name").length)
     }
 
-    @Test fun serviceNameUsesFirstFourHexLowercase() {
-        assertEquals("SonoraJam-abcd", JamDiscovery.serviceNameFor("ABCD-1234"))
+    @Test fun serviceNameUsesFirstEightHexLowercase() {
+        assertEquals("SonoraJam-abcd1234", JamDiscovery.serviceNameFor("ABCD-1234-ef56"))
     }
 
     @Test fun manualJoinParsesIpAndPort() {
