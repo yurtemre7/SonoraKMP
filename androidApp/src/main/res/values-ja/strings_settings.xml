@@ -87,8 +87,6 @@
     <string name="settings_visualizer">ビジュアライザー</string>
     <string name="settings_visualizer_subtitle">再生画面にアニメーションするビジュアライザーを表示します</string>
     <string name="settings_section_personal">パーソナライズ</string>
-    <string name="settings_greeting">あいさつをタイトルに</string>
-    <string name="settings_greeting_subtitle">アプリ名の代わりに「おはよう」などと表示します</string>
     <string name="settings_name">あなたの名前</string>
     <string name="settings_name_dialog_title">お名前を教えてください</string>
 
@@ -140,7 +138,7 @@
     <string name="settings_finish_song">今の曲を最後まで再生</string>
     <string name="settings_finish_song_subtitle">曲が終わるのを待ってから停止します</string>
     <string name="settings_start_page">最初に開くタブ</string>
-    <string name="settings_start_page_subtitle">ライブラリを開いたときに表示されるタブです</string>
+    <string name="settings_start_page_subtitle">起動時に開くホームまたはライブラリのタブです</string>
     <string name="settings_tab_home">ホーム</string>
     <string name="settings_tab_songs">曲</string>
     <string name="settings_tab_albums">アルバム</string>

@@ -88,8 +88,6 @@
     <string name="settings_visualizer">Görselleştirici</string>
     <string name="settings_visualizer_subtitle">Çalan şarkı ekranında animasyonlu görselleştirici göster</string>
     <string name="settings_section_personal">Kişisel</string>
-    <string name="settings_greeting">Selamlama başlığı</string>
-    <string name="settings_greeting_subtitle">Uygulama adı yerine \"günaydın\" gibi bir selam ver</string>
     <string name="settings_name">Adın</string>
     <string name="settings_name_dialog_title">Sana ne diyelim?</string>
     <string name="settings_formatting_preview">Önizleme</string>
@@ -139,7 +137,7 @@
     <string name="settings_finish_song">Çalan şarkıyı bitir</string>
     <string name="settings_finish_song_subtitle">Durmadan önce şarkının bitmesini bekle</string>
     <string name="settings_start_page">Açılış sayfası</string>
-    <string name="settings_start_page_subtitle">Kitaplığın açıldığı sekme</string>
+    <string name="settings_start_page_subtitle">Açılışta ana sayfa veya kitaplık sekmesi</string>
     <string name="settings_tab_home">Ana sayfa</string>
     <string name="settings_tab_songs">Şarkılar</string>
     <string name="settings_tab_albums">Albümler</string>

@@ -94,11 +94,8 @@
     <string name="settings_visualizer">Visualizer</string>
     <string name="settings_visualizer_subtitle">Show an animated visualizer on now playing</string>
     <string name="settings_section_personal">Personal</string>
-    <string name="settings_greeting">Greeting title</string>
-    <string name="settings_greeting_subtitle">Say good morning instead of showing the app name</string>
     <string name="settings_name">Your name</string>
     <string name="settings_name_dialog_title">What should we call you?</string>
-    <string name="settings_name_default" translatable="false">User</string>
 
     <!-- Formatting (SET-03) -->
     <string name="settings_formatting_preview">Preview</string>
@@ -152,7 +149,7 @@
     <string name="settings_finish_song">Finish the current song</string>
     <string name="settings_finish_song_subtitle">Wait for the song to end before stopping</string>
     <string name="settings_start_page">Start page</string>
-    <string name="settings_start_page_subtitle">The tab the library opens on</string>
+    <string name="settings_start_page_subtitle">Where the app opens: Home or a library tab</string>
     <string name="settings_tab_home">Home</string>
     <string name="settings_tab_songs">Songs</string>
     <string name="settings_tab_albums">Albums</string>
