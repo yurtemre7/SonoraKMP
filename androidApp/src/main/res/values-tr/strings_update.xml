@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_sheet_title">Güncelleme var</string>
+    <string name="update_sheet_version">Sürüm %1$s</string>
+    <string name="update_sheet_current">Şu an %1$s kullanıyorsun</string>
+    <string name="update_sheet_no_notes">Bu sürüm için not yok.</string>
+    <string name="update_action_later">Sonra</string>
+    <string name="update_action_install">Kur</string>
+    <string name="update_action_browser">Tarayıcıda aç</string>
+    <string name="update_action_retry">Tekrar dene</string>
+    <string name="update_action_check">Şimdi denetle</string>
+    <string name="update_state_idle">GitHub\'da yeni sürüm ara</string>
+    <string name="update_state_checking">Güncellemeler denetleniyor…</string>
+    <string name="update_state_up_to_date">En son sürümdesin</string>
+    <string name="update_state_available">%1$s sürümü hazır</string>
+    <string name="update_state_last_checked">Son denetim: %1$s</string>
+    <string name="update_error_no_network">Ağ bağlantısı yok</string>
+    <string name="update_error_rate_limited">GitHub istek sınırına ulaşıldı. %1$s sonra tekrar dene.</string>
+    <string name="update_error_server">GitHub hata döndürdü (%1$d)</string>
+    <string name="update_error_no_asset">Bu sürümde henüz kurulabilir APK yok</string>
+    <string name="update_error_malformed">Sürüm bilgisi okunamadı</string>
+    <string name="update_error_unknown">Güncelleme denetimi başarısız</string>
+    <string name="update_rate_limit_title">İstek sınırına ulaşıldı</string>
+    <string name="update_rate_limit_message">GitHub saatte sınırlı sayıda anonim isteğe izin verir. %1$s sonra tekrar denetleyebilir ya da sürümler sayfasını hemen açabilirsin.</string>
+    <string name="update_channel_title">Güncelleme kanalı</string>
+    <string name="update_channel_stable">Kararlı</string>
+    <string name="update_channel_stable_desc">Yalnızca denenmiş sürümler</string>
+    <string name="update_channel_prerelease">Ön sürüm</string>
+    <string name="update_channel_prerelease_desc">Yayınlanmadan önce beta ve aday sürümler</string>
+    <string name="update_channel_nightly">Nightly</string>
+    <string name="update_channel_nightly_desc">Her gün en yeni koddan taze bir derleme</string>
+    <string name="update_channel_nightly_warning">Nightly derlemeler denenmemiştir; bozulabilir ya da veri kaybettirebilir. Yedek al.</string>
+    <string name="update_cd_warning">Uyarı</string>
+</resources>

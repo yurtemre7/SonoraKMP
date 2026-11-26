@@ -67,7 +67,7 @@ Debug builds install next to release builds (`.dev` application ID, "SonoraKMP D
 
 ## Localization
 
-SonoraKMP ships in English and Japanese. **No hardcoded user-visible strings** in Kotlin or XML:
+SonoraKMP ships in English, Japanese and Turkish (see `docs/TRANSLATING.md`). **No hardcoded user-visible strings** in Kotlin or XML:
 every label, message, content description and notification text goes through string resources.
 
 To add a string:
@@ -76,15 +76,15 @@ To add a string:
    ```xml
    <string name="settings_sleep_timer">Sleep timer</string>
    ```
-2. Add the same key to `androidApp/src/main/res/values-ja/strings.xml`:
+2. Add the same key to every language folder (`values-ja/`, `values-tr/`):
    ```xml
    <string name="settings_sleep_timer">スリープタイマー</string>
    ```
 3. Use it via `stringResource(R.string.settings_sleep_timer)` in Compose or `context.getString(...)` elsewhere.
    Use `<plurals>` for counts and placeholders (`%1$s`, `%1$d`) instead of string concatenation.
 
-Name keys `area_purpose` in snake_case. If you can't write the Japanese text, say so in the PR so a
-translation can be added before merging; both files must contain the same keys.
+Name keys `area_purpose` in snake_case. If you can't write a translation, say so in the PR so it can be added before merging; every
+language must contain the same keys.
 
 ## Releases
 

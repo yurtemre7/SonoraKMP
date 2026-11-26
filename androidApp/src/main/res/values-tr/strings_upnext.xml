@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seek_bar_label">Çalma konumu</string>
+    <string name="seek_bar_state">%1$s / %2$s</string>
+    <string name="seek_bar_remaining">%1$s kaldı</string>
+    <string name="up_next_title">Sıradaki</string>
+    <string name="up_next_empty">Sıra boş</string>
+    <string name="up_next_scroll_to_current">Çalan şarkıya git</string>
+    <string name="up_next_removed">“%1$s” çıkarıldı</string>
+    <string name="up_next_undo">Geri al</string>
+    <string name="up_next_remove">Sıradan çıkar</string>
+    <string name="up_next_move_up">Yukarı taşı</string>
+    <string name="up_next_move_down">Aşağı taşı</string>
+    <string name="up_next_drag_handle">Yeniden sırala</string>
+</resources>

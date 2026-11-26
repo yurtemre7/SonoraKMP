@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_search_hint">Kitaplığında ara</string>
+    <string name="home_search_clear">Aramayı temizle</string>
+    <string name="home_sort_button">Sırala: %1$s</string>
+    <string name="home_count_with_duration">%1$s, %2$s</string>
+    <string name="home_sort_sheet_title">%1$s sıralama ölçütü</string>
+    <string name="home_sort_ascending">Artan</string>
+    <string name="home_sort_descending">Azalan</string>
+    <string name="home_sort_most_played">En çok çalan</string>
+    <string name="home_sort_least_played">En az çalan</string>
+    <string name="home_sort_opt_title">Başlık</string>
+    <string name="home_sort_opt_artist">Sanatçı</string>
+    <string name="home_sort_opt_duration">Süre</string>
+    <string name="home_sort_opt_recent">Son eklenen</string>
+    <string name="home_sort_opt_plays">Çalma sayısı</string>
+    <string name="home_sort_opt_name">Ad</string>
+    <string name="home_sort_opt_tracks">Parça sayısı</string>
+    <string name="home_sort_opt_albums">Albüm sayısı</string>
+    <string name="home_sort_opt_songs">Şarkı sayısı</string>
+    <string name="home_sort_saved">Sekme başına saklanır, bir dahaki sefere de geçerli.</string>
+    <string name="home_action_recently_played">Son çalınanlar</string>
+    <string name="home_action_favorites">Favoriler</string>
+    <string name="home_action_settings">Ayarlar</string>
+</resources>

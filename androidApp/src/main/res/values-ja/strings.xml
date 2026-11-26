@@ -17,7 +17,7 @@
     <string name="amoled_dark_subtitle">ダークモード時に、ダークグレーではなく完全な黒背景を使用します</string>
     <string name="blurred_backgrounds">ぼかし背景</string>
     <string name="blurred_backgrounds_subtitle">プレーヤーと詳細画面の背後にぼかしたカバーを表示します。低性能な端末ではGPU負荷が高くなります</string>
-    <string name="app_description">FlutterとMaterial 3 Expressiveで作られた、Android向けの美しいローカル音楽プレーヤーです。</string>
+    <string name="app_description">Kotlin MultiplatformとMaterial 3 Expressiveで作られた、Android向けの美しいローカル音楽プレーヤーです。</string>
     <string name="app_language">アプリの言語</string>
     <string name="app_title">SonoraKMP</string>
     <string name="appearance">外観</string>
@@ -85,10 +85,10 @@
     <string name="filter_title_features_subtitle">曲名に含まれるフィーチャリング情報を非表示にします。</string>
     <string name="formatting_subtitle">曲名の表示方法を設定します</string>
     <string name="get_started">はじめる</string>
-    <string name="good_afternoon">%1$sさん、こんにちは</string>
-    <string name="good_evening">%1$sさん、こんばんは</string>
-    <string name="good_night">%1$sさん、おやすみなさい</string>
-    <string name="good_morning">%1$sさん、おはようございます</string>
+    <string name="good_afternoon">%1$sさん、午後も音楽と</string>
+    <string name="good_evening">%1$sさん、今夜は何を聴く？</string>
+    <string name="good_night">%1$sさん、夜ふかしですね</string>
+    <string name="good_morning">%1$sさん、おはよう！</string>
     <string name="info_settings">情報とサポート</string>
     <string name="info_subtitle">アプリ情報、更新、更新履歴、データの初期化</string>
     <string name="keep_playing_on_close">アプリを閉じても再生を続ける</string>

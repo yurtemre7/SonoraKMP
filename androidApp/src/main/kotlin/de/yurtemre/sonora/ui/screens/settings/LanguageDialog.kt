@@ -29,6 +29,7 @@ fun languageLabel(locale: AppLocale): String = when (locale) {
     AppLocale.System -> stringResource(R.string.language_system)
     AppLocale.English -> stringResource(R.string.settings_language_english)
     AppLocale.Japanese -> stringResource(R.string.settings_language_japanese)
+    AppLocale.Turkish -> stringResource(R.string.settings_language_turkish)
 }
 
 @Composable

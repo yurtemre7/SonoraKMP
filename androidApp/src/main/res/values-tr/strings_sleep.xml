@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_timer_channel_name">Uyku sayacı</string>
+    <string name="sleep_timer_channel_description">Uyku sayacının kalan süresini gösterir</string>
+    <string name="sleep_timer_notification_title">Uyku sayacı</string>
+    <string name="sleep_timer_notification_finishing">Bu şarkıdan sonra duracak</string>
+    <string name="sleep_timer_action_extend">+1 dk</string>
+    <string name="sleep_timer_action_end">Sayacı bitir</string>
+</resources>

@@ -28,6 +28,7 @@
     <string name="settings_language_dialog_title">Choose a language</string>
     <string name="settings_language_english" translatable="false">English</string>
     <string name="settings_language_japanese" translatable="false">日本語</string>
+    <string name="settings_language_turkish" translatable="false">Türkçe</string>
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_subtitle">Theme, colors, now playing look</string>
     <string name="settings_formatting_title">Title formatting</string>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="weekly_mix_title">Haftalık karışım</string>
+    <string name="weekly_mix_refreshes_in">%1$s sonra yenilenir</string>
+    <string name="weekly_mix_unit_days" tools:ignore="PluralsCandidate">%1$d g</string>
+    <string name="weekly_mix_unit_hours" tools:ignore="PluralsCandidate">%1$d sa</string>
+    <string name="weekly_mix_unit_minutes" tools:ignore="PluralsCandidate">%1$d dk</string>
+    <string name="weekly_mix_empty">Birkaç şarkı çal, haftalık karışımın dolsun.</string>
+    <string name="weekly_mix_save">Liste olarak kaydet</string>
+    <string name="weekly_mix_playlist_name">Haftalık karışım · %1$s</string>
+    <string name="weekly_mix_saved">“%1$s” olarak kaydedildi</string>
+    <string name="weekly_mix_save_failed">Liste kaydedilemedi</string>
+    <string name="weekly_mix_play">Çal</string>
+    <string name="weekly_mix_shuffle">Karıştır</string>
+    <string name="weekly_mix_add_to_queue">Sıraya ekle</string>
+    <string name="weekly_mix_less_than_minute">bir dakikadan az</string>
+    <plurals name="weekly_mix_added_to_queue">
+        <item quantity="one">%1$d şarkı sıraya eklendi</item>
+        <item quantity="other">%1$d şarkı sıraya eklendi</item>
+    </plurals>
+</resources>

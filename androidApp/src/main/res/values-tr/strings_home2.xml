@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home2_search">Ara</string>
+    <string name="home2_sort">Sırala</string>
+    <string name="home2_shuffle">Karıştır</string>
+    <string name="home2_close_search">Aramayı kapat</string>
+    <string name="home2_select">Seç</string>
+    <string name="home2_undo">Geri al</string>
+    <string name="home2_bin_this_week">Bu hafta</string>
+    <string name="home2_bin_this_month">Bu ay</string>
+    <string name="home2_bin_earlier">Daha önce</string>
+    <string name="home2_bin_minutes">%1$d–%2$d dk</string>
+    <string name="home2_bin_minutes_open">%1$d+ dk</string>
+    <string name="home2_bin_not_played">Henüz çalmadı</string>
+    <string name="home2_bin_plays">%1$d–%2$d çalma</string>
+    <string name="home2_bin_plays_open">%1$d+ çalma</string>
+    <string name="home2_bin_range">%1$d–%2$d</string>
+    <string name="home2_bin_range_open">%1$d+</string>
+    <string name="home2_index_label">Bölüm dizini</string>
+</resources>

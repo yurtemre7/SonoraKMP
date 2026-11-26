@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cd_album_art">%1$s albüm kapağı</string>
+    <string name="cd_artist_avatar">%1$s sanatçı görseli</string>
+    <string name="cd_more_options">Diğer seçenekler</string>
+    <string name="cd_now_playing">Şimdi çalıyor</string>
+    <string name="cd_selected">Seçili</string>
+    <string name="song_row_state_desc">%2$s, %1$s, %3$s</string>
+    <string name="action_play_next">Sıradaki yap</string>
+    <string name="action_add_to_queue">Sıraya ekle</string>
+    <string name="confirm">Onayla</string>
+    <string name="dev_badge">Dev</string>
+</resources>

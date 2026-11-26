@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_tab_songs">Şarkılar</string>
+    <string name="nav_tab_albums">Albümler</string>
+    <string name="nav_tab_artists">Sanatçılar</string>
+    <string name="nav_tab_playlists">Listeler</string>
+    <string name="nav_title_library">Kitaplık</string>
+    <string name="nav_title_album">Albüm</string>
+    <string name="nav_title_artist">Sanatçı</string>
+    <string name="nav_title_playlist">Çalma listesi</string>
+    <string name="nav_title_favorites">Favoriler</string>
+    <string name="nav_title_recently_played">Son çalınanlar</string>
+    <string name="nav_title_stats">Dinleme istatistikleri</string>
+    <string name="nav_title_settings">Ayarlar</string>
+    <string name="nav_title_settings_appearance">Görünüm</string>
+    <string name="nav_title_settings_formatting">Kitaplık düzeni</string>
+    <string name="nav_title_settings_playback">Çalma</string>
+    <string name="nav_title_settings_privacy">Gizlilik ve izinler</string>
+    <string name="nav_title_settings_backup">Yedekle ve geri yükle</string>
+    <string name="nav_title_settings_info">Bilgi ve destek</string>
+    <string name="nav_title_changelog">Yenilikler</string>
+    <string name="nav_title_licenses">Lisanslar</string>
+    <string name="nav_title_debug_caches">Önbellek hata ayıklama</string>
+    <string name="nav_title_onboarding">Hoş geldin</string>
+    <string name="nav_coming_soon">Yakında</string>
+    <string name="nav_back">Geri</string>
+</resources>

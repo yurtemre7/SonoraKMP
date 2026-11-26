@@ -60,7 +60,7 @@ android {
 
     androidResources {
         generateLocaleConfig = true
-        localeFilters += listOf("en", "ja")
+        localeFilters += listOf("en", "ja", "tr")
     }
 
     signingConfigs {

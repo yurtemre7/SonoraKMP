@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sleep_badge_tracks">
+        <item quantity="one">%1$d şarkı</item>
+        <item quantity="other">%1$d şarkı</item>
+    </plurals>
+    <plurals name="sleep_tracks_remaining">
+        <item quantity="one">%1$d şarkı kaldı</item>
+        <item quantity="other">%1$d şarkı kaldı</item>
+    </plurals>
+    <string name="sleep_tracks_label">Ya da şu kadar şarkıdan sonra dur</string>
+    <string name="sleep_tracks_option">%1$d</string>
+    <string name="sleep_tracks_start">%1$d şarkıdan sonra dur</string>
+    <string name="sleep_tracks_extend">+1 şarkı</string>
+</resources>
