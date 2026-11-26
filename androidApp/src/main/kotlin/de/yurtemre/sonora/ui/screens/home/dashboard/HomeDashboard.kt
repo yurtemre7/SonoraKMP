@@ -92,7 +92,6 @@ fun HomeDashboard(
     onScanLibrary: () -> Unit,
     onOpenTab: (LibraryTab) -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenNowPlaying: () -> Unit,
     onNavigate: (NavKey) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -113,8 +112,6 @@ fun HomeDashboard(
     val weeklyVm = viewModel { WeeklyMixViewModel(weeklyRepo, library.songs.map { it.isNotEmpty() }, clock) }
     val weekly by weeklyVm.ui.collectAsStateWithLifecycle()
     LifecycleResumeEffect(weeklyVm) { weeklyVm.onResume(); onPauseOrDispose { } }
-    val player by playback.player.collectAsStateWithLifecycle()
-    val position = playback.positionMs.collectAsStateWithLifecycle(0L)
     val scope = rememberCoroutineScope()
     var nameDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -138,24 +135,6 @@ fun HomeDashboard(
                     modifier = Modifier.windowInsetsPadding(SonoraInsets.top),
                 )
             }
-            val current = player.currentSong
-            if (current != null && player.isPlaying) item(key = "now_playing") {
-                NowPlayingLyricsCard(
-                    song = current,
-                    positionMs = { position.value },
-                    onOpen = onOpenNowPlaying,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            } else if (current != null) item(key = "continue") {
-                ContinueCard(
-                    song = current,
-                    progress = { if (player.durationMs > 0) (position.value.toFloat() / player.durationMs).coerceIn(0f, 1f) else 0f },
-                    onPlay = {
-                        if (player.isCompleted) playback.seekTo(0)
-                        playback.play()
-                    },
-                )
-            }
             item(key = "ctas") {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -176,7 +155,7 @@ fun HomeDashboard(
             }
             glance?.let { g ->
                 item(key = "glance") {
-                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }, modifier = Modifier.padding(horizontal = 16.dp))
+                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) })
                 }
                 g.favorite?.let { fav ->
                     item(key = "favorite") {
@@ -184,7 +163,6 @@ fun HomeDashboard(
                             song = fav,
                             plays = g.favoritePlays,
                             onPlay = { playback.playSong(fav, listOf(fav)) },
-                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
                 }
@@ -250,7 +228,7 @@ private fun DashboardHeader(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 0.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
