@@ -119,7 +119,7 @@ fun jamStatusText(status: JamStatus): Int = when (status) {
 
 /**
  * What Now Playing shows for the Jam state: a guest's player mirrors the host, so local controls that would diverge
- * (seek, reorder/remove, shuffle, repeat, sleep timer) are hidden, and skip / play-pause only show when the host
+ * (seek, reorder/remove, shuffle, repeat, sleep timer, effects settings) are hidden, and skip / play-pause only show when the host
  * allows them (they become requests to the host). [ended] is set once the controller reports the Jam over — for a
  * host that dropped, only after the current song finished.
  */
@@ -131,6 +131,10 @@ data class JamPlayerUi(
     val showQueueEditing: Boolean = true,
     val showShuffleRepeat: Boolean = true,
     val showSleepTimer: Boolean = true,
+    /** The effects (MFX) button and sheet; a guest only sees the read-only tag of what is applied. */
+    val showMfxControls: Boolean = true,
+    /** The host's playback rate on a guest, null elsewhere (the player's own settings apply). */
+    val hostRate: Pair<Float, Float>? = null,
     val showSkip: Boolean = true,
     val showPlayPause: Boolean = true,
     val showAddSong: Boolean = false,
@@ -152,6 +156,8 @@ fun jamPlayerUi(state: JamUiState): JamPlayerUi = when (state) {
         showQueueEditing = false,
         showShuffleRepeat = false,
         showSleepTimer = false,
+        showMfxControls = false,
+        hostRate = state.speed to state.pitch,
         showSkip = state.canControl,
         // After a system pause play only resumes this phone, so it shows even without host control.
         showPlayPause = state.canControl || state.pausedBySystem,

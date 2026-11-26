@@ -123,7 +123,7 @@ fun SonoraAppShell(
     val jamState by jamController.state.collectAsStateWithLifecycle()
     val jamGuest = remember(jamController) { JamGuestActions(jamController) }
     var showMiniSleep by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
-    if (showMiniSleep) de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet(
+    if (showMiniSleep && jamPlayerUi(jamState).showSleepTimer) de.yurtemre.sonora.ui.screens.nowplaying.sheets.SleepTimerSheet(
         onDismiss = { showMiniSleep = false },
         connection = playback,
     )

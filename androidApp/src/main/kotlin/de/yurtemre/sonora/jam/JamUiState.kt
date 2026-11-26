@@ -41,6 +41,9 @@ sealed interface JamUiState {
         val canControl: Boolean,
         val sync: JamSyncState,
         val pausedBySystem: Boolean = false,
+        /** The host's playback rate, shown on the guest's effects tag (the guest plays at it). */
+        val speed: Float = 1f,
+        val pitch: Float = 1f,
     ) : JamUiState
 
     /** The Jam is over; [rejoin] is set when the guest can join the same host again (with the code). */

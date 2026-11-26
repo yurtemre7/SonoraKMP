@@ -276,6 +276,8 @@ internal class JamGuestSession(
                 canControl = s?.guestsCanControl ?: false,
                 sync = sync,
                 pausedBySystem = player.pausedBySystem,
+                speed = s?.speed ?: 1f,
+                pitch = s?.pitch ?: 1f,
             ),
         )
     }

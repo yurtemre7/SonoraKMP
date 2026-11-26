@@ -22,23 +22,18 @@ import de.yurtemre.sonora.ui.format.currentLocale
 
 /**
  * Compact pill shown while sound effects are active (same style as [SleepTimerBadge]): the speed when it is
- * not 1× (e.g. "0.85×" slowed, "1.25×" sped up), otherwise just the icon (pitch or EQ only). Tap opens the sheet.
+ * not 1× (e.g. "0.85×" slowed, "1.25×" sped up), otherwise just the icon (pitch or EQ only). Tap opens the sheet; without
+ * [onClick] (a Jam guest) it is only a tag.
  */
 @Composable
 fun MfxBadge(
     mfx: MfxUiState,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     if (!mfx.isActive) return
     val cs = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = cs.tertiaryContainer,
-        contentColor = cs.onTertiaryContainer,
-        modifier = modifier,
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -57,5 +52,11 @@ fun MfxBadge(
                 )
             }
         }
+    }
+    if (onClick != null) {
+        Surface(onClick = onClick, shape = CircleShape, color = cs.tertiaryContainer, contentColor = cs.onTertiaryContainer, modifier = modifier, content = content)
+    } else {
+        // A Jam guest: only shows what is applied, nothing to open.
+        Surface(shape = CircleShape, color = cs.tertiaryContainer, contentColor = cs.onTertiaryContainer, modifier = modifier, content = content)
     }
 }
