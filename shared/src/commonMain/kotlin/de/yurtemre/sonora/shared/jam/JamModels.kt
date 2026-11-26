@@ -21,6 +21,11 @@ enum class JamRepeat { Off, All, One }
 /**
  * [repeat] is the host's repeat mode; frames without it (older builds) decode as [JamRepeat.Off]. With
  * [JamRepeat.One] a guest loops the current song in its own player (never a reload at each loop).
+ *
+ * [speed] and [pitch] are the host's playback rate (1 = normal): guests play at the same rate, and the song position
+ * runs [speed] times faster than the clock. [seekCount] goes up by one for every seek the host makes (seekbar, lyric
+ * tap, ...): a guest that sees a new count jumps to the host's position even in the middle of a song, which a mere
+ * drift never does. Frames without these fields (older builds) decode as normal speed and no seek.
  */
 @Serializable
 data class JamState(
@@ -32,6 +37,9 @@ data class JamState(
     val guestsCanAdd: Boolean,
     val guestsCanControl: Boolean,
     val repeat: JamRepeat = JamRepeat.Off,
+    val speed: Float = 1f,
+    val pitch: Float = 1f,
+    val seekCount: Int = 0,
 )
 
 @Serializable

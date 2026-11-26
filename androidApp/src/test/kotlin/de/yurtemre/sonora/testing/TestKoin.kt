@@ -128,5 +128,6 @@ class FakePlayback(current: Song? = null) : PlaybackConnection {
     override fun currentPositionMs(): Long = 0L
     override fun queueSnapshot(): QueueSnapshot? = null
     override fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean) {}
+    override fun setMirrorRate(speed: Float, pitch: Float) {}
     override fun endMirror(snapshot: QueueSnapshot?) {}
 }

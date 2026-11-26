@@ -87,4 +87,15 @@ class JamFrameCodecTest {
         assertFailsWith<DeviceSyncProtocolException> { JamFrameCodec.decode(4, "{\"action\":\"Explode\"}".encodeToByteArray()) }
         assertFailsWith<DeviceSyncProtocolException> { JamFrameCodec.decodeHeader(byteArrayOf(1, 0)) }
     }
+
+    @Test fun framesFromOlderBuildsDecodeAsNormalSpeedWithoutASeek() {
+        val old = "{\"queue\":[],\"index\":0,\"playing\":true,\"positionMs\":5,\"hostTimeMs\":6," +
+            "\"guestsCanAdd\":true,\"guestsCanControl\":false}"
+        val decoded = (JamFrameCodec.decode(2, old.encodeToByteArray()) as JamStateFrame).state
+        assertEquals(1f, decoded.speed)
+        assertEquals(1f, decoded.pitch)
+        assertEquals(0, decoded.seekCount)
+        val fast = state.copy(speed = 1.25f, pitch = 0.9f, seekCount = 3)
+        assertEquals(JamStateFrame(fast), roundTrip(JamStateFrame(fast)))
+    }
 }

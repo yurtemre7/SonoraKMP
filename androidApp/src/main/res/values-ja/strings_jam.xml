@@ -56,7 +56,7 @@
     <string name="jam_remove_body">そのスマホは Jam から外れ、自分の音楽に戻ります。</string>
     <string name="jam_remove_confirm">削除</string>
     <string name="jam_permissions_title">ゲストができること</string>
-    <string name="jam_speed_note">速度エフェクトまたは無音スキップがオンです。ゲストは通常の速度で再生するため、少しずつ遅れることがあります。</string>
+    <string name="jam_speed_note">無音スキップがオンです。ゲストは無音スキップなしで再生するため、少しずつ遅れることがあります。</string>
     <string name="jam_end">Jam を終了</string>
     <string name="jam_end_title">Jam を終了しますか？</string>
     <string name="jam_end_body">ゲストは今の曲を最後まで再生してから、自分の音楽に戻ります。</string>

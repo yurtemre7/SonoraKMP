@@ -181,4 +181,27 @@ class JamSessionTest {
         assertNull(nextPlayableIndex(s, emptyList(), 0))
         assertEquals(0, nextPlayableIndex(s, lib, -2))
     }
+
+    @Test fun seekCountsUpAndMovesTheAnchor() {
+        var s = host().apply(JamEvent.HostAction(HostAction.SetQueue(listOf(jam(1)), 0)))
+            .apply(JamEvent.HostAction(HostAction.Play(1_000, 5_000)))
+        assertEquals(0, s.state.seekCount)
+        s = s.apply(JamEvent.HostAction(HostAction.Seek(60_000, 8_000)))
+        assertEquals(1, s.state.seekCount)
+        assertEquals(60_000, s.state.positionMs)
+        assertEquals(8_000, s.state.hostTimeMs)
+        assertTrue(s.state.playing)
+        s = s.apply(JamEvent.HostAction(HostAction.Play(61_000, 9_000))) // a plain re-anchor is no seek
+        assertEquals(1, s.state.seekCount)
+    }
+
+    @Test fun rateChangeReanchorsAndTheTimelineRunsAtThatSpeed() {
+        var s = host().apply(JamEvent.HostAction(HostAction.SetQueue(listOf(jam(1)), 0)))
+            .apply(JamEvent.HostAction(HostAction.Play(10_000, 0)))
+        s = s.apply(JamEvent.HostAction(HostAction.SetRate(1.5f, 1.5f, 10_000, 0)))
+        assertEquals(1.5f, s.state.speed)
+        assertEquals(0, s.state.seekCount)
+        val plan = planPlayback(s.state, listOf(song(1)), ClockSync(), 4_000, null) as GuestPlan.Play
+        assertEquals("4 s of clock are 6 s of song at 1.5x", 16_000, plan.positionMs)
+    }
 }

@@ -43,7 +43,7 @@ internal class JamHostSession(
 ) {
     private var hostState = JamHostState.initial(settings)
     private var codeExhausted = false
-    /** Speed other than 1x or skip silence on the host ([JamUiState.Hosting.hostSpeedEffectActive]). */
+    /** Skip silence on the host ([JamUiState.Hosting.hostSpeedEffectActive]): guests cannot follow it. */
     private var timeEffectActive = false
     private val jobs = mutableListOf<Job>()
     private var advertisement: AutoCloseable? = null
@@ -52,6 +52,7 @@ internal class JamHostSession(
 
     private data class Snapshot(
         val queue: List<JamSong>, val index: Int, val entryUid: Long?, val playing: Boolean, val repeat: JamRepeat,
+        val speed: Float, val pitch: Float,
     )
 
     fun start() {
@@ -59,8 +60,11 @@ internal class JamHostSession(
         advertisement = runCatching { env.advertise(port, env.deviceName()) }.getOrNull() // manual IP:port still works
         publishUi()
         jobs += scope.launch {
-            combine(playback.queue, playback.player) { q, p ->
-                Snapshot(q.items.map { it.song.toJamSong() }, q.currentIndex, p.currentEntryUid, p.isPlaying, p.repeat.toJam())
+            combine(playback.queue, playback.player, playback.mfx) { q, p, mfx ->
+                Snapshot(
+                    q.items.map { it.song.toJamSong() }, q.currentIndex, p.currentEntryUid, p.isPlaying, p.repeat.toJam(),
+                    mfx.effectiveSpeed, mfx.effectivePitch,
+                )
             }
                 .debounce(JamController.HOST_DEBOUNCE_MS)
                 .distinctUntilChanged()
@@ -68,7 +72,7 @@ internal class JamHostSession(
         }
         jobs += scope.launch { transport.events.collect(::onEvent) }
         jobs += scope.launch {
-            combine(playback.mfx, env.skipSilence) { mfx, skip -> mfx.isSpeedChanged || skip }
+            env.skipSilence
                 .distinctUntilChanged()
                 .collect {
                     timeEffectActive = it
@@ -122,14 +126,20 @@ internal class JamHostSession(
         if (repeat != s.state.repeat) s = s.apply(JamEvent.HostAction(HostAction.SetRepeat(repeat)))
         val now = env.nowMs()
         val position = playback.currentPositionMs()
+        val mfx = playback.mfx.value
+        if (mfx.effectiveSpeed != s.state.speed || mfx.effectivePitch != s.state.pitch) {
+            s = s.apply(JamEvent.HostAction(HostAction.SetRate(mfx.effectiveSpeed, mfx.effectivePitch, position, now)))
+        }
         val action = if (playback.player.value.isPlaying) HostAction.Play(position, now) else HostAction.Pause(position, now)
         return s.apply(JamEvent.HostAction(action))
     }
 
     /**
      * A seek changes neither the queue nor play/pause, so the snapshot flow misses it: every [SEEK_CHECK_MS] the
-     * player's position is compared with the last broadcast's extrapolation and a jump goes out as a new state.
-     * With no broadcast for [KEEPALIVE_MS] the state goes out again (a guest treats an unchanged state as a no-op).
+     * player's position is compared with the last broadcast's extrapolation (playing, at the host's speed) or its
+     * frozen position (paused). A jump goes out as a new state with a higher [JamState.seekCount], which guests
+     * follow at once, mid-song. With no broadcast for [KEEPALIVE_MS] the state goes out again (a guest treats an
+     * unchanged state as a no-op).
      */
     private suspend fun watchSeeks() {
         while (true) {
@@ -140,10 +150,15 @@ internal class JamHostSession(
             }
             val s = hostState.state
             val p = playback.player.value
-            // Another entry (a song change the debounce has not sent yet) is not a seek.
-            if (!s.playing || !p.isPlaying || p.currentEntryUid != lastBroadcastUid) continue
-            val expected = s.positionMs + (env.nowMs() - s.hostTimeMs)
-            if (abs(playback.currentPositionMs() - expected) > SEEK_TOLERANCE_MS) broadcastState()
+            // Another entry (a song change the debounce has not sent yet) is not a seek; neither is a play/pause
+            // change the debounce has not sent yet.
+            if (s.playing != p.isPlaying || p.currentEntryUid != lastBroadcastUid) continue
+            val position = playback.currentPositionMs()
+            val expected = if (s.playing) s.positionMs + ((env.nowMs() - s.hostTimeMs) * s.speed).toLong() else s.positionMs
+            if (abs(position - expected) > SEEK_TOLERANCE_MS) {
+                hostState = hostState.apply(JamEvent.HostAction(HostAction.Seek(position, env.nowMs())))
+                broadcastState()
+            }
         }
     }
 
@@ -210,10 +225,10 @@ internal class JamHostSession(
 
     companion object {
         /** How often the host checks for a seek (a position jump without a queue or transport change). */
-        const val SEEK_CHECK_MS = 2_000L
+        const val SEEK_CHECK_MS = 500L
         /** The current state is sent again this often, so a guest that missed a frame catches up. */
         const val KEEPALIVE_MS = 30_000L
         /** A position this far from the extrapolated one is a seek (well above player jitter). */
-        const val SEEK_TOLERANCE_MS = 1_000L
+        const val SEEK_TOLERANCE_MS = 600L
     }
 }

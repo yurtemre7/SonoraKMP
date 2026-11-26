@@ -41,12 +41,14 @@ object SessionCommands {
     const val CLOSE_PLAYER = P + "CLOSE_PLAYER"
     const val SET_MIRROR = P + "SET_MIRROR"
     const val END_MIRROR = P + "END_MIRROR"
+    const val SET_MIRROR_RATE = P + "SET_MIRROR_RATE"
 
     val ALL = listOf(
         SET_QUEUE, RESTORE_QUEUE, PLAY_NEXT, ADD_TO_QUEUE, REMOVE, MOVE, INSERT_AT, SKIP_TO, SET_SHUFFLE, TOGGLE_SHUFFLE,
         CYCLE_REPEAT, SKIP_NEXT, SKIP_PREVIOUS, SET_VOLUME, SET_SPEED, SET_PITCH, SET_MFX_PRESET, SET_BASS_BOOST, SET_WARMTH,
         SET_LOFI, SET_CUSTOM_EQ, SET_EQ_BAND, APPLY_EQ_PRESET, RESET_EFFECTS, SLEEP_START, SLEEP_START_TRACKS, SLEEP_EXTEND,
         SLEEP_STOP, CLOSE_PLAYER, SET_MIRROR, END_MIRROR,
+        SET_MIRROR_RATE,
     )
 
     fun command(action: String) = SessionCommand(action, Bundle.EMPTY)
@@ -62,6 +64,7 @@ object SessionCommands {
     const val ARG_SONG = "song"
     const val ARG_ENABLED = "enabled"
     const val ARG_VALUE = "value"
+    const val ARG_PITCH = "pitch"
     const val ARG_NAME = "name"
     const val ARG_BAND = "band"
     const val ARG_SECONDS = "seconds"

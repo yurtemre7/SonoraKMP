@@ -50,7 +50,7 @@
     <string name="jam_remove_body">Telefonu eşlik etmeyi bırakır, kendi müziğine döner.</string>
     <string name="jam_remove_confirm">Çıkar</string>
     <string name="jam_permissions_title">Misafirler neler yapabilir?</string>
-    <string name="jam_speed_note">Hız efekti ya da sessizliği atlama açık; misafirler normal hızda çalar ve geri kalabilir.</string>
+    <string name="jam_speed_note">Sessizliği atlama açık; misafirler onsuz çalar ve geri kalabilir.</string>
     <string name="jam_end">Jam\'i bitir</string>
     <string name="jam_end_title">Jam bitsin mi?</string>
     <string name="jam_end_body">Misafirler çalan şarkıyı bitirir, sonra kendi müziklerine döner.</string>

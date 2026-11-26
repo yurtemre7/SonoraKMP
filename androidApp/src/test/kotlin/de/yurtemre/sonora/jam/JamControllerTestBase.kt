@@ -58,7 +58,13 @@ abstract class JamControllerTestBase {
         hostTimeMs: Long = testScheduler.currentTime,
         canControl: Boolean = false,
         repeat: JamRepeat = JamRepeat.Off,
-    ) = JamState(songs.map { it.jam() }, index, playing, positionMs, hostTimeMs, guestsCanAdd = true, guestsCanControl = canControl, repeat = repeat)
+        speed: Float = 1f,
+        pitch: Float = 1f,
+        seekCount: Int = 0,
+    ) = JamState(
+        songs.map { it.jam() }, index, playing, positionMs, hostTimeMs, guestsCanAdd = true, guestsCanControl = canControl,
+        repeat = repeat, speed = speed, pitch = pitch, seekCount = seekCount,
+    )
 
     /** Joins with a fresh link; returns it. */
     protected suspend fun TestScope.joined(jam: JamController, link: FakeLink = FakeLink(offsetMs = 0)): FakeLink {

@@ -57,7 +57,7 @@
     <string name="jam_remove_body">Their phone stops playing along and goes back to its own music.</string>
     <string name="jam_remove_confirm">Remove</string>
     <string name="jam_permissions_title">What guests can do</string>
-    <string name="jam_speed_note">Speed effect or skip silence is on; guests play at normal speed and may fall behind.</string>
+    <string name="jam_speed_note">Skip silence is on; guests play without it and may fall behind.</string>
     <string name="jam_end">End Jam</string>
     <string name="jam_end_title">End the Jam?</string>
     <string name="jam_end_body">Guests finish the current song, then go back to their own music.</string>
