@@ -40,7 +40,9 @@ jobs:
 
       # Resolve every configuration of every module and write gradle.lockfile files.
       - name: Resolve dependency graph
-        run: ./gradlew --init-script .github/gradle-osv.init.gradle dependencies --write-locks --no-configuration-cache -q > /dev/null
+        run: |
+          ./gradlew --init-script .github/gradle-osv.init.gradle resolveAllForOsv --write-locks --no-configuration-cache --continue
+          find . -name gradle.lockfile -not -path './site/*' -exec wc -l {} +
 
       - name: Scan with OSV-Scanner
         run: |
