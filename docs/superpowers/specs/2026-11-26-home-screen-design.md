@@ -65,3 +65,22 @@ go Home; existing rule 6 (tab ≠ default → default tab) stays for the library
 
 **Left to builder.** Exact spacing/typography, tile icons/colours, empty-state copy (keep short), animation
 tuning, and the greeting copy reuse (`greetingRes`).
+
+## Review adjustments (supersede the text above)
+- **Continue card** reads from `PlaybackConnection` (current song + position), shown only when a song is loaded and
+  paused; tap = play. No `PlaybackStateStore` work (the player already restores state at startup).
+- **Back** is stateless and symmetric, folded into the existing shell `BackHandler`: start view Home → Library goes
+  to Home, Home exits; start view a tab → Home goes to Library on the default tab, then existing rule 6.
+- **State saving:** `rootView` is `rememberSaveable` in the shell beside `rootTab`; each side of the swap is wrapped
+  in `SaveableStateProvider` so Library scroll/search/sort survive.
+- All root renderers (entry<Library>, expanded list pane, nav bar/rail loops) take `rootView`; on Home nothing is
+  selected and `onTab` must not emit `HomeTabReselect`.
+- **Swipe-up:** trigger only in `onPostScroll` (UserInput, `available.y < 0`, `consumed.y == 0`), cumulative
+  threshold, re-arm in fling callbacks; plus a visible "Library" footer button.
+- **ViewModel:** new `HomeDashboardViewModel` (`WhileSubscribed(5_000)`), not the eager `HomeViewModel`; reuse
+  `WeeklyMixViewModel` as `PlaylistsTab` does.
+- **Setting:** atomic `setStartView(home, page)`; `start_on_home` in backup export/parse keys; absent on restore
+  keeps the current value (accepted).
+- **Interface:** `Recommendations.recommended(songs, stats: StatsSnapshot, nowMs, limit)`, `AppSettings.startOnHome`,
+  `SettingsRepository.setStartView`, `RootView { Home, Library }`, `SonoraAppShell(..., startOnHome)`,
+  `HomeRoute(tab, view, onViewChange, onOpenTab, onNavigate, tabContent)`.
