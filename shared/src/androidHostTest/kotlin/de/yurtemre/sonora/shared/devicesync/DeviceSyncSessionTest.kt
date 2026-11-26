@@ -298,9 +298,8 @@ class DeviceSyncSessionTest {
 
         // The new code works once the cool-down is over.
         clock.now += 30_000
-        val client = DeviceSyncClient()
-        client.connect(loopback, port, server.code.value, hello)
-        client.close()
+        // The server may still be closing the third failed connection: retry like every other connect here.
+        connectWith(port, server.code.value).close()
     }
 
     /** A connection with [code]; retries while the server still holds the previous connection. */
