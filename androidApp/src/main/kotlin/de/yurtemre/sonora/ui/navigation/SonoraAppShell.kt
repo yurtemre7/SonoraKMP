@@ -110,6 +110,7 @@ private fun NavBackStack<NavKey>.popToLibrary() {
 fun SonoraAppShell(
     widthSizeClass: WindowWidthSizeClass,
     defaultTab: LibraryTab,
+    startOnHome: Boolean = false,
     onOpenNowPlaying: (() -> Unit)? = null,
     backStack: NavBackStack<NavKey> = rememberNavBackStack(Library),
     nowPlaying: NowPlayingSlotState = rememberNowPlayingSlotState(),
@@ -169,17 +170,34 @@ fun SonoraAppShell(
         )
     }
     var rootTab by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(defaultTab) }
+    var rootView by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(if (startOnHome) RootView.Home else RootView.Library)
+    }
     val showNav = backStack.size == 1
     val onTab: (LibraryTab) -> Unit = {
-        if (it == rootTab && backStack.size == 1) de.yurtemre.sonora.ui.screens.home.HomeTabReselect.events.tryEmit(it)
-        else { backStack.popToLibrary(); rootTab = it }
+        when {
+            // From Home a nav item opens the Library on that tab; never a "reselect" (scroll to top).
+            rootView == RootView.Home -> { backStack.popToLibrary(); rootTab = it; rootView = RootView.Library }
+            it == rootTab && backStack.size == 1 -> de.yurtemre.sonora.ui.screens.home.HomeTabReselect.events.tryEmit(it)
+            else -> { backStack.popToLibrary(); rootTab = it }
+        }
     }
     val navigate: (NavKey) -> Unit = { backStack.add(it) }
     val goBack: () -> Unit = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
 
     // Back rule 6: root tab ≠ default → switch to default; otherwise the activity finishes.
-    BackHandler(enabled = backStack.size == 1 && rootTab != defaultTab && !nowPlaying.expanded) {
-        rootTab = defaultTab
+    // Home is stateless and symmetric: start view Home → Library goes to Home, Home exits; start view a tab →
+    // Home goes to Library on the default tab, then rule 6.
+    BackHandler(
+        enabled = backStack.size == 1 && !nowPlaying.expanded &&
+            (if (startOnHome) rootView == RootView.Library
+            else rootView == RootView.Home || rootTab != defaultTab),
+    ) {
+        when {
+            startOnHome -> rootView = RootView.Home
+            rootView == RootView.Home -> { rootView = RootView.Library; rootTab = defaultTab }
+            else -> rootTab = defaultTab
+        }
     }
 
     val display: @Composable (Modifier, List<NavKey>) -> Unit = { modifier, stack ->
@@ -196,7 +214,7 @@ fun SonoraAppShell(
             popTransitionSpec = { pop() },
             predictivePopTransitionSpec = { predictivePop() },
             entryProvider = entryProvider {
-                entry<Library> { HomeRoute(rootTab, navigate) }
+                entry<Library> { HomeRoute(rootTab, rootView, { rootView = it }, { rootTab = it }, navigate) }
                 entry<Album> { AlbumRoute(it.name, it.artist, goBack, navigate) }
                 entry<Artist> { ArtistRoute(it.name, goBack, onOpenAlbum = { n, a -> navigate(Album(n, a)) }, onNavigate = navigate) }
                 entry<Playlist> { PlaylistRoute(it.id, goBack, onNavigate = navigate) }
@@ -247,7 +265,7 @@ fun SonoraAppShell(
                         LibraryTab.entries.forEach { tab ->
                             ShortNavigationBarItem(
                                 colors = ShortNavigationBarItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
-                                selected = rootTab == tab,
+                                selected = rootView == RootView.Library && rootTab == tab,
                                 onClick = { onTab(tab) },
                                 icon = { Icon(tab.icon, null) },
                                 label = { Text(stringResource(tab.labelRes)) },
@@ -265,7 +283,7 @@ fun SonoraAppShell(
                     LibraryTab.entries.forEach { tab ->
                         NavigationRailItem(
                             colors = NavigationRailItemDefaults.colors(selectedTextColor = MaterialTheme.colorScheme.onSurface),
-                            selected = rootTab == tab,
+                            selected = rootView == RootView.Library && rootTab == tab,
                             onClick = { onTab(tab) },
                             icon = { Icon(tab.icon, null) },
                             label = { Text(stringResource(tab.labelRes)) },
@@ -284,7 +302,7 @@ fun SonoraAppShell(
                     LibraryTab.entries.forEach { tab ->
                         WideNavigationRailItem(
                             colors = WideNavigationRailItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
-                            selected = rootTab == tab,
+                            selected = rootView == RootView.Library && rootTab == tab,
                             onClick = { onTab(tab) },
                             icon = { Icon(tab.icon, null) },
                             label = { Text(stringResource(tab.labelRes)) },
@@ -293,7 +311,7 @@ fun SonoraAppShell(
                     }
                 }
                 ListDetail(
-                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, navigate) } }, mini = mini, modifier = m) },
+                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, rootView, { v -> rootView = v }, { t -> rootTab = t }, navigate) } }, mini = mini, modifier = m) },
                     detail = when {
                         nowPlaying.expanded && player.currentSong != null -> { m ->
                             NowPlayingTwoPane(

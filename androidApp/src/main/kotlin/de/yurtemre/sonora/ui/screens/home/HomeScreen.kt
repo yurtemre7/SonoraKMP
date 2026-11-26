@@ -56,6 +56,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onShuffle: () -> Unit = {},
+    onHome: () -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tabContent: HomeTabContent = { t, s -> PlaceholderTabContent(t, s) },
 ) {
@@ -73,13 +74,13 @@ fun HomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeHeader(
-                tab = tab, state = state, userName = header.userName, isSyncing = header.isSyncing,
+                tab = tab, state = state, isSyncing = header.isSyncing,
                 searchOpen = searchOpen, query = query, onQueryChange = onQueryChange,
                 onOpenSearch = { searchOpen = true },
                 onCloseSearch = { onQueryChange(""); searchOpen = false },
                 onSortClick = { sortOpen = true },
                 onShuffle = onShuffle,
-                onRecentlyPlayed = onRecentlyPlayed, onFavorites = onFavorites, onSettings = onSettings,
+                onRecentlyPlayed = onRecentlyPlayed, onFavorites = onFavorites, onSettings = onSettings, onHome = onHome,
             )
         },
     ) { padding ->

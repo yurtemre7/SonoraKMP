@@ -153,6 +153,7 @@
     <string name="settings_finish_song_subtitle">Wait for the song to end before stopping</string>
     <string name="settings_start_page">Start page</string>
     <string name="settings_start_page_subtitle">The tab the library opens on</string>
+    <string name="settings_tab_home">Home</string>
     <string name="settings_tab_songs">Songs</string>
     <string name="settings_tab_albums">Albums</string>
     <string name="settings_tab_artists">Artists</string>

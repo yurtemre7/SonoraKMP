@@ -140,6 +140,7 @@
     <string name="settings_finish_song_subtitle">Durmadan önce şarkının bitmesini bekle</string>
     <string name="settings_start_page">Açılış sayfası</string>
     <string name="settings_start_page_subtitle">Kitaplığın açıldığı sekme</string>
+    <string name="settings_tab_home">Ana sayfa</string>
     <string name="settings_tab_songs">Şarkılar</string>
     <string name="settings_tab_albums">Albümler</string>
     <string name="settings_tab_artists">Sanatçılar</string>

@@ -88,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                         SonoraAppShell(
                             widthSizeClass = windowSize.widthSizeClass,
                             defaultTab = LibraryTab.fromStartPage(settings.defaultStartPage),
+                            startOnHome = settings.startOnHome,
                         )
                     }
                 }
