@@ -11,7 +11,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import de.yurtemre.sonora.jam.JamDiscoveryHub
+import de.yurtemre.sonora.jam.runJamWarmup
+import de.yurtemre.sonora.permissions.MediaPermissions
+import kotlinx.coroutines.launch
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.model.AppSettings
 import de.yurtemre.sonora.shared.model.ThemeColorSource
@@ -34,12 +41,23 @@ import org.koin.android.ext.android.inject
 class MainActivity : AppCompatActivity() {
     private val settingsRepository: SettingsRepository by inject()
     private val playback: PlaybackConnection by inject()
+    private val jamDiscovery: JamDiscoveryHub by inject()
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Optional (Settings › Playback › Jam): look for Jams while the app is open, so the join screen is already full.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                runJamWarmup(
+                    enabled = settingsRepository.settings.map { it.jamWarmDiscovery },
+                    localNetworkAllowed = { MediaPermissions.hasLocalNetwork(this@MainActivity) },
+                    warm = jamDiscovery::warm,
+                )
+            }
+        }
         setContent {
             val settings by settingsRepository.settings.collectAsStateWithLifecycle(AppSettings())
             val windowSize = calculateWindowSizeClass(this)

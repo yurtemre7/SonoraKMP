@@ -74,6 +74,13 @@ join as guests (8 phones in all).
   phone's hotspot.
 - Host and guests need the same Jam version of SonoraKMP; otherwise the guest
   sees "This Jam uses a different version of SonoraKMP".
+- **Find Jams in the background** (Settings › Playback › Jam, on by default): while
+  the app is open, SonoraKMP keeps looking for Jams on the Wi-Fi, so the join list
+  is already full when you open it. It only listens, never asks for the local
+  network permission (it stays idle without it), and stops a few seconds after the
+  app leaves the screen. Turn it off to save a little battery. The host's own
+  announcement still takes 1-2 s (mDNS probing); it is registered as the very
+  first step of starting a Jam.
 - On Android 17 and later the Jam needs the **local network** permission (asked
   when you start or join one); without it the Jam does not start. It is listed
   under Settings › Privacy.

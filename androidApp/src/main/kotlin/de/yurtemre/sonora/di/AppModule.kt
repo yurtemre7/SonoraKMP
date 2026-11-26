@@ -18,6 +18,7 @@ import de.yurtemre.sonora.devicesync.SenderManifestBuilder
 import de.yurtemre.sonora.jam.ClientGuestConnector
 import de.yurtemre.sonora.jam.JamController
 import de.yurtemre.sonora.jam.JamDiscovery
+import de.yurtemre.sonora.jam.JamDiscoveryHub
 import de.yurtemre.sonora.jam.JamEnvironment
 import de.yurtemre.sonora.jam.JamService
 import de.yurtemre.sonora.jam.JamPlaybackGuard
@@ -77,6 +78,10 @@ val appModule = module {
         )
     }
 
+    // One shared LAN search for the Jam join screen and the optional background warm-up (JamDiscoveryHub).
+    single { JamDiscovery(androidContext()) }
+    single { JamDiscoveryHub(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), { get<JamDiscovery>().discover() }) }
+
     // Jam: synchronized playback over the LAN. A guest's own playback waits for a choice (JamPlaybackGuard).
     single { JamPlaybackGuard(get<JamController>(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
     single {
@@ -87,7 +92,7 @@ val appModule = module {
         val library = get<LibraryRepository>().songs.stateIn(scope, SharingStarted.Eagerly, emptyList<Song>())
         val speakerDelay = jamSpeakerDelay(get<SettingsRepository>().settings, scope)
         val stats = get<StatsRepository>()
-        val discovery = JamDiscovery(ctx)
+        val discovery = get<JamDiscovery>()
         JamController(
             scope, get(RAW_PLAYBACK),
             JamEnvironment(

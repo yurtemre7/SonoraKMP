@@ -55,8 +55,9 @@ internal class JamHostSession(
     )
 
     fun start() {
-        publishUi()
+        // First thing: the mDNS probe and announce take 1-2 s after this call, so nothing may delay it.
         advertisement = runCatching { env.advertise(port, env.deviceName()) }.getOrNull() // manual IP:port still works
+        publishUi()
         jobs += scope.launch {
             combine(playback.queue, playback.player) { q, p ->
                 Snapshot(q.items.map { it.song.toJamSong() }, q.currentIndex, p.currentEntryUid, p.isPlaying, p.repeat.toJam())

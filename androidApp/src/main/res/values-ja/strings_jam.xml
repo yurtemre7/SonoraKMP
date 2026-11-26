@@ -28,8 +28,10 @@
     <string name="jam_join_body">同じ Wi-Fi の Jam に合わせて再生します</string>
     <string name="jam_open">Jam を開く</string>
     <string name="jam_how_it_works">曲はそれぞれのスマホのライブラリから再生されるため、ストリーミングもインターネット接続も不要です。最大 8 台まで参加できます。</string>
+    <string name="settings_jam_warm_discovery">バックグラウンドでJamを探す</string>
+    <string name="settings_jam_warm_discovery_subtitle">アプリを開いている間、Wi-Fi上のJamを探しておくので、参加をタップした瞬間に一覧が表示されます。バッテリーを少し消費します。ローカルネットワークへのアクセス許可が必要です（この設定が許可を求めることはありません）。</string>
     <string name="settings_perm_jam_title">Jam とローカルネットワーク</string>
-    <string name="settings_perm_jam_body">Jam は同じWi-Fi上の他のスマートフォンを見つけて参加します（mDNSとWi-Fiマルチキャスト。Android 17以降はローカルネットワークへのアクセスを求めます。デバイス同期でも必要です）。参加者は6桁のコードでホストに直接つなぎ、通信は暗号化され、インターネットは経由しません。Jam中はメディア用のフォアグラウンドサービスが、バックグラウンドでも再生を続けます。ルーターが検出をブロックする場合は、ホストのIPアドレスとポートで参加することもできます。</string>
+    <string name="settings_perm_jam_body">Jam は同じWi-Fi上の他のスマートフォンを見つけて参加します（mDNSとWi-Fiマルチキャスト。Android 17以降はローカルネットワークへのアクセスを求めます。デバイス同期でも必要です）。アプリを開いている間はバックグラウンドでJamを探し続けることもできます（設定 › 再生 › Jam）。参加者は6桁のコードでホストに直接つなぎ、通信は暗号化され、インターネットは経由しません。Jam中はメディア用のフォアグラウンドサービスが、バックグラウンドでも再生を続けます。ルーターが検出をブロックする場合は、ホストのIPアドレスとポートで参加することもできます。</string>
     <string name="jam_local_network_denied">Jam を始めたり参加したりするには、SonoraKMP にローカルネットワークへのアクセスを許可してください</string>
 
     <!-- Start sheet -->

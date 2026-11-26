@@ -29,8 +29,10 @@
     <string name="jam_join_body">Play along with a Jam on the same Wi-Fi</string>
     <string name="jam_open">Open Jam</string>
     <string name="jam_how_it_works">Songs play from each phone\'s own library, so nothing is streamed and no internet is needed. Up to 8 phones can join.</string>
+    <string name="settings_jam_warm_discovery">Find Jams in the background</string>
+    <string name="settings_jam_warm_discovery_subtitle">Looks for Jams on your Wi-Fi while the app is open, so they are listed the moment you tap Join. Uses a little battery. Needs local network access; it never asks for it.</string>
     <string name="settings_perm_jam_title">Jam and local network</string>
-    <string name="settings_perm_jam_body">Jam finds and joins other phones on the same Wi-Fi (mDNS and Wi-Fi multicast; on Android 17 and later it asks for local network access, which Device sync needs as well). Guests connect directly to the host with the 6-digit code, encrypted; nothing goes through the internet. While a Jam runs, a media foreground service keeps it playing in the background. You can also join with the host\'s IP address and port if your router blocks discovery.</string>
+    <string name="settings_perm_jam_body">Jam finds and joins other phones on the same Wi-Fi (mDNS and Wi-Fi multicast; on Android 17 and later it asks for local network access, which Device sync needs as well). While the app is open, Jam can keep looking for Jams in the background (Settings › Playback › Jam). Guests connect directly to the host with the 6-digit code, encrypted; nothing goes through the internet. While a Jam runs, a media foreground service keeps it playing in the background. You can also join with the host\'s IP address and port if your router blocks discovery.</string>
     <string name="jam_local_network_denied">SonoraKMP needs access to the local network to start or join a Jam</string>
 
     <!-- Start sheet -->

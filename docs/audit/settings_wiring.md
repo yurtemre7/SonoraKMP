@@ -49,6 +49,7 @@ It proves storage only; runtime effects below are not covered by tests.
 | resumeOnConnect | `NoisyAndReconnectHandler.kt:52` | next reconnect | ✅ | B |
 | bluetoothMfxPatch | `playback/AudioEffects.kt:116` | immediate EQ recompute | ✅ | B |
 | smartShuffle | `SonoraPlaybackService.kt` `smartReorder()` | 🕑 next shuffle (the current order is kept) | 🕑 | B |
+| jamWarmDiscovery (Playback › Jam) | `MainActivity` → `jam/JamWarmup.kt` `runJamWarmup()` → `JamDiscoveryHub.warm()` | ✅ on the next app start or at once (releases/holds the search) | ✅ | – (per device) |
 | jamSpeakerDelayMs (Playback › Jam) | `jam/JamSpeakerDelay.kt` `jamSpeakerDelay()` → `JamEnvironment.speakerDelayMs` → `jamStart` | 🕑 next Jam start or song change on a guest | 🕑 | – (per device) |
 | sleepTimerDefaultMinutes | `SleepTimerSheet.kt` preselects the preset (or custom slider) | 🕑 next sheet open | 🕑 | B |
 | sleepTimerFadeOutSeconds | `SleepTimerSheet.kt:76`; `SonoraPlaybackService.kt:384` (extend) | 🕑 next sheet open | 🕑 | B |
