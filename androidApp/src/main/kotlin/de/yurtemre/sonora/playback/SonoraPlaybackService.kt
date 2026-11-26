@@ -195,7 +195,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         )
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
-        mirrorMode = JamMirrorMode(persistence, setRate = { speed, pitch -> effects.mirrorRate = if (speed == null || pitch == null) null else speed to pitch }, setSkipSilence = { exo.skipSilenceEnabled = it })
+        mirrorMode = JamMirrorMode(persistence, applyRate = { speed, pitch -> effects.mirrorRate = if (speed == null || pitch == null) null else speed to pitch }, setSkipSilence = { exo.skipSilenceEnabled = it })
         focus = AudioFocusController(this, exo, settingsRepo.settings, scope, onPermanentLoss = ::onSystemPause)
             .also { it.start() }
         noisy = NoisyAndReconnectHandler(

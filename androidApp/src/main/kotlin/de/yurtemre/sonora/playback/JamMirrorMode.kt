@@ -13,7 +13,7 @@ import de.yurtemre.sonora.shared.queue.currentEntry
 class JamMirrorMode(
     private val persistence: PlaybackPersistence,
     /** Plays at the given speed and pitch while mirroring; (null, null) gives the user's own back. */
-    private val setRate: (Float?, Float?) -> Unit,
+    private val applyRate: (Float?, Float?) -> Unit,
     private val setSkipSilence: (Boolean) -> Unit,
 ) {
     var active = false
@@ -33,7 +33,7 @@ class JamMirrorMode(
     fun setRate(speed: Float, pitch: Float) {
         this.speed = speed
         this.pitch = pitch
-        if (active) setRate(speed, pitch)
+        if (active) applyRate(speed, pitch)
     }
 
     /** Runs [load]; the first time, the own queue is saved before it and the Jam audio settings apply after it. */
@@ -45,7 +45,7 @@ class JamMirrorMode(
         persistence.beginMirror()
         active = true
         load()
-        setRate(speed, pitch)
+        applyRate(speed, pitch)
         setSkipSilence(false)
     }
 
@@ -60,7 +60,7 @@ class JamMirrorMode(
         persistence.endMirror()
         speed = 1f
         pitch = 1f
-        setRate(null, null)
+        applyRate(null, null)
         setSkipSilence(userSkipSilence)
     }
 }

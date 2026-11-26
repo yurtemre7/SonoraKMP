@@ -35,7 +35,7 @@ class JamMirrorModeTest {
 
     private fun TestScope.mode(): Pair<JamMirrorMode, PlaybackPersistence> {
         val persistence = PlaybackPersistence(store, backgroundScope, { current }, { 0L }, { true })
-        return JamMirrorMode(persistence, setRate = { s, p -> speed += if (s == null || p == null) null else s to p }, setSkipSilence = { silence += it }) to persistence
+        return JamMirrorMode(persistence, applyRate = { s, p -> speed += if (s == null || p == null) null else s to p }, setSkipSilence = { silence += it }) to persistence
     }
 
     @Test fun skipSilenceIsOffWhileMirroringAndTheUsersValueComesBack() = runTest {
