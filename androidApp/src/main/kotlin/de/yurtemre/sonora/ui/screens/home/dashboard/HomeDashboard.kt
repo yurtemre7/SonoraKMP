@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -131,7 +130,6 @@ fun HomeDashboard(
                     userName = userName,
                     onEditName = { nameDialog = true },
                     onSettings = { onNavigate(Settings) },
-                    onStats = { onNavigate(Stats) },
                     modifier = Modifier.windowInsetsPadding(SonoraInsets.top),
                 )
             }
@@ -224,7 +222,6 @@ private fun DashboardHeader(
     userName: String,
     onEditName: () -> Unit,
     onSettings: () -> Unit,
-    onStats: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -239,7 +236,6 @@ private fun DashboardHeader(
             Spacer(Modifier.width(8.dp))
             DevBadge()
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onStats) { Icon(Icons.Rounded.Insights, stringResource(R.string.home_action_stats)) }
             IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.home_action_settings)) }
         }
         // The greeting places the name differently per language: format with a marker, split around it and link the name.

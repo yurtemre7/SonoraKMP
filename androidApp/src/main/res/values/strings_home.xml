@@ -23,7 +23,6 @@
     <string name="home_action_favorites">Favorites</string>
     <string name="home_action_settings">Settings</string>
     <string name="home_title">Home</string>
-    <string name="home_action_stats">Statistics</string>
     <string name="home_recommended">Recommended for you</string>
     <string name="home_recent">Recently played</string>
 </resources>
