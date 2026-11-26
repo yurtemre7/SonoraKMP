@@ -54,6 +54,7 @@ fun HomeRoute(
     onViewChange: (RootView) -> Unit,
     onOpenTab: (LibraryTab) -> Unit,
     onNavigate: (NavKey) -> Unit,
+    onOpenNowPlaying: () -> Unit = {},
     tabContent: HomeTabContent? = null,
 ) {
     val owner = (LocalActivity.current as? ViewModelStoreOwner) ?: checkNotNull(LocalViewModelStoreOwner.current)
@@ -87,9 +88,12 @@ fun HomeRoute(
         holder.SaveableStateProvider(v.name) {
             when (v) {
                 RootView.Home -> HomeDashboard(
-                    userName = header.userName,
+                    userName = header.userName ?: DEFAULT_NAME,
+                    isSyncing = header.isSyncing,
+                    onScanLibrary = vm::scanLibrary,
                     onOpenTab = { t -> onOpenTab(t); onViewChange(RootView.Library) },
                     onOpenLibrary = { onViewChange(RootView.Library) },
+                    onOpenNowPlaying = onOpenNowPlaying,
                     onNavigate = onNavigate,
                     modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                 )
@@ -119,7 +123,7 @@ fun HomeRoute(
                 )
             }
         },
-        onHome = { onViewChange(RootView.Home) },
+        onPullToHome = { onViewChange(RootView.Home) },
                 )
             }
         }

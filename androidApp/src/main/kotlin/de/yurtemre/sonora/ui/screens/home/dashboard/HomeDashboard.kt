@@ -18,16 +18,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -37,7 +39,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -60,22 +69,28 @@ import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.Settings
 import de.yurtemre.sonora.ui.navigation.Stats
 import de.yurtemre.sonora.ui.navigation.WeeklyMix
+import de.yurtemre.sonora.ui.screens.home.NameEditDialog
 import de.yurtemre.sonora.ui.screens.home.greetingRes
 import de.yurtemre.sonora.ui.screens.home.tabs.WeeklyMixCard
 import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixViewModel
 import de.yurtemre.sonora.ui.theme.SleeveShape
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * The Home dashboard: greeting + actions, Continue card, library tiles, Recommended / Weekly mix / Recently played
- * rows and a Library footer. Swiping up past its end (or the footer button) opens the Library.
+ * The Home dashboard: app-name toolbar + greeting, now-playing / Continue card, Shuffle and Scan CTAs, stats glance,
+ * favourite song, library tiles, Recommended / Weekly mix / Recently played rows. Swiping up past the end opens the Library.
  */
 @Composable
 fun HomeDashboard(
-    userName: String?,
+    userName: String,
+    isSyncing: Boolean,
+    onScanLibrary: () -> Unit,
     onOpenTab: (LibraryTab) -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenNowPlaying: () -> Unit,
     onNavigate: (NavKey) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,11 +102,15 @@ fun HomeDashboard(
     val vm = viewModel { HomeDashboardViewModel(library, stats, clock) }
     val recommended by vm.recommended.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
+    val glance by vm.glance.collectAsStateWithLifecycle()
+    val tasks by library.backgroundTasks.collectAsStateWithLifecycle()
     val weeklyVm = viewModel { WeeklyMixViewModel(weeklyRepo, library.songs.map { it.isNotEmpty() }, clock) }
     val weekly by weeklyVm.ui.collectAsStateWithLifecycle()
     LifecycleResumeEffect(weeklyVm) { weeklyVm.onResume(); onPauseOrDispose { } }
     val player by playback.player.collectAsStateWithLifecycle()
     val position = playback.positionMs.collectAsStateWithLifecycle(0L)
+    val scope = rememberCoroutineScope()
+    var nameDialog by rememberSaveable { mutableStateOf(false) }
 
     val haptics = LocalHapticFeedback.current
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
@@ -107,14 +126,21 @@ fun HomeDashboard(
             item(key = "header") {
                 DashboardHeader(
                     userName = userName,
+                    onEditName = { nameDialog = true },
                     onSettings = { onNavigate(Settings) },
                     onStats = { onNavigate(Stats) },
-                    onLibrary = onOpenLibrary,
                     modifier = Modifier.windowInsetsPadding(SonoraInsets.top),
                 )
             }
             val current = player.currentSong
-            if (current != null && !player.isPlaying) item(key = "continue") {
+            if (current != null && player.isPlaying) item(key = "now_playing") {
+                NowPlayingLyricsCard(
+                    song = current,
+                    positionMs = { position.value },
+                    onOpen = onOpenNowPlaying,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            } else if (current != null) item(key = "continue") {
                 ContinueCard(
                     song = current,
                     progress = { if (player.durationMs > 0) (position.value.toFloat() / player.durationMs).coerceIn(0f, 1f) else 0f },
@@ -123,6 +149,39 @@ fun HomeDashboard(
                         playback.play()
                     },
                 )
+            }
+            item(key = "ctas") {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ShuffleAllCta(
+                        enabled = (glance?.songCount ?: 0) > 0,
+                        onShuffle = { scope.launch { playback.playShuffled(library.songs.first()) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                    ScanLibraryCta(
+                        isSyncing = isSyncing,
+                        tasks = tasks,
+                        onScan = onScanLibrary,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            glance?.let { g ->
+                item(key = "glance") {
+                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }, modifier = Modifier.padding(horizontal = 16.dp))
+                }
+                g.favorite?.let { fav ->
+                    item(key = "favorite") {
+                        FavoriteSongCard(
+                            song = fav,
+                            plays = g.favoritePlays,
+                            onPlay = { playback.playSong(fav, listOf(fav)) },
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                }
             }
             item(key = "tiles") { HomeTiles(onOpenTab) }
             if (recommended.isNotEmpty()) {
@@ -134,41 +193,57 @@ fun HomeDashboard(
                 item(key = "recent_header") { SectionHeader(stringResource(R.string.home_recent)) }
                 item(key = "recent") { SongCarousel(recent, playback) }
             }
-            item(key = "footer") {
-                Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                    FilledTonalButton(onClick = onOpenLibrary) {
-                        Icon(Icons.Rounded.LibraryMusic, null, Modifier.padding(end = 8.dp))
-                        Text(stringResource(R.string.home_open_library))
-                    }
-                }
-            }
+            item(key = "end") { Spacer(Modifier.height(16.dp)) }
         }
     }
+    if (nameDialog) NameEditDialog(userName, onDismiss = { nameDialog = false })
 }
+
+private const val NAME_MARK = "\uE000"
 
 @Composable
 private fun DashboardHeader(
-    userName: String?,
+    userName: String,
+    onEditName: () -> Unit,
     onSettings: () -> Unit,
     onStats: () -> Unit,
-    onLibrary: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val title = if (userName != null) stringResource(greetingRes(), userName) else stringResource(R.string.home_title)
-    Row(modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+            )
+            Spacer(Modifier.width(8.dp))
+            DevBadge()
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onStats) { Icon(Icons.Rounded.Insights, stringResource(R.string.home_action_stats)) }
+            IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.home_action_settings)) }
+        }
+        // The greeting places the name differently per language: format with a marker, split around it and link the name.
+        val greeting = stringResource(greetingRes(), NAME_MARK)
+        val linkStyle = TextLinkStyles(SpanStyle(textDecoration = TextDecoration.Underline))
+        val text = remember(greeting, userName, linkStyle) {
+            val at = greeting.indexOf(NAME_MARK)
+            buildAnnotatedString {
+                if (at < 0) append(greeting)
+                else {
+                    append(greeting.substring(0, at))
+                    withLink(LinkAnnotation.Clickable("name", linkStyle) { onEditName() }) { append(userName) }
+                    append(greeting.substring(at + NAME_MARK.length))
+                }
+            }
+        }
         Text(
-            title,
-            style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+            text,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Light),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
         )
-        Spacer(Modifier.width(8.dp))
-        DevBadge()
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onStats) { Icon(Icons.Rounded.Insights, stringResource(R.string.home_action_stats)) }
-        IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.home_action_settings)) }
-        IconButton(onClick = onLibrary) { Icon(Icons.Rounded.LibraryMusic, stringResource(R.string.home_action_library)) }
     }
 }
 

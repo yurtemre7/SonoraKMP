@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_name_dialog_hint">Shown in the greeting on Home</string>
+</resources>
