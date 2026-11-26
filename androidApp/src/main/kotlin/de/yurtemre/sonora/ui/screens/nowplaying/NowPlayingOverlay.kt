@@ -93,6 +93,8 @@ fun NowPlayingOverlay(
     val blurred by vm.blurredBackgrounds.collectAsStateWithLifecycle()
     val showVisualizer by vm.showVisualizer.collectAsStateWithLifecycle()
     var view by rememberSaveable { mutableStateOf(NowPlayingView.Player) }
+    // Lyrics over the cover, the first step of the three-tap Lyrics button.
+    var lyricsOnArt by rememberSaveable { mutableStateOf(false) }
     var showEffects by rememberSaveable { mutableStateOf(false) }
     var showSleep by rememberSaveable { mutableStateOf(false) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
@@ -120,7 +122,7 @@ fun NowPlayingOverlay(
     if (showSleep && jamUi.showSleepTimer) SleepTimerSheet(onDismiss = { showSleep = false }, connection = playback)
 
     // Composed after the slot's handler, so it wins while a secondary view is open.
-    BackHandler(enabled = view != NowPlayingView.Player) { view = NowPlayingView.Player }
+    BackHandler(enabled = view != NowPlayingView.Player || lyricsOnArt) { view = NowPlayingView.Player; lyricsOnArt = false }
 
     val song = state.currentSong
     TintedBackdrop(
@@ -187,7 +189,20 @@ fun NowPlayingOverlay(
                 isFavorite = isFavorite,
                 immersive = immersive,
                 view = view,
-                onViewChange = { view = it },
+                onViewChange = { target ->
+                    when {
+                        // Lyrics: 1st tap = over the cover, 2nd = the full view, 3rd (target Player) = back to the cover.
+                        // The Minimalist style has no cover, so it goes straight to the full view.
+                        target == NowPlayingView.Lyrics && view == NowPlayingView.Player && style != NowPlayingStyle.Minimalist ->
+                            if (lyricsOnArt) { lyricsOnArt = false; view = NowPlayingView.Lyrics } else lyricsOnArt = true
+                        else -> { lyricsOnArt = false; view = target }
+                    }
+                },
+                lyricsOnArt = lyricsOnArt,
+                artLyrics = {
+                    val position = vm.positionMs.collectAsStateWithLifecycle(0L)
+                    ArtLyricsOverlay(song, { position.value })
+                },
                 actions = actions,
                 queue = if (guest != null) null else queue,
                 onSkipTo = { if (guest == null) vm.skipTo(it) },

@@ -24,7 +24,7 @@ import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.theme.LocalReduceMotion
 
 /** Share of the slot the sleeve takes in the vinyl style; the record peeks out by the rest. */
-private const val VINYL_SLEEVE = 0.7f
+internal const val VINYL_SLEEVE = 0.7f
 
 /**
  * Vinyl style (P5-28): the sleeve slides half out to the left and reveals a flat record — concentric outline

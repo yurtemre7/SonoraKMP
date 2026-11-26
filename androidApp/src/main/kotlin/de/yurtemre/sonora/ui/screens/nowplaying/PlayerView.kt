@@ -1,7 +1,10 @@
 package de.yurtemre.sonora.ui.screens.nowplaying
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
+import de.yurtemre.sonora.ui.theme.SleeveShape
 import de.yurtemre.sonora.ui.components.displayTitle
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -104,10 +107,23 @@ fun PlayerView(
     elapsed: @Composable () -> Unit = {},
     sleepTimerActive: Boolean = false,
     mfxActive: Boolean = false,
+    lyricsOnArt: Boolean = false,
+    artLyrics: @Composable () -> Unit = {},
 ) {
+    // Always wrapped in the same Box, so toggling the lyrics overlay never recreates the cover (and its pager).
     val art: @Composable (Modifier) -> Unit = { m ->
-        if (style == NowPlayingStyle.Vinyl) VinylArtwork(song, state.isPlaying, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
-        else ArtworkArea(song, immersive, actions.onToggleImmersive, m, queue, onSkipTo)
+        Box(m) {
+            val fill = Modifier.fillMaxSize()
+            if (style == NowPlayingStyle.Vinyl) VinylArtwork(song, state.isPlaying, immersive, actions.onToggleImmersive, fill, queue, onSkipTo)
+            else ArtworkArea(song, immersive, actions.onToggleImmersive, fill, queue, onSkipTo)
+            if (lyricsOnArt) {
+                // Vinyl: only over the sleeve, the record beside it stays visible.
+                val over = if (style == NowPlayingStyle.Vinyl) {
+                    Modifier.align(Alignment.CenterStart).fillMaxHeight(VINYL_SLEEVE).aspectRatio(1f)
+                } else Modifier.matchParentSize()
+                Box(over.clip(SleeveShape)) { artLyrics() }
+            }
+        }
     }
     if (style == NowPlayingStyle.Minimalist && view == NowPlayingView.Player) {
         MinimalPlayer(song, state, isFavorite, immersive, onViewChange, actions, seekBar, elapsed, visualizer, queue, onSkipTo, modifier, sleepTimerActive, mfxActive, titleStyle)
@@ -139,7 +155,7 @@ fun PlayerView(
                 Transport(state, actions)
                 if (!immersive) {
                     SecondaryRow(state, isFavorite, actions, sleepTimerActive, mfxActive)
-                    ViewSwitcher(view, onViewChange)
+                    ViewSwitcher(view, onViewChange, lyricsOnArt)
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -220,7 +236,7 @@ fun PlayerView(
         Transport(state, actions)
         if (!immersive) {
             SecondaryRow(state, isFavorite, actions, sleepTimerActive, mfxActive)
-            ViewSwitcher(view, onViewChange)
+            ViewSwitcher(view, onViewChange, lyricsOnArt)
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -358,10 +374,13 @@ internal fun SecondaryRow(
     }
 }
 
-/** View switcher (DESIGN §6.7): connected button group Up next | Lyrics | Related; re-tapping returns to the player. */
+/**
+ * View switcher (DESIGN §6.7): connected button group Up next | Lyrics | Related; re-tapping returns to the player.
+ * Lyrics takes three taps: lyrics over the cover ([lyricsOnArt]), the full lyrics view, then back to the player.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit) {
+internal fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -> Unit, lyricsOnArt: Boolean = false) {
     val items = listOf(
         Triple(NowPlayingView.UpNext, Icons.AutoMirrored.Filled.QueueMusic, R.string.np_view_up_next),
         Triple(NowPlayingView.Lyrics, Icons.Filled.Lyrics, R.string.np_view_lyrics),
@@ -373,8 +392,11 @@ internal fun ViewSwitcher(view: NowPlayingView, onViewChange: (NowPlayingView) -
     ) {
         items.forEachIndexed { i, (target, icon, label) ->
             ToggleButton(
-                checked = view == target,
-                onCheckedChange = { onViewChange(if (it) target else NowPlayingView.Player) },
+                // Lyrics is a three-step button: on the cover, then the full view, then back (the owner decides which).
+                checked = view == target || (target == NowPlayingView.Lyrics && lyricsOnArt),
+                onCheckedChange = {
+                    onViewChange(if (it || (target == NowPlayingView.Lyrics && lyricsOnArt)) target else NowPlayingView.Player)
+                },
                 shapes = when (i) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     items.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
