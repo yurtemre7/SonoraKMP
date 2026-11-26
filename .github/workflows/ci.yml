@@ -19,6 +19,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read # cache usage report in gradle-cache-save
 
 env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -51,14 +52,9 @@ jobs:
 
       - name: Save Gradle cache
         if: success() && github.ref == 'refs/heads/main' && steps.gradle.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: ./.github/actions/gradle-cache-save
         with:
           key: ${{ steps.gradle.outputs.cache-key }}
-          path: |
-            ~/.gradle/caches/modules-2
-            ~/.gradle/caches/jars-*
-            ~/.gradle/caches/transforms-*
-            ~/.gradle/wrapper/dists
 
       - name: Upload lint reports
         if: always()
@@ -97,14 +93,9 @@ jobs:
 
       - name: Save Gradle cache
         if: success() && github.ref == 'refs/heads/main' && steps.gradle.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: ./.github/actions/gradle-cache-save
         with:
           key: ${{ steps.gradle.outputs.cache-key }}
-          path: |
-            ~/.gradle/caches/modules-2
-            ~/.gradle/caches/jars-*
-            ~/.gradle/caches/transforms-*
-            ~/.gradle/wrapper/dists
 
       - name: Upload test reports
         if: failure()

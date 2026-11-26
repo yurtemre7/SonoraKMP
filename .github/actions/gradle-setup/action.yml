@@ -34,10 +34,15 @@ runs:
       id: cache
       uses: actions/cache/restore@v5
       with:
-        key: gradle-${{ runner.os }}-${{ inputs.name }}-v1-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', '**/*.gradle.kts', 'gradle.properties') }}
+        key: gradle-${{ runner.os }}-${{ inputs.name }}-v2-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', '**/*.gradle.kts', 'gradle.properties') }}
+        # Keep this list identical to gradle-cache-save (the cache version is derived from it).
+        # Bump -v2- when the list changes, otherwise an exact hit on the old entry never re-saves.
         path: |
           ~/.gradle/caches/modules-2
           ~/.gradle/caches/jars-*
           ~/.gradle/caches/transforms-*
+          ~/.gradle/caches/[0-9]*/transforms
+          ~/.gradle/caches/[0-9]*/kotlin-dsl
+          ~/.gradle/caches/build-cache-1
           ~/.gradle/wrapper/dists
         # No restore-keys on purpose: a miss is a cold build, never a stale partial cache.
