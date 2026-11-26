@@ -141,6 +141,7 @@
     <string name="settings_finish_song_subtitle">曲が終わるのを待ってから停止します</string>
     <string name="settings_start_page">最初に開くタブ</string>
     <string name="settings_start_page_subtitle">ライブラリを開いたときに表示されるタブです</string>
+    <string name="settings_tab_home">ホーム</string>
     <string name="settings_tab_songs">曲</string>
     <string name="settings_tab_albums">アルバム</string>
     <string name="settings_tab_artists">アーティスト</string>

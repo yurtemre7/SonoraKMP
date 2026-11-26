@@ -40,6 +40,16 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setAppLocale(v: AppLocale) = put { it[K.APP_LOCALE] = v.storageName }
     suspend fun setDefaultStartPage(v: Int) = put { it[K.DEFAULT_START_PAGE] = v.coerceIn(0, 3) }
 
+    /** Atomically sets the start view: Home leaves the tab untouched, otherwise Home is off and [page] (0..3) is stored. */
+    suspend fun setStartView(home: Boolean, page: Int) = put {
+        if (home) {
+            it[K.START_ON_HOME] = true
+        } else {
+            it[K.START_ON_HOME] = false
+            it[K.DEFAULT_START_PAGE] = page.coerceIn(0, 3)
+        }
+    }
+
     // ---- Playback ----
     suspend fun setKeepPlayingOnClose(v: Boolean) = put { it[K.KEEP_PLAYING_ON_CLOSE] = v }
     suspend fun setRestoreLastPlayedSong(v: Boolean) = put { it[K.RESTORE_LAST_PLAYED_SONG] = v }
@@ -161,6 +171,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 userName = p[K.USER_NAME] ?: d.userName,
                 appLocale = AppLocale.fromStorage(p[K.APP_LOCALE]),
                 defaultStartPage = (p[K.DEFAULT_START_PAGE] ?: d.defaultStartPage).coerceIn(0, 3),
+                startOnHome = p[K.START_ON_HOME] ?: d.startOnHome,
                 keepPlayingOnClose = p[K.KEEP_PLAYING_ON_CLOSE] ?: d.keepPlayingOnClose,
                 restoreLastPlayedSong = p[K.RESTORE_LAST_PLAYED_SONG] ?: d.restoreLastPlayedSong,
                 replayGainMode = ReplayGainMode.fromStorage(p[K.REPLAY_GAIN_MODE]),

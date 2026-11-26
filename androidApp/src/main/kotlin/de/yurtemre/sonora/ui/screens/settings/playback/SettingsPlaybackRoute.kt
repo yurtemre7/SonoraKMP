@@ -181,10 +181,10 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
         item(key = "start_page") {
             ChoiceRow(
                 title = stringResource(R.string.settings_start_page),
-                options = listOf(0, 1, 2, 3),
-                selected = s.defaultStartPage,
-                label = { stringResource(StartPageLabels[it]) },
-                onSelect = { save { setDefaultStartPage(it) } },
+                options = listOf(-1, 0, 1, 2, 3),
+                selected = if (s.startOnHome) -1 else s.defaultStartPage,
+                label = { stringResource(if (it == -1) R.string.settings_tab_home else StartPageLabels[it]) },
+                onSelect = { save { setStartView(it == -1, it.coerceAtLeast(0)) } },
                 icon = Icons.Rounded.Home,
                 subtitle = stringResource(R.string.settings_start_page_subtitle),
             )

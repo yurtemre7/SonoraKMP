@@ -26,6 +26,7 @@ object SettingsWhitelist {
     const val UPDATE_CHANNEL = "update_channel"
     const val LEGACY_INCLUDE_PRERELEASES = "include_prereleases"
     const val SMART_SHUFFLE = "smart_shuffle"
+    const val START_ON_HOME = "start_on_home"
 
     private val B = PrefType.Boolean
     private val I = PrefType.Integer
@@ -68,13 +69,13 @@ object SettingsWhitelist {
     // headphones, and the background search on this phone's battery and network, so restoring them on another device
     // would be wrong.
 
-    /** Keys KMP writes on export (backup types); Flutter ignores the KMP-only [THEME_COLOR_SOURCE], [UPDATE_CHANNEL] and [SMART_SHUFFLE] as unknown. */
+    /** Keys KMP writes on export (backup types); Flutter ignores the KMP-only [THEME_COLOR_SOURCE], [UPDATE_CHANNEL], [SMART_SHUFFLE] and [START_ON_HOME] as unknown. */
     val exportKeys: Map<String, PrefType> =
-        flutterKeys.filterKeys { it !in importOnlyKeys } + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (SMART_SHUFFLE to B)
+        flutterKeys.filterKeys { it !in importOnlyKeys } + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (SMART_SHUFFLE to B) + (START_ON_HOME to B)
 
     /** Keys accepted (and type-checked) by the KMP parser. */
     val parseKeys: Map<String, PrefType> =
-        flutterKeys + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (SMART_SHUFFLE to B) + (LEGACY_INCLUDE_PRERELEASES to B)
+        flutterKeys + (THEME_COLOR_SOURCE to S) + (UPDATE_CHANNEL to S) + (SMART_SHUFFLE to B) + (START_ON_HOME to B) + (LEGACY_INCLUDE_PRERELEASES to B)
 
     /** Flutter keys removed on restore when a `settings` section lacks them (audit/data §12.5). */
     val flutterRemovedWhenAbsent = listOf(MFX_PRESET_NAME, "mfx_preset", MFX_CUSTOM_EQ_GAINS)

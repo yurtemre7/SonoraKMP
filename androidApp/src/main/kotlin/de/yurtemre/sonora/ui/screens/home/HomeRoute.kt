@@ -24,6 +24,23 @@ import de.yurtemre.sonora.ui.navigation.Settings
 import de.yurtemre.sonora.ui.navigation.SmartList
 import de.yurtemre.sonora.ui.navigation.WeeklyMix
 import org.koin.compose.koinInject
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Modifier
+import de.yurtemre.sonora.ui.navigation.RootView
+import de.yurtemre.sonora.ui.screens.home.dashboard.HomeDashboard
+import de.yurtemre.sonora.ui.theme.LocalReduceMotion
 import kotlinx.coroutines.launch
 
 /**
@@ -33,6 +50,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeRoute(
     tab: LibraryTab,
+    view: RootView,
+    onViewChange: (RootView) -> Unit,
+    onOpenTab: (LibraryTab) -> Unit,
     onNavigate: (NavKey) -> Unit,
     tabContent: HomeTabContent? = null,
 ) {
@@ -48,7 +68,32 @@ fun HomeRoute(
     val header by vm.header.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val state by vm.stateFor(tab).collectAsStateWithLifecycle()
-    HomeScreen(
+    val holder = rememberSaveableStateHolder()
+    val reduceMotion = LocalReduceMotion.current
+    AnimatedContent(
+        targetState = view,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            if (reduceMotion) EnterTransition.None togetherWith ExitTransition.None
+            else {
+                // Home sits above the Library: going down slides content up, going back slides it down.
+                val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                (slideInVertically(tween(300)) { dir * it } + fadeIn(tween(200))) togetherWith
+                    (slideOutVertically(tween(300)) { -dir * it } + fadeOut(tween(120)))
+            }
+        },
+        label = "rootView",
+    ) { v ->
+        holder.SaveableStateProvider(v.name) {
+            when (v) {
+                RootView.Home -> HomeDashboard(
+                    userName = header.userName,
+                    onOpenTab = { t -> onOpenTab(t); onViewChange(RootView.Library) },
+                    onOpenLibrary = { onViewChange(RootView.Library) },
+                    onNavigate = onNavigate,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                )
+                RootView.Library -> HomeScreen(
         tab = tab, header = header, state = state, query = query,
         onQueryChange = vm::setQuery,
         onSortSelect = { vm.setSort(tab, it) },
@@ -74,5 +119,9 @@ fun HomeRoute(
                 )
             }
         },
-    )
+        onHome = { onViewChange(RootView.Home) },
+                )
+            }
+        }
+    }
 }

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shuffle
@@ -105,7 +106,6 @@ internal fun greetingRes(hour: Int = LocalTime.now().hour): Int = when (hour) {
 fun HomeHeader(
     tab: LibraryTab,
     state: HomeTabState,
-    userName: String?,
     isSyncing: Boolean,
     searchOpen: Boolean,
     query: String,
@@ -117,6 +117,7 @@ fun HomeHeader(
     onRecentlyPlayed: () -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
+    onHome: () -> Unit,
 ) {
     BackHandler(enabled = searchOpen, onBack = onCloseSearch)
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).windowInsetsPadding(de.yurtemre.sonora.ui.components.SonoraInsets.top)) {
@@ -136,7 +137,7 @@ fun HomeHeader(
                 }
             } else {
                 Column(Modifier.padding(bottom = 12.dp)) {
-                    TitleRow(userName, tab, state, onRecentlyPlayed, onFavorites, onSettings)
+                    TitleRow(tab, state, onHome, onRecentlyPlayed, onFavorites, onSettings)
                     ActionGroup(onOpenSearch, onSortClick, onShuffle, tab)
                 }
             }
@@ -262,14 +263,14 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
 
 @Composable
 private fun TitleRow(
-    userName: String?,
     tab: LibraryTab,
     state: HomeTabState,
+    onHome: () -> Unit,
     onRecentlyPlayed: () -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    val title = if (userName != null) stringResource(greetingRes(), userName) else stringResource(R.string.nav_title_library)
+    val title = stringResource(R.string.nav_title_library)
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f).padding(top = 4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -285,6 +286,7 @@ private fun TitleRow(
             }
             Counts(tab, state, Modifier.padding(top = 2.dp))
         }
+        HeaderAction(Icons.Rounded.Home, stringResource(R.string.home_action_home), onHome)
         HeaderAction(Icons.Rounded.History, stringResource(R.string.home_action_recently_played), onRecentlyPlayed)
         HeaderAction(Icons.Rounded.FavoriteBorder, stringResource(R.string.home_action_favorites), onFavorites)
         HeaderAction(Icons.Rounded.Settings, stringResource(R.string.home_action_settings), onSettings)
