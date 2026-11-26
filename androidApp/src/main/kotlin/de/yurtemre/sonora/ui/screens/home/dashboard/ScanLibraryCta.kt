@@ -24,10 +24,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.repo.api.BackgroundWork
+import de.yurtemre.sonora.ui.screens.home.BackgroundWorkProgress
 
 /**
- * "Scan library" tile. While [isSyncing] it shows a progress ring (determinate once the Scanning stage reports a
- * total) with a counter, and is disabled so a second scan can't be started.
+ * "Scan library" tile. While [isSyncing] it shows a spinner and the shared stage progress bar (as in Settings), and is
+ * disabled so a second scan can't be started. Min height 120dp (shared with Shuffle) fits the progress block, so the row never grows.
  */
 @Composable
 fun ScanLibraryCta(
@@ -37,7 +38,6 @@ fun ScanLibraryCta(
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
-    val scanning = tasks.firstOrNull { it.stage == BackgroundWork.Stage.Scanning }
     val scheme = MaterialTheme.colorScheme
     Surface(
         onClick = {
@@ -51,24 +51,19 @@ fun ScanLibraryCta(
         contentColor = if (isSyncing) scheme.onSecondaryContainer else scheme.onSurface,
     ) {
         Column(
-            Modifier.heightIn(min = 104.dp).padding(16.dp),
+            Modifier.heightIn(min = 120.dp).padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(Modifier.size(32.dp)) {
                 Crossfade(targetState = isSyncing, label = "scanCtaIcon") { busy ->
-                    if (busy) {
-                        if (scanning != null && !scanning.isIndeterminate) {
-                            val p = (scanning.done.toFloat() / scanning.total).coerceIn(0f, 1f)
-                            CircularProgressIndicator(progress = { p }, modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
-                        } else {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
-                        }
-                    } else {
-                        Icon(Icons.Rounded.Sync, null, Modifier.size(32.dp), tint = scheme.primary)
-                    }
+                    if (busy) CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
+                    else Icon(Icons.Rounded.Sync, null, Modifier.size(32.dp), tint = scheme.primary)
                 }
             }
-            Column {
+            if (isSyncing && tasks.isNotEmpty()) {
+                // Same stage caption and wavy bar as the Settings scan card, in the tile's width.
+                BackgroundWorkProgress(tasks)
+            } else {
                 Text(
                     stringResource(if (isSyncing) R.string.home_card_scanning else R.string.home_card_scan),
                     style = MaterialTheme.typography.titleMedium,
@@ -76,13 +71,6 @@ fun ScanLibraryCta(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (isSyncing && scanning != null && !scanning.isIndeterminate) {
-                    Text(
-                        stringResource(R.string.home_card_scan_progress, scanning.done, scanning.total),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                }
             }
         }
     }

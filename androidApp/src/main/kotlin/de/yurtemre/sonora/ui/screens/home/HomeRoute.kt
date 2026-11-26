@@ -54,7 +54,6 @@ fun HomeRoute(
     onViewChange: (RootView) -> Unit,
     onOpenTab: (LibraryTab) -> Unit,
     onNavigate: (NavKey) -> Unit,
-    onOpenNowPlaying: () -> Unit = {},
     tabContent: HomeTabContent? = null,
 ) {
     val owner = (LocalActivity.current as? ViewModelStoreOwner) ?: checkNotNull(LocalViewModelStoreOwner.current)
@@ -93,7 +92,6 @@ fun HomeRoute(
                     onScanLibrary = vm::scanLibrary,
                     onOpenTab = { t -> onOpenTab(t); onViewChange(RootView.Library) },
                     onOpenLibrary = { onViewChange(RootView.Library) },
-                    onOpenNowPlaying = onOpenNowPlaying,
                     onNavigate = onNavigate,
                     modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                 )

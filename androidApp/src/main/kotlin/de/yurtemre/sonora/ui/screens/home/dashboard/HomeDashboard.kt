@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,7 +91,6 @@ fun HomeDashboard(
     onScanLibrary: () -> Unit,
     onOpenTab: (LibraryTab) -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenNowPlaying: () -> Unit,
     onNavigate: (NavKey) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -113,8 +111,6 @@ fun HomeDashboard(
     val weeklyVm = viewModel { WeeklyMixViewModel(weeklyRepo, library.songs.map { it.isNotEmpty() }, clock) }
     val weekly by weeklyVm.ui.collectAsStateWithLifecycle()
     LifecycleResumeEffect(weeklyVm) { weeklyVm.onResume(); onPauseOrDispose { } }
-    val player by playback.player.collectAsStateWithLifecycle()
-    val position = playback.positionMs.collectAsStateWithLifecycle(0L)
     val scope = rememberCoroutineScope()
     var nameDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -134,26 +130,7 @@ fun HomeDashboard(
                     userName = userName,
                     onEditName = { nameDialog = true },
                     onSettings = { onNavigate(Settings) },
-                    onStats = { onNavigate(Stats) },
                     modifier = Modifier.windowInsetsPadding(SonoraInsets.top),
-                )
-            }
-            val current = player.currentSong
-            if (current != null && player.isPlaying) item(key = "now_playing") {
-                NowPlayingLyricsCard(
-                    song = current,
-                    positionMs = { position.value },
-                    onOpen = onOpenNowPlaying,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            } else if (current != null) item(key = "continue") {
-                ContinueCard(
-                    song = current,
-                    progress = { if (player.durationMs > 0) (position.value.toFloat() / player.durationMs).coerceIn(0f, 1f) else 0f },
-                    onPlay = {
-                        if (player.isCompleted) playback.seekTo(0)
-                        playback.play()
-                    },
                 )
             }
             item(key = "ctas") {
@@ -176,7 +153,7 @@ fun HomeDashboard(
             }
             glance?.let { g ->
                 item(key = "glance") {
-                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }, modifier = Modifier.padding(horizontal = 16.dp))
+                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) })
                 }
                 g.favorite?.let { fav ->
                     item(key = "favorite") {
@@ -184,7 +161,6 @@ fun HomeDashboard(
                             song = fav,
                             plays = g.favoritePlays,
                             onPlay = { playback.playSong(fav, listOf(fav)) },
-                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
                 }
@@ -246,11 +222,10 @@ private fun DashboardHeader(
     userName: String,
     onEditName: () -> Unit,
     onSettings: () -> Unit,
-    onStats: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 0.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
@@ -261,7 +236,6 @@ private fun DashboardHeader(
             Spacer(Modifier.width(8.dp))
             DevBadge()
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onStats) { Icon(Icons.Rounded.Insights, stringResource(R.string.home_action_stats)) }
             IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.home_action_settings)) }
         }
         // The greeting places the name differently per language: format with a marker, split around it and link the name.
