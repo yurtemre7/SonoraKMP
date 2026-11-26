@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_recommended_empty">Play a few songs and picks will show up here.</string>
+    <string name="home_recent_empty">Songs you play will show up here.</string>
+    <string name="home_hint_pull_down">Pull down at the top for Home</string>
+    <string name="home_hint_got_it">Got it</string>
+</resources>

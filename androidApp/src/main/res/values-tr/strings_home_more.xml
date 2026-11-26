@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_mix_morning">Günaydın karışımı</string>
+    <string name="home_mix_afternoon">Öğleden sonra karışımı</string>
+    <string name="home_mix_evening">Akşam karışımı</string>
+    <string name="home_mix_night">Gece karışımı</string>
+    <string name="home_mix_play_cd">%1$s çal</string>
+    <string name="home_jump_back_in">Kaldığın yerden devam et</string>
+    <string name="home_jump_play_cd">%1$s çal</string>
+    <string name="home_tile_shuffle_songs">Tüm şarkıları karıştır</string>
+    <string name="home_tile_shuffle_album">Rastgele albümü karıştır</string>
+    <string name="home_tile_shuffle_artist">Rastgele sanatçıyı karıştır</string>
+    <string name="home_tile_shuffle_playlist">Rastgele listeyi karıştır</string>
+</resources>

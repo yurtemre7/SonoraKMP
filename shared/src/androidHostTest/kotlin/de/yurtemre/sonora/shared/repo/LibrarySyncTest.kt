@@ -18,6 +18,8 @@ import de.yurtemre.sonora.shared.repo.impl.LibraryRepositoryImpl
 import de.yurtemre.sonora.shared.repo.impl.LibrarySettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
@@ -69,7 +71,9 @@ class LibrarySyncTest {
             assertEquals(SyncOutcome.FolderMissing, repo.sync())
             assertEquals(setOf(11L, 12L), repo.songs.first().map { it.id }.toSet())
         } finally {
-            scope.cancel(); db.close()
+            // Await the repository's background jobs before closing the DB: a job still touching a closed database
+            // throws in a handler-less scope, and runTest then reports it as UncaughtExceptionsBeforeTest in a later test.
+            scope.coroutineContext[Job]!!.cancelAndJoin(); db.close()
         }
     }
 
