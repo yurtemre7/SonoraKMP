@@ -77,18 +77,12 @@ jobs:
           path: androidApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-  # Unit tests. Host tests load a per-OS SQLite native (see shared/build.gradle.kts), so
-  # Windows and macOS are real coverage. They cost 2x / 10x minutes, so they run on main
-  # and on demand; PRs get Ubuntu only.
+  # Unit tests on Ubuntu only (fastest). Windows/macOS host tests were dropped to save runner time.
   test:
-    name: Unit tests (${{ matrix.os }})
+    name: Unit tests
     needs: checks
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
     steps:
       - uses: actions/checkout@v7
 
