@@ -67,6 +67,8 @@ class DeviceSyncController(
     private val deviceName: DeviceNameSource,
     private val clock: Clock,
     private val service: DeviceSyncServiceStarter,
+    /** Called once a sender accepted this phone (the receiver side): remembers it for faster searches. */
+    private val onConnected: (SyncTarget) -> Unit = {},
 ) {
     private enum class Role { Sender, Receiver }
 
@@ -266,6 +268,7 @@ class DeviceSyncController(
                 synchronized(lock) { if (gen == generation) codeUsable = false }
                 throw e
             }
+            runCatching { onConnected(target) }
             val needsDefault = synchronized(lock) {
                 if (gen != generation) return@launchWorkLocked
                 manifest = m

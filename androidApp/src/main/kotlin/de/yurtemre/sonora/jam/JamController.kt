@@ -40,6 +40,8 @@ class JamEnvironment(
     val debugLog: ((String) -> Unit)? = null,
     /** The host's skip silence setting: guests never skip silence, so it moves the host away like a speed effect. */
     val skipSilence: Flow<Boolean> = flowOf(false),
+    /** A guest joined the Jam at host:port (name = the host's name): remembered for faster searches. */
+    val onJoined: (host: String, port: Int, hostName: String) -> Unit = { _, _, _ -> },
 )
 
 /** A hosted Jam: guests join at [port] with [code]. */
@@ -122,6 +124,7 @@ class JamController(
         )
         guestSession = session
         session.start()
+        runCatching { env.onJoined(host, port, hostName) }
         env.startService()
     }
 

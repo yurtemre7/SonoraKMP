@@ -2,6 +2,7 @@ package de.yurtemre.sonora.ui.screens.settings.playback
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.BluetoothAudio
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headset
@@ -166,6 +167,12 @@ fun SettingsPlaybackRoute(onBack: () -> Unit) {
         }
 
         settingsHeader("jam") { stringResource(R.string.settings_section_jam) }
+        item(key = "jam_warm_discovery") {
+            SwitchRow(
+                stringResource(R.string.settings_jam_warm_discovery), s.jamWarmDiscovery, { save { setJamWarmDiscovery(it) } },
+                icon = Icons.Rounded.Devices, subtitle = stringResource(R.string.settings_jam_warm_discovery_subtitle),
+            )
+        }
         item(key = "jam_speaker_delay") {
             SpeakerDelayRow(s.jamSpeakerDelayMs) { save { setJamSpeakerDelayMs(it) } }
         }

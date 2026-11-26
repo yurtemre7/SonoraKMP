@@ -43,6 +43,11 @@ data class AppSettings(
      * to line up a Bluetooth speaker by hand. Per device (native-only, deliberately not in backups).
      */
     val jamSpeakerDelayMs: Int = 0,
+    /**
+     * Keeps looking for Jams on the Wi-Fi while the app is open (and the local network is allowed), so the join screen
+     * lists them at once. Per device (native-only, deliberately not in backups).
+     */
+    val jamWarmDiscovery: Boolean = true,
     val repeatMode: RepeatMode = RepeatMode.Off,
     val filterTitleFeatures: Boolean = false,
     val filterTitleArtist: Boolean = false,

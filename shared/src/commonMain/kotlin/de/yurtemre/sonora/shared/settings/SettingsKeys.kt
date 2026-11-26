@@ -44,6 +44,7 @@ object SettingsKeys {
     val FADE_BETWEEN_SONGS_SECONDS = intPreferencesKey("fade_between_songs_seconds")
     /** Native-only and per device: never in backups (see `SettingsWhitelist`). */
     val JAM_SPEAKER_DELAY_MS = intPreferencesKey("jam_speaker_delay_ms")
+    val JAM_WARM_DISCOVERY = booleanPreferencesKey("jam_warm_discovery")
     /** Native-only: persisted repeat mode (`off`/`all`/`one`). */
     val REPEAT_MODE = stringPreferencesKey("repeat_mode")
     val FILTER_TITLE_FEATURES = booleanPreferencesKey("filter_title_features")

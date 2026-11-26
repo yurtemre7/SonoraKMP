@@ -238,6 +238,7 @@ class DeviceSyncControllerTest {
         discovery: Flow<List<DiscoveredSender>> = flow { },
         session: FakeSession = FakeSession(),
         senders: SenderSessionFactory = SenderSessionFactory { session },
+        onConnected: (SyncTarget) -> Unit = {},
     ): DeviceSyncController {
         lateinit var c: DeviceSyncController
         c = DeviceSyncController(
@@ -253,6 +254,7 @@ class DeviceSyncControllerTest {
         deviceName = { "Receiver phone" },
         clock = { testScheduler.currentTime },
         service = { serviceStarts++; stateAtServiceStart += c.state.value },
+        onConnected = onConnected,
         )
         return c
     }
@@ -334,6 +336,23 @@ class DeviceSyncControllerTest {
         assertEquals(listOf("/dest/A/new.mp3"), library.indexed)
         assertEquals(listOf("fetch", "commit:0", "sync", "apply"), log)
         assertEquals(1, serviceStarts)
+    }
+
+    @Test fun senderIsRememberedOnlyAfterItAcceptedThePhone() = runTest {
+        val m = manifest(audio(0, "A/x.mp3", 10))
+        val sender = DiscoveredSender("svc", "Sender phone", "192.168.1.5", 4000)
+        val remembered = mutableListOf<SyncTarget>()
+        val bad = controller({ FakeClient(m, connectError = DeviceSyncAuthException("code_mismatch")) }, onConnected = { remembered += it })
+        bad.startReceiving()
+        bad.connect(SyncTarget.of(sender), "000000")
+        advanceUntilIdle()
+        assertTrue(remembered.isEmpty())
+
+        val good = controller({ FakeClient(m) }, onConnected = { remembered += it })
+        good.startReceiving()
+        good.connect(SyncTarget.of(sender), "111222")
+        advanceUntilIdle()
+        assertEquals(listOf(SyncTarget.of(sender)), remembered)
     }
 
     @Test fun wrongCodeFailsWithCodeMismatchAndRetryReturnsToDiscovery() = runTest {

@@ -47,6 +47,8 @@ private val PermissionCards = listOf(
     PrivacyCard("internet", Icons.Rounded.Public, R.string.settings_perm_internet_title, R.string.settings_perm_internet_body),
     // FOREGROUND_SERVICE_DATA_SYNC, ACCESS_WIFI_STATE, CHANGE_WIFI_MULTICAST_STATE, ACCESS_LOCAL_NETWORK (device sync, DSYNC-02/13)
     PrivacyCard("device_sync", Icons.Rounded.Devices, R.string.settings_perm_devicesync_title, R.string.settings_perm_devicesync_body),
+    // ACCESS_LOCAL_NETWORK, ACCESS_WIFI_STATE, CHANGE_WIFI_MULTICAST_STATE, FOREGROUND_SERVICE_MEDIA_PLAYBACK (Jam)
+    PrivacyCard("jam", Icons.Rounded.Devices, R.string.settings_perm_jam_title, R.string.settings_perm_jam_body),
     // REQUEST_INSTALL_PACKAGES
     PrivacyCard("install", Icons.Rounded.InstallMobile, R.string.settings_perm_install_title, R.string.settings_perm_install_body),
 )

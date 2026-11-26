@@ -58,7 +58,7 @@ class JamDiscovery(context: Context) {
         internal const val TXT_NAME = "name"
 
         internal fun serviceNameFor(instanceId: String): String =
-            "SonoraJam-" + instanceId.replace("-", "").take(4).lowercase()
+            "SonoraJam-" + instanceId.replace("-", "").take(8).lowercase()
 
         /** Everything the advertisement publishes: protocol version and display name, nothing else. */
         internal fun txtRecord(hostName: String): Map<String, String> = mapOf(

@@ -7,6 +7,7 @@ import de.yurtemre.sonora.shared.devicesync.toHex
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
+import de.yurtemre.sonora.shared.net.bindServerSocket
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.SecureRandom
@@ -147,10 +148,13 @@ class JamServer(
         class Out(val reason: String) : Admission
     }
 
-    /** Binds a free port on all interfaces, starts accepting guests who know [code] and returns the port. */
-    suspend fun start(code: String): Int {
+    /**
+     * Binds a port on all interfaces ([preferredPort] if free, see [bindServerSocket], else any free one), starts
+     * accepting guests who know [code] and returns the port.
+     */
+    suspend fun start(code: String, preferredPort: Int = 0): Int {
         gate.requireCode(code)
-        val socket = withContext(dispatcher) { ServerSocket(0) }
+        val socket = withContext(dispatcher) { bindServerSocket(preferredPort) }
         synchronized(lock) {
             if (serverSocket != null || stopped) {
                 runCatching { socket.close() }
