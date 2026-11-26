@@ -62,11 +62,13 @@ import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.DevBadge
-import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.components.SonoraInsets
 import de.yurtemre.sonora.ui.components.displayTitle
 import de.yurtemre.sonora.ui.navigation.Album
+import de.yurtemre.sonora.ui.navigation.JumpBack
 import de.yurtemre.sonora.ui.navigation.LibraryTab
+import de.yurtemre.sonora.ui.navigation.RecentlyPlayed
+import de.yurtemre.sonora.ui.navigation.Recommended
 import de.yurtemre.sonora.ui.navigation.Settings
 import de.yurtemre.sonora.ui.navigation.Stats
 import de.yurtemre.sonora.ui.navigation.WeeklyMix
@@ -177,12 +179,13 @@ fun HomeDashboard(
                 )
             }
             if (jumpBack.isNotEmpty()) {
-                item(key = "jump_back_header") { SectionHeader(stringResource(R.string.home_jump_back_in)) }
+                item(key = "jump_back_header") { LinkedSectionHeader(stringResource(R.string.home_jump_back_in), onClick = { onNavigate(JumpBack) }) }
                 item(key = "jump_back") {
                     JumpBackInRow(
                         jumpBack,
                         onOpen = { onNavigate(Album(it.albumName, it.albumArtist)) },
                         onPlay = { if (it.songs.isNotEmpty()) playback.playSong(it.songs.first(), it.songs) },
+                        onSeeAll = { onNavigate(JumpBack) },
                     )
                 }
             }
@@ -190,9 +193,9 @@ fun HomeDashboard(
             // (the Scan CTA above already covers that) or while the first stats emission is pending.
             val hasSongs = (glance?.songCount ?: 0) > 0
             if (recommended.isNotEmpty() || hasSongs) {
-                item(key = "recommended_header") { SectionHeader(stringResource(R.string.home_recommended)) }
+                item(key = "recommended_header") { LinkedSectionHeader(stringResource(R.string.home_recommended), onClick = { onNavigate(Recommended) }) }
                 item(key = "recommended") {
-                    if (recommended.isNotEmpty()) SongCarousel(recommended, playback)
+                    if (recommended.isNotEmpty()) SongCarousel(recommended, playback, onSeeAll = { onNavigate(Recommended) })
                     else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
                 }
             }
@@ -203,9 +206,9 @@ fun HomeDashboard(
                 item(key = "weekly") { WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier) }
             }
             if (recent.isNotEmpty() || hasSongs) {
-                item(key = "recent_header") { SectionHeader(stringResource(R.string.home_recent)) }
+                item(key = "recent_header") { LinkedSectionHeader(stringResource(R.string.home_recent), onClick = { onNavigate(RecentlyPlayed) }) }
                 item(key = "recent") {
-                    if (recent.isNotEmpty()) SongCarousel(recent, playback)
+                    if (recent.isNotEmpty()) SongCarousel(recent, playback, onSeeAll = { onNavigate(RecentlyPlayed) })
                     else EmptyRowMessage(stringResource(R.string.home_recent_empty))
                 }
             }
@@ -215,6 +218,7 @@ fun HomeDashboard(
     if (nameDialog) NameEditDialog(userName, onDismiss = { nameDialog = false })
 }
 
+private const val HOME_ROW_SONGS = 3
 private const val NAME_MARK = "\uE000"
 
 @Composable
@@ -271,14 +275,15 @@ private fun EmptyRowMessage(text: String) {
     )
 }
 
-/** Horizontal row of song cards; tapping one plays it with the whole row as the queue. */
+/** Three song cards, then a See all card; tapping a song plays it with the whole list as the queue. */
 @Composable
-private fun SongCarousel(songs: List<Song>, playback: PlaybackConnection) {
+private fun SongCarousel(songs: List<Song>, playback: PlaybackConnection, onSeeAll: () -> Unit) {
     LazyRow(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(songs, key = { it.id }) { song -> SongCard(song) { playback.playSong(song, songs) } }
+        items(songs.take(HOME_ROW_SONGS), key = { it.id }) { song -> SongCard(song) { playback.playSong(song, songs) } }
+        item(key = "see_all") { SeeAllCard(onSeeAll) }
     }
 }
 

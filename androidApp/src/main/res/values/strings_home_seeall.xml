@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_see_all">See all</string>
+    <string name="home_section_open_cd">Open %1$s</string>
+    <string name="recent_explainer">Songs you have played, newest first and grouped by day. Tap one to play from here.</string>
+    <string name="recommended_explainer">Songs to hear next: your favourites by play history, plus songs by the same artists or albums that you have not played much. Songs from the last few hours are left out. With no history yet, it shows your newest songs.</string>
+    <string name="recommended_shuffle">Shuffle recommended</string>
+    <string name="recommended_empty_title">No picks yet</string>
+    <string name="jumpback_explainer">Albums you have listened to lately, most recent first. Tap one to open it, or press play to start it.</string>
+    <string name="jumpback_empty_title">No albums yet</string>
+    <string name="jumpback_empty_subtitle">Albums you play will show up here.</string>
+</resources>

@@ -57,6 +57,7 @@ import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.stats.StatsAggregates
 import de.yurtemre.sonora.ui.components.EmptyState
 import de.yurtemre.sonora.ui.components.MultiSelectActionBar
+import de.yurtemre.sonora.ui.components.ScreenExplainer
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.components.SongRow
 import de.yurtemre.sonora.ui.components.rememberSelectionState
@@ -160,6 +161,7 @@ fun RecentlyPlayedRoute(onBack: () -> Unit, onNavigate: (NavKey) -> Unit = {}) {
                 )
             }
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+                item(key = "explainer") { ScreenExplainer(stringResource(R.string.recent_explainer)) }
                 ui.days.forEach { day ->
                     stickyHeader(key = "d_${day.date}") {
                         Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
