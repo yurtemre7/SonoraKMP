@@ -9,6 +9,8 @@ import de.yurtemre.sonora.shared.db.StatsDao
 import de.yurtemre.sonora.shared.db.StatsSummaryEntity
 import de.yurtemre.sonora.shared.db.WeekdayStatsEntity
 import de.yurtemre.sonora.shared.devicesync.StatsDelta
+import de.yurtemre.sonora.shared.library.TimeOfDayMix
+import de.yurtemre.sonora.shared.repo.api.SlotPlays
 import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.shared.repo.api.StatsSnapshot
@@ -32,7 +34,7 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
         dao.observeSongStats(), dao.observeWeekdayStats(), dao.observePlaylistStats(), dao.observeSummary(),
     ) { s, w, p, sum ->
         StatsSnapshot(
-            songs = s.associate { it.songId to SongStats(it.plays, it.skips, it.restarts, it.lastPlayedAtMs) },
+            songs = s.associate { it.songId to it.toSongStats() },
             weekdayCounts = w.associate { it.day to it.plays },
             playlistPlays = p.associate { it.playlistId to it.plays },
             completeListens = sum?.completeSongListens ?: 0,
@@ -56,9 +58,12 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
         dao.upsertSongStats(listOf(song(songId).copy(lastPlayedAtMs = atMs)))
     }
 
-    override suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?) = tx {
+    override suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?, hour: Int) = tx {
         val s = song(songId)
-        dao.upsertSongStats(listOf(s.copy(plays = s.plays + 1)))
+        dao.upsertSongStats(listOf(
+            (if (hour in 0..23) s.withSlotPlays(s.slotPlays().increment(TimeOfDayMix.slotFor(hour).ordinal)) else s)
+                .copy(plays = s.plays + 1)
+        ))
         val w = dao.getWeekday(weekday) ?: WeekdayStatsEntity(weekday)
         dao.upsertWeekdayStats(listOf(w.copy(plays = w.plays + 1)))
         if (playlistId != null) {
@@ -95,7 +100,7 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
             c.immediateTransaction {
                 dao.clearAll()
                 dao.upsertSongStats(snapshot.songs.map { (id, s) ->
-                    SongStatsEntity(id, songs.getById(id)?.filePath, s.plays, s.skips, s.restarts, s.lastPlayedAtMs)
+                    SongStatsEntity(id, songs.getById(id)?.filePath, s.plays, s.skips, s.restarts, s.lastPlayedAtMs).withSlotPlays(s.slotPlays)
                 })
                 dao.upsertWeekdayStats(snapshot.weekdayCounts.map { WeekdayStatsEntity(it.key, it.value) })
                 dao.upsertPlaylistStats(snapshot.playlistPlays.map { PlaylistStatsEntity(it.key, it.value) })
@@ -115,7 +120,7 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
                 val rows = dao.getAllSongStats().associateBy { it.songId }
                 val sum = dao.getSummary()
                 val current = StatsSnapshot(
-                    songs = rows.mapValues { (_, r) -> SongStats(r.plays, r.skips, r.restarts, r.lastPlayedAtMs) },
+                    songs = rows.mapValues { (_, r) -> r.toSongStats() },
                     weekdayCounts = dao.getAllWeekdayStats().associate { it.day to it.plays },
                     playlistPlays = dao.getAllPlaylistStats().associate { it.playlistId to it.plays },
                     completeListens = sum?.completeSongListens ?: 0,
@@ -128,6 +133,7 @@ class StatsRepositoryImpl(private val db: SonoraDatabase) : StatsRepository {
                 dao.upsertSongStats(delta.songs.keys.map { id ->
                     val s = merged.songs.getValue(id)
                     SongStatsEntity(id, rows[id]?.filePath ?: songs.getById(id)?.filePath, s.plays, s.skips, s.restarts, s.lastPlayedAtMs)
+                        .withSlotPlays(s.slotPlays)
                 })
                 dao.upsertWeekdayStats(delta.weekdayCounts.keys.map { WeekdayStatsEntity(it, merged.weekdayCounts.getValue(it)) })
                 dao.upsertPlaylistStats(delta.playlistPlays.keys.map { PlaylistStatsEntity(it, merged.playlistPlays.getValue(it)) })
@@ -167,6 +173,8 @@ internal suspend fun StatsDao.moveSongStats(idRemap: Map<Long, Long>) {
             plays = dst.plays + src.plays, skips = dst.skips + src.skips, restarts = dst.restarts + src.restarts,
             lastPlayedAtMs = listOfNotNull(dst.lastPlayedAtMs, src.lastPlayedAtMs).maxOrNull(),
             filePath = dst.filePath ?: src.filePath,
+            playsMorning = dst.playsMorning + src.playsMorning, playsAfternoon = dst.playsAfternoon + src.playsAfternoon,
+            playsEvening = dst.playsEvening + src.playsEvening, playsNight = dst.playsNight + src.playsNight,
         )
     }
     if (moved.isEmpty()) return
@@ -176,3 +184,8 @@ internal suspend fun StatsDao.moveSongStats(idRemap: Map<Long, Long>) {
     val first = sum?.firstPlayedSongId
     if (sum != null && first != null && first in moved) upsertSummary(sum.copy(firstPlayedSongId = moved.getValue(first)))
 }
+
+private fun SongStatsEntity.slotPlays() = SlotPlays(playsMorning, playsAfternoon, playsEvening, playsNight)
+private fun SongStatsEntity.withSlotPlays(p: SlotPlays) =
+    copy(playsMorning = p.morning, playsAfternoon = p.afternoon, playsEvening = p.evening, playsNight = p.night)
+private fun SongStatsEntity.toSongStats() = SongStats(plays, skips, restarts, lastPlayedAtMs, slotPlays())

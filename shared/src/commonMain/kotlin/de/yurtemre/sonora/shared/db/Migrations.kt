@@ -18,5 +18,14 @@ val MIGRATION_2_3: Migration = object : Migration(2, 3) {
     }
 }
 
+/** v4 adds per-slot play counters on `song_stats` (time-of-day mix). */
+val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        for (c in listOf("plays_morning", "plays_afternoon", "plays_evening", "plays_night")) {
+            connection.execSQL("ALTER TABLE song_stats ADD COLUMN $c INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+}
+
 /** Every schema step since v1; playlists, favourites and stats are never dropped (D-68). */
-val SONORA_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val SONORA_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

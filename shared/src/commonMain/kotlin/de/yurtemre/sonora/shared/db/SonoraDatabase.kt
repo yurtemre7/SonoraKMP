@@ -14,7 +14,7 @@ import kotlinx.coroutines.IO
         PlaylistEntity::class, PlaylistEntryEntity::class, ArtistImageEntity::class,
         SongStatsEntity::class, PlaylistStatsEntity::class, WeekdayStatsEntity::class, StatsSummaryEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @ConstructedBy(SonoraDatabaseConstructor::class)

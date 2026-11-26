@@ -8,8 +8,8 @@ interface StatsRepository {
 
     /** STAT-01 recent milestone. */
     suspend fun recordRecent(songId: Long, atMs: Long)
-    /** STAT-01 complete milestone (plays, weekday Sun=0, first-played, playlist). */
-    suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?)
+    /** STAT-01 complete milestone (plays, weekday Sun=0, first-played, playlist). [hour] is the local hour 0..23 (-1 = unknown, no slot counted). */
+    suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?, hour: Int = -1)
     /** STAT-02 */
     suspend fun recordSkip(songId: Long)
     suspend fun recordRestart(songId: Long)
@@ -50,4 +50,25 @@ data class SongStats(
     val skips: Int = 0,
     val restarts: Int = 0,
     val lastPlayedAtMs: Long? = null,
+    /** Local-only (not part of backup or device sync); plays recorded since slot tracking began. */
+    val slotPlays: SlotPlays = SlotPlays(),
 )
+
+/** Complete listens per time-of-day slot; index order matches `TimeOfDayMix.Slot.ordinal`. */
+data class SlotPlays(
+    val morning: Int = 0,
+    val afternoon: Int = 0,
+    val evening: Int = 0,
+    val night: Int = 0,
+) {
+    val total: Int get() = morning + afternoon + evening + night
+    operator fun plus(o: SlotPlays) = SlotPlays(morning + o.morning, afternoon + o.afternoon, evening + o.evening, night + o.night)
+    fun of(slotOrdinal: Int): Int = when (slotOrdinal) { 0 -> morning; 1 -> afternoon; 2 -> evening; 3 -> night; else -> 0 }
+    fun increment(slotOrdinal: Int): SlotPlays = when (slotOrdinal) {
+        0 -> copy(morning = morning + 1)
+        1 -> copy(afternoon = afternoon + 1)
+        2 -> copy(evening = evening + 1)
+        3 -> copy(night = night + 1)
+        else -> this
+    }
+}

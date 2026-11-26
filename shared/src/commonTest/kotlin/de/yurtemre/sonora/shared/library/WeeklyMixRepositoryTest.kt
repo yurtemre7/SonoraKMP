@@ -62,7 +62,7 @@ class WeeklyMixRepositoryTest {
         val snap = MutableStateFlow(StatsSnapshot())
         override val snapshot: Flow<StatsSnapshot> get() = snap
         override suspend fun recordRecent(songId: Long, atMs: Long) = TODO()
-        override suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?) = TODO()
+        override suspend fun recordCompleteListen(songId: Long, atMs: Long, weekday: Int, localDate: String, playlistId: String?, hour: Int) = TODO()
         override suspend fun recordSkip(songId: Long) = TODO()
         override suspend fun recordRestart(songId: Long) = TODO()
         override suspend fun recordShuffleSession() = TODO()
