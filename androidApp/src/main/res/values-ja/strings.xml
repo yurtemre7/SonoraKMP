@@ -449,7 +449,7 @@
     <string name="end_timer">タイマーを終了</string>
     <string name="add_music">音楽を追加</string>
     <string name="add_music_hint">下のボタンで曲を追加するか、「ファイル」アプリの「このiPhone内 &gt; SonoraKMP &gt; Music」にコピーしてください。</string>
-    <string name="language_system">システムのデフォルト</string>
+    <string name="language_system">システムに合わせる</string>
     <string name="listens_never">未再生</string>
     <string name="widget_label">再生中</string>
     <string name="widget_description">再生中の曲を表示し、再生を操作できます</string>

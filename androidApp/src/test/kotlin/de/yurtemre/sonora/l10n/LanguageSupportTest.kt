@@ -1,6 +1,7 @@
 package de.yurtemre.sonora.l10n
 
 import de.yurtemre.sonora.shared.model.AppLocale
+import de.yurtemre.sonora.shared.model.AppSettings
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import org.junit.Assert.assertEquals
@@ -25,6 +26,14 @@ class LanguageSupportTest {
             }
         }
         return out
+    }
+
+    @Test
+    fun appStartsInFollowSystemMode() {
+        assertEquals(AppLocale.System, AppSettings().appLocale)
+        assertEquals(AppLocale.System, AppLocale.fromStorage(null))
+        assertEquals(AppLocale.System, AppLocale.fromStorage("xx"))
+        assertEquals("system", AppLocale.System.storageName)
     }
 
     @Test

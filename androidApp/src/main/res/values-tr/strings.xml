@@ -457,7 +457,7 @@
     <string name="end_timer">Sayacı bitir</string>
     <string name="add_music">Müzik ekle</string>
     <string name="add_music_hint">Aşağıdaki düğmeyle şarkı ekle ya da Dosyalar uygulamasında SonoraKMP klasörüne kopyala (iPhone\'umda &gt; SonoraKMP &gt; Music).</string>
-    <string name="language_system">Sistem varsayılanı</string>
+    <string name="language_system">Sistemi izle</string>
     <string name="listens_never">Hiç çalmadı</string>
     <string name="widget_label">Şimdi çalıyor</string>
     <string name="widget_description">Çalan şarkıyı çalma kontrolleriyle gösterir</string>

@@ -459,7 +459,7 @@
     <string name="add_music">Add music</string>
     <string name="add_music_hint">Add songs with the button below, or copy them into SonoraKMP\'s folder in the Files app (On My iPhone &gt; SonoraKMP &gt; Music).</string>
     <string name="app_name" translatable="false">SonoraKMP</string>
-    <string name="language_system">System default</string>
+    <string name="language_system">Follow system</string>
     <string name="language_english" translatable="false">English</string>
     <string name="language_japanese" translatable="false">日本語</string>
     <string name="listens_never">Never played</string>
