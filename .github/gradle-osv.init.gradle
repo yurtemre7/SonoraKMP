@@ -1,0 +1,7 @@
+// Init script (not part of the build): makes Gradle write gradle.lockfile for every project
+// so OSV-Scanner can read the fully resolved dependency graph. Used by osv-scan.yml.
+allprojects {
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+}

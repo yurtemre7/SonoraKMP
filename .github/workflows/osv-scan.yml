@@ -1,0 +1,73 @@
+name: OSV scan
+
+# Optional, non-blocking: reports known-vulnerable dependencies (OSV.dev / Google OSV-Scanner)
+# as warnings and a job summary. The job never fails the run, so PRs stay mergeable.
+# Do not add it as a required status check.
+on:
+  pull_request:
+    paths:
+      - "gradle/libs.versions.toml"
+      - "**/*.gradle.kts"
+      - ".github/workflows/osv-scan.yml"
+      - ".github/gradle-osv.init.gradle"
+  push:
+    branches: [main]
+    paths:
+      - "gradle/libs.versions.toml"
+      - "**/*.gradle.kts"
+  schedule:
+    # New advisories appear without any code change.
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: osv-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  osv:
+    name: Vulnerable dependencies (optional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/gradle-setup
+
+      # Resolve every configuration of every module and write gradle.lockfile files.
+      - name: Resolve dependency graph
+        run: ./gradlew --init-script .github/gradle-osv.init.gradle dependencies --write-locks --no-configuration-cache -q > /dev/null
+
+      - name: Scan with OSV-Scanner
+        run: |
+          set +e
+          mapfile -t locks < <(find . -name gradle.lockfile -not -path './site/*')
+          echo "Lockfiles: ${locks[*]:-none}"
+          if (( ${#locks[@]} == 0 )); then
+            echo "::warning::No gradle.lockfile generated; nothing to scan."
+            exit 0
+          fi
+          args=(); for f in "${locks[@]}"; do args+=(--lockfile "$f"); done
+          docker run --rm -v "$PWD:/src" -w /src ghcr.io/google/osv-scanner:latest scan source \
+            "${args[@]}" --format markdown --output-file osv-report.md
+          code=$?
+          [[ -f osv-report.md ]] && cat osv-report.md >> "$GITHUB_STEP_SUMMARY"
+          case $code in
+            0) echo "No known vulnerabilities in ${#locks[@]} lockfile(s)." ;;
+            1) echo "::warning title=Vulnerable dependencies::OSV-Scanner found known vulnerabilities. See the job summary. This check is optional and does not block merging." ;;
+            *) echo "::warning title=OSV scan error::OSV-Scanner exited with $code. Optional check, not blocking." ;;
+          esac
+          exit 0
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: osv-report
+          retention-days: 7
+          path: osv-report.md
+          if-no-files-found: ignore
