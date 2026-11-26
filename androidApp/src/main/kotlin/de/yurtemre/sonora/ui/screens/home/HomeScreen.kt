@@ -56,7 +56,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onShuffle: () -> Unit = {},
-    onHome: () -> Unit = {},
+    onPullToHome: () -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tabContent: HomeTabContent = { t, s -> PlaceholderTabContent(t, s) },
 ) {
@@ -64,9 +64,11 @@ fun HomeScreen(
     var searchOpen by rememberSaveable { mutableStateOf(query.isNotEmpty()) }
     val haptics = LocalHapticFeedback.current
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
+    val currentPullToHome by androidx.compose.runtime.rememberUpdatedState(onPullToHome)
     val pull = remember(threshold) {
-        PullToSearch(threshold) {
-            if (!searchOpen) { haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate); searchOpen = true }
+        PullToHome(threshold) {
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            currentPullToHome()
         }
     }
     Scaffold(
@@ -80,7 +82,7 @@ fun HomeScreen(
                 onCloseSearch = { onQueryChange(""); searchOpen = false },
                 onSortClick = { sortOpen = true },
                 onShuffle = onShuffle,
-                onRecentlyPlayed = onRecentlyPlayed, onFavorites = onFavorites, onSettings = onSettings, onHome = onHome,
+                onRecentlyPlayed = onRecentlyPlayed, onFavorites = onFavorites, onSettings = onSettings,
             )
         },
     ) { padding ->
@@ -94,20 +96,24 @@ fun HomeScreen(
     if (sortOpen) SortSheet(tab, state.sort, onSortSelect, onSortDirection, onDismiss = { sortOpen = false })
 }
 
-/** Pulling the list down past its top by [thresholdPx] opens search (once per gesture). */
-private class PullToSearch(private val thresholdPx: Float, private val onTrigger: () -> Unit) : NestedScrollConnection {
+/** Dragging down at the top of the list by [thresholdPx] (cumulative, direct touch only) returns to Home, once per gesture. */
+private class PullToHome(private val thresholdPx: Float, private val onTrigger: () -> Unit) : NestedScrollConnection {
     private var pulled = 0f
     override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
         if (source == NestedScrollSource.UserInput && available.y > 0f && consumed.y == 0f) {
-            pulled += available.y
-            if (pulled > thresholdPx) { pulled = Float.NEGATIVE_INFINITY; onTrigger() }
-        } else if (available.y < 0f || consumed.y != 0f) {
+            if (pulled.isFinite()) {
+                pulled += available.y
+                if (pulled > thresholdPx) { pulled = Float.NEGATIVE_INFINITY; onTrigger() }
+            }
+        } else if (source == NestedScrollSource.UserInput && (available.y < 0f || consumed.y != 0f)) {
             if (pulled.isFinite()) pulled = 0f
         }
         return Offset.Zero
     }
 
     override suspend fun onPreFling(available: Velocity): Velocity { pulled = 0f; return Velocity.Zero }
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity { pulled = 0f; return Velocity.Zero }
 }
 
 /** Plain list until the real tab composables land. */

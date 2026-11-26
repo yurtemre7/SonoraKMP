@@ -4,32 +4,21 @@ import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBox
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.WbSunny
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.shared.library.SeedColorBuckets
@@ -60,7 +49,6 @@ fun SettingsAppearanceRoute(onBack: () -> Unit) {
     val seeds by remember(library) { library.songs.map { songs -> songs.mapNotNull { it.seedColor } } }
         .collectAsStateWithLifecycle(emptyList())
     val scope = rememberCoroutineScope()
-    var nameDialog by rememberSaveable { mutableStateOf(false) }
     fun save(block: suspend SettingsRepository.() -> Unit) { scope.launch { repo.block() } }
 
     val selectedSeed = settings.defaultThemeColor.toInt()
@@ -156,56 +144,8 @@ fun SettingsAppearanceRoute(onBack: () -> Unit) {
                 subtitle = stringResource(R.string.settings_visualizer_subtitle),
             )
         }
-
-        settingsHeader("personal") { stringResource(R.string.settings_section_personal) }
-        item(key = "greeting") {
-            SwitchRow(
-                stringResource(R.string.settings_greeting), settings.useGreetingTitle,
-                { save { setUseGreetingTitle(it) } }, icon = Icons.Rounded.WbSunny,
-                subtitle = stringResource(R.string.settings_greeting_subtitle),
-            )
-        }
-        item(key = "name") {
-            AnimatedVisibility(settings.useGreetingTitle) {
-                SettingsRow(
-                    stringResource(R.string.settings_name), icon = Icons.Rounded.Badge,
-                    subtitle = settings.userName, onClick = { nameDialog = true },
-                )
-            }
-        }
     }
 
-    if (nameDialog) {
-        val fallback = stringResource(R.string.settings_name_default)
-        NameDialog(
-            initial = settings.userName,
-            onSave = { name ->
-                nameDialog = false
-                save { setUserName(name.trim().ifEmpty { fallback }) }
-            },
-            onDismiss = { nameDialog = false },
-        )
-    }
-}
-
-@Composable
-private fun NameDialog(initial: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
-    var text by rememberSaveable { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_name_dialog_title)) },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.settings_name)) },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            )
-        },
-        confirmButton = { TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
 }
 
 private val ColorSources = listOf(

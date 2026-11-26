@@ -68,6 +68,8 @@ data class HomeTabState(
     val totalDurationMs: Long get() = songs.sumOf { it.durationMs }
 }
 
+const val DEFAULT_NAME = "User"
+
 data class HomeHeaderState(val userName: String? = null, val isSyncing: Boolean = false)
 
 class HomeViewModel(
@@ -83,7 +85,7 @@ class HomeViewModel(
     private val settings = settingsRepo.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val header: StateFlow<HomeHeaderState> = combine(settingsRepo.settings, library.isSyncing) { s, syncing ->
-        HomeHeaderState(s.userName.trim().takeIf { s.useGreetingTitle && it.isNotEmpty() }, syncing)
+        HomeHeaderState(s.userName.trim().ifEmpty { DEFAULT_NAME }, syncing)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeHeaderState())
 
     private data class Lib(val songs: List<Song>, val albums: List<AlbumGroup>, val artists: List<ArtistGroup>, val index: LibrarySearchIndex)
@@ -151,6 +153,13 @@ class HomeViewModel(
     suspend fun sync(): SyncOutcome {
         _syncBanner.value = false
         return library.sync()
+    }
+
+    /** Home "Scan library" button: runs a sync that outlives the dashboard composition. No-op while one is running. */
+    fun scanLibrary() {
+        viewModelScope.launch {
+            if (!library.isSyncing.first()) sync()
+        }
     }
 
     /** Library songs that appear in any playlist (header Shuffle on the Playlists tab). */

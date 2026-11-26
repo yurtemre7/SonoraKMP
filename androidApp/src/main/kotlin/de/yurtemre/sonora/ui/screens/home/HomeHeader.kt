@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shuffle
@@ -117,7 +116,6 @@ fun HomeHeader(
     onRecentlyPlayed: () -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
-    onHome: () -> Unit,
 ) {
     BackHandler(enabled = searchOpen, onBack = onCloseSearch)
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).windowInsetsPadding(de.yurtemre.sonora.ui.components.SonoraInsets.top)) {
@@ -137,7 +135,7 @@ fun HomeHeader(
                 }
             } else {
                 Column(Modifier.padding(bottom = 12.dp)) {
-                    TitleRow(tab, state, onHome, onRecentlyPlayed, onFavorites, onSettings)
+                    TitleRow(tab, state, onRecentlyPlayed, onFavorites, onSettings)
                     ActionGroup(onOpenSearch, onSortClick, onShuffle, tab)
                 }
             }
@@ -265,7 +263,6 @@ internal fun BackgroundWorkProgress(tasks: List<BackgroundWork>, modifier: Modif
 private fun TitleRow(
     tab: LibraryTab,
     state: HomeTabState,
-    onHome: () -> Unit,
     onRecentlyPlayed: () -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
@@ -286,7 +283,6 @@ private fun TitleRow(
             }
             Counts(tab, state, Modifier.padding(top = 2.dp))
         }
-        HeaderAction(Icons.Rounded.Home, stringResource(R.string.home_action_home), onHome)
         HeaderAction(Icons.Rounded.History, stringResource(R.string.home_action_recently_played), onRecentlyPlayed)
         HeaderAction(Icons.Rounded.FavoriteBorder, stringResource(R.string.home_action_favorites), onFavorites)
         HeaderAction(Icons.Rounded.Settings, stringResource(R.string.home_action_settings), onSettings)

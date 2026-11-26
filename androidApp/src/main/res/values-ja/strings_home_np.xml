@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_np_cd">再生中：%1$s、%2$s</string>
+    <string name="home_np_label">再生中</string>
+</resources>

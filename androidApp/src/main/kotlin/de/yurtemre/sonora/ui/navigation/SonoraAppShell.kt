@@ -214,7 +214,7 @@ fun SonoraAppShell(
             popTransitionSpec = { pop() },
             predictivePopTransitionSpec = { predictivePop() },
             entryProvider = entryProvider {
-                entry<Library> { HomeRoute(rootTab, rootView, { rootView = it }, { rootTab = it }, navigate) }
+                entry<Library> { HomeRoute(rootTab, rootView, { rootView = it }, { rootTab = it }, navigate, openNowPlaying) }
                 entry<Album> { AlbumRoute(it.name, it.artist, goBack, navigate) }
                 entry<Artist> { ArtistRoute(it.name, goBack, onOpenAlbum = { n, a -> navigate(Album(n, a)) }, onNavigate = navigate) }
                 entry<Playlist> { PlaylistRoute(it.id, goBack, onNavigate = navigate) }
@@ -311,7 +311,7 @@ fun SonoraAppShell(
                     }
                 }
                 ListDetail(
-                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, rootView, { v -> rootView = v }, { t -> rootTab = t }, navigate) } }, mini = mini, modifier = m) },
+                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, rootView, { v -> rootView = v }, { t -> rootTab = t }, navigate, openNowPlaying) } }, mini = mini, modifier = m) },
                     detail = when {
                         nowPlaying.expanded && player.currentSong != null -> { m ->
                             NowPlayingTwoPane(

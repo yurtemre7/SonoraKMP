@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="home_card_shuffle_all">Hepsini karıştır</string>
+    <string name="home_card_shuffle_all_cd">Tüm kitaplığı karıştırıp çal</string>
+    <string name="home_card_scan">Kitaplığı tara</string>
+    <string name="home_card_scanning">Taranıyor…</string>
+    <string name="home_card_scan_progress" tools:ignore="PluralsCandidate">%1$d / %2$d</string>
+    <string name="home_card_stats_title">Bir bakışta</string>
+    <string name="home_card_stats_songs">Şarkı</string>
+    <string name="home_card_stats_plays">Çalma</string>
+    <string name="home_card_stats_listened">Dinlenen (yaklaşık)</string>
+    <string name="home_card_stats_top_artist">En çok dinlenen sanatçı</string>
+    <string name="home_card_stats_none">—</string>
+    <string name="home_card_stats_open">İstatistikleri aç</string>
+    <string name="home_card_fav_title">Favorin</string>
+    <string name="home_card_fav_plays" tools:ignore="PluralsCandidate">%1$d kez çalındı</string>
+    <string name="home_card_fav_play">%1$s çal</string>
+</resources>

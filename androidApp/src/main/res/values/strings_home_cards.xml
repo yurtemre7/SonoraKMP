@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="home_card_shuffle_all">Shuffle all</string>
+    <string name="home_card_shuffle_all_cd">Shuffle and play your whole library</string>
+    <string name="home_card_scan">Scan library</string>
+    <string name="home_card_scanning">Scanning…</string>
+    <string name="home_card_scan_progress" tools:ignore="PluralsCandidate">%1$d of %2$d</string>
+    <string name="home_card_stats_title">At a glance</string>
+    <string name="home_card_stats_songs">Songs</string>
+    <string name="home_card_stats_plays">Plays</string>
+    <string name="home_card_stats_listened">Listened (approx.)</string>
+    <string name="home_card_stats_top_artist">Top artist</string>
+    <string name="home_card_stats_none">—</string>
+    <string name="home_card_stats_open">Open statistics</string>
+    <string name="home_card_fav_title">Your favorite</string>
+    <string name="home_card_fav_plays" tools:ignore="PluralsCandidate">Played %1$d×</string>
+    <string name="home_card_fav_play">Play %1$s</string>
+</resources>
