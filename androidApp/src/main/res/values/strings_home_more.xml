@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_mix_morning">Good morning mix</string>
+    <string name="home_mix_afternoon">Afternoon mix</string>
+    <string name="home_mix_evening">Evening mix</string>
+    <string name="home_mix_night">Late night mix</string>
+    <!-- %1$s is the mix name, e.g. "Evening mix". -->
+    <string name="home_mix_play_cd">Play %1$s</string>
+    <string name="home_jump_back_in">Jump back in</string>
+    <!-- %1$s is the album name. -->
+    <string name="home_jump_play_cd">Play %1$s</string>
+    <string name="home_tile_shuffle_songs">Shuffle all songs</string>
+    <string name="home_tile_shuffle_album">Shuffle a random album</string>
+    <string name="home_tile_shuffle_artist">Shuffle a random artist</string>
+    <string name="home_tile_shuffle_playlist">Shuffle a random playlist</string>
+</resources>

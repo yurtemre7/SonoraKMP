@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_mix_morning">おはようミックス</string>
+    <string name="home_mix_afternoon">午後のミックス</string>
+    <string name="home_mix_evening">夕方のミックス</string>
+    <string name="home_mix_night">深夜のミックス</string>
+    <string name="home_mix_play_cd">%1$sを再生</string>
+    <string name="home_jump_back_in">続きから聴く</string>
+    <string name="home_jump_play_cd">%1$sを再生</string>
+    <string name="home_tile_shuffle_songs">全曲をシャッフル</string>
+    <string name="home_tile_shuffle_album">アルバムをランダムにシャッフル</string>
+    <string name="home_tile_shuffle_artist">アーティストをランダムにシャッフル</string>
+    <string name="home_tile_shuffle_playlist">プレイリストをランダムにシャッフル</string>
+</resources>

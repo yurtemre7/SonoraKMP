@@ -59,12 +59,14 @@ import de.yurtemre.sonora.shared.library.WeeklyMixRepository
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
+import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.DevBadge
 import de.yurtemre.sonora.ui.components.SectionHeader
 import de.yurtemre.sonora.ui.components.SonoraInsets
 import de.yurtemre.sonora.ui.components.displayTitle
+import de.yurtemre.sonora.ui.navigation.Album
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.Settings
 import de.yurtemre.sonora.ui.navigation.Stats
@@ -99,10 +101,14 @@ fun HomeDashboard(
     val clock = koinInject<Clock>()
     val weeklyRepo = koinInject<WeeklyMixRepository>()
     val playback = koinInject<PlaybackConnection>()
-    val vm = viewModel { HomeDashboardViewModel(library, stats, clock) }
+    val playlistRepo = koinInject<PlaylistRepository>()
+    val vm = viewModel { HomeDashboardViewModel(library, stats, clock, playlistRepo) }
     val recommended by vm.recommended.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
     val glance by vm.glance.collectAsStateWithLifecycle()
+    val timeMix by vm.timeMix.collectAsStateWithLifecycle()
+    val jumpBack by vm.jumpBack.collectAsStateWithLifecycle()
+    val hasPlaylistSongs by vm.hasPlayablePlaylist.collectAsStateWithLifecycle()
     val tasks by library.backgroundTasks.collectAsStateWithLifecycle()
     val weeklyVm = viewModel { WeeklyMixViewModel(weeklyRepo, library.songs.map { it.isNotEmpty() }, clock) }
     val weekly by weeklyVm.ui.collectAsStateWithLifecycle()
@@ -183,7 +189,27 @@ fun HomeDashboard(
                     }
                 }
             }
-            item(key = "tiles") { HomeTiles(onOpenTab) }
+            item(key = "tiles") {
+                HomeTiles(
+                    onOpenTab,
+                    quickEnabled = { tab ->
+                        if (tab == LibraryTab.Playlists) hasPlaylistSongs else (glance?.songCount ?: 0) > 0
+                    },
+                    onQuickShuffle = { tab ->
+                        scope.launch { vm.randomTarget(tab)?.let { playback.playShuffled(it.songs, it.playlistId) } }
+                    },
+                )
+            }
+            if (jumpBack.isNotEmpty()) {
+                item(key = "jump_back_header") { SectionHeader(stringResource(R.string.home_jump_back_in)) }
+                item(key = "jump_back") {
+                    JumpBackInRow(
+                        jumpBack,
+                        onOpen = { onNavigate(Album(it.albumName, it.albumArtist)) },
+                        onPlay = { if (it.songs.isNotEmpty()) playback.playSong(it.songs.first(), it.songs) },
+                    )
+                }
+            }
             // Rows with no data: a short message once the library has songs; nothing at all on a fresh install
             // (the Scan CTA above already covers that) or while the first stats emission is pending.
             val hasSongs = (glance?.songCount ?: 0) > 0
@@ -193,6 +219,9 @@ fun HomeDashboard(
                     if (recommended.isNotEmpty()) SongCarousel(recommended, playback)
                     else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
                 }
+            }
+            timeMix?.takeIf { it.songs.isNotEmpty() }?.let { mix ->
+                item(key = "time_mix") { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
             }
             if (weekly.loaded && weekly.songs.isNotEmpty()) {
                 item(key = "weekly") { WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier) }
