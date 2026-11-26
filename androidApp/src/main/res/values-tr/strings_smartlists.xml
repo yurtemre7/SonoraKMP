@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smart_list_recently_added">Son eklenenler</string>
+    <string name="smart_list_never_played">Hiç çalmayanlar</string>
+    <string name="smart_list_most_played">En çok çalanlar</string>
+    <string name="smart_list_shuffle">Karıştır</string>
+    <string name="smart_list_save">Liste olarak kaydet</string>
+    <string name="smart_list_empty_title">Henüz burada bir şey yok</string>
+    <string name="smart_list_empty_recently_added">Yeni şarkılar kitaplığına girince burada görünür.</string>
+    <string name="smart_list_empty_never_played">Her şarkıyı en az bir kez çaldın.</string>
+    <string name="smart_list_empty_most_played">Birkaç şarkı çal, favorilerin burada belirsin.</string>
+</resources>

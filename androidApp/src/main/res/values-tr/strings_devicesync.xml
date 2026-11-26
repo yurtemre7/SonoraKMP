@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="devicesync_channel_name">Cihaz eşitleme</string>
+    <string name="devicesync_channel_description">Telefonlar arası müzik kopyalamanın ilerlemesini gösterir</string>
+    <string name="devicesync_notif_sending_title">Başka telefona gönderiliyor</string>
+    <string name="devicesync_notif_waiting">Diğer telefon bekleniyor…</string>
+    <string name="devicesync_notif_connected">%1$s ile bağlandı</string>
+    <string name="devicesync_notif_sent_bytes">%1$s / %2$s gönderildi</string>
+    <string name="devicesync_notif_sender_done">Aktarım tamam</string>
+    <string name="devicesync_notif_receiving_title">Başka telefondan alınıyor</string>
+    <plurals name="devicesync_notif_progress">
+        <item quantity="one">%1$d / %2$d dosya · %3$s / %4$s</item>
+        <item quantity="other">%1$d / %2$d dosya · %3$s / %4$s</item>
+    </plurals>
+    <string name="devicesync_notif_speed_eta">%1$s/sn · %2$s kaldı</string>
+    <string name="devicesync_notif_applying">Kitaplık güncelleniyor…</string>
+    <string name="devicesync_notif_cancel">Vazgeç</string>
+    <string name="settings_perm_devicesync_title">Wi-Fi\'da cihaz eşitleme</string>
+    <string name="settings_perm_devicesync_body">Cihaz eşitleme, aynı Wi-Fi\'daki diğer telefonunu bulur (Wi-Fi multicast; Android 17 ve sonrasında yerel ağ erişimi ister) ve dosyaları iki telefon arasında, girdiğin kodla şifreleyerek doğrudan kopyalar. Veri eşitleme ön plan hizmeti, aktarımı arka planda sürdürür ve ilerlemeyi gösterir.</string>
+    <string name="settings_devicesync_title">Cihaz eşitleme</string>
+    <string name="settings_devicesync_subtitle">Müzik ve verileri aynı Wi-Fi\'daki başka telefona kopyala</string>
+    <string name="devicesync_intro">Müziği, çalma listelerini, favorileri, ayarları ve istatistikleri bir telefondan diğerine kopyala. İki telefonda da SonoraKMP ve aynı Wi-Fi gerekir. Tek yönlü çalışır: alan telefon, gönderen telefondakini alır.</string>
+    <string name="devicesync_send_title">Bu telefondan gönder</string>
+    <string name="devicesync_send_body">Diğer telefonun gireceği kodu göster</string>
+    <string name="devicesync_receive_title">Bu telefona al</string>
+    <string name="devicesync_receive_body">Diğer telefondaki kodu gir</string>
+    <string name="devicesync_code_title">Diğer telefon için kod</string>
+    <string name="devicesync_code_a11y">Kod %1$s</string>
+    <string name="devicesync_code_expires">%1$s sonra yeni kod</string>
+    <string name="devicesync_sender_instructions">Diğer telefonda Ayarlar › Cihaz eşitleme › Bu telefona al yolunu aç ve bu kodu gir.</string>
+    <string name="devicesync_sender_waiting">Diğer telefon bekleniyor…</string>
+    <string name="devicesync_sender_paired">%1$s ile bağlandı. Neyi kopyalayacağını seçiyor…</string>
+    <string name="devicesync_sender_sending">Gönderiliyor · %1$s / %2$s</string>
+    <string name="devicesync_sender_code_mismatch">Kod diğer telefonda tutmadı. Tekrar deneyebilir; 3 yanlış denemeden sonra yeni kod çıkar.</string>
+    <string name="devicesync_sender_address">El ile girmek için adres: %1$s</string>
+    <string name="devicesync_stop">Durdur</string>
+    <string name="devicesync_sent_title">Gönderildi</string>
+    <string name="devicesync_sent_body">Diğer telefon istediği her şeyi aldı.</string>
+    <string name="devicesync_senders_title">Yakındaki telefonlar</string>
+    <string name="devicesync_searching">Gönderen telefonlar aranıyor…</string>
+    <string name="devicesync_none_found">Telefon bulunamadı. İki telefonun da aynı Wi-Fi\'da olduğundan emin ol ya da diğer telefondaki adresi gir.</string>
+    <string name="devicesync_discovery_failed">Bu ağ telefonların otomatik bulunmasına izin vermiyor. Diğer telefondaki adresi gir.</string>
+    <string name="devicesync_code_field">6 haneli kod</string>
+    <string name="devicesync_choose_sender">Önce alacağın telefonu seç.</string>
+    <string name="devicesync_manual_title">Adresi el ile gir</string>
+    <string name="devicesync_manual_field">Adres (IP:port)</string>
+    <string name="devicesync_manual_invalid">Adresi 192.168.1.20:41234 gibi gir.</string>
+    <string name="devicesync_connect">Bağlan</string>
+    <string name="devicesync_connecting">%1$s ile bağlanılıyor…</string>
+    <string name="devicesync_destination_title">Kaydedilecek yer</string>
+    <string name="devicesync_destination_needed">Bu telefonun müziği kaydedebileceği bir klasör seç.</string>
+    <string name="devicesync_choose_folder">Klasör seç</string>
+    <string name="devicesync_change_folder">Klasörü değiştir</string>
+    <string name="devicesync_folder_not_writable">Bu klasöre yazılamıyor. Başka bir klasör seç.</string>
+    <string name="devicesync_planning">Bu telefonda neler var, bakılıyor…</string>
+    <string name="devicesync_from">Gönderen: %1$s</string>
+    <plurals name="devicesync_count_new">
+        <item quantity="one">Yeni %1$d</item>
+        <item quantity="other">Yeni %1$d</item>
+    </plurals>
+    <plurals name="devicesync_count_replace">
+        <item quantity="one">Değişecek %1$d</item>
+        <item quantity="other">Değişecek %1$d</item>
+    </plurals>
+    <plurals name="devicesync_count_present">
+        <item quantity="one">Zaten var %1$d</item>
+        <item quantity="other">Zaten var %1$d</item>
+    </plurals>
+    <string name="devicesync_all_present">Her şey zaten bu telefonda. Çalma listeleri, favoriler, ayarlar ve istatistikler yine de eşitlenebilir.</string>
+    <string name="devicesync_section_audio">Ses</string>
+    <string name="devicesync_section_lyrics">Sözler</string>
+    <string name="devicesync_section_covers">Kapaklar</string>
+    <string name="devicesync_top_folder">Ana klasör</string>
+    <string name="devicesync_format_chip">%1$s · %2$d</string>
+    <string name="devicesync_select_all">Tümünü seç</string>
+    <string name="devicesync_select_none">Hiçbirini seçme</string>
+    <string name="devicesync_status_new">Yeni</string>
+    <string name="devicesync_status_present">Bu telefonda zaten var</string>
+    <string name="devicesync_space_needed">%1$s gerekli · %2$s boş</string>
+    <string name="devicesync_space_unknown">%1$s gerekli · boş alan bilinmiyor</string>
+    <string name="devicesync_space_freed">Değiştirince %1$s boşalır</string>
+    <string name="devicesync_not_enough_space">Yer yetmiyor: %1$s daha boşalt</string>
+    <string name="devicesync_start">Başlat</string>
+    <string name="devicesync_data_only">Yalnızca veriyi eşitle</string>
+    <string name="devicesync_receiving">Diğer telefondan alınıyor</string>
+    <plurals name="devicesync_progress_files">
+        <item quantity="one">%1$d / %2$d dosya</item>
+        <item quantity="other">%1$d / %2$d dosya</item>
+    </plurals>
+    <string name="devicesync_progress_bytes">%1$s / %2$s</string>
+    <string name="devicesync_progress_speed">%1$s/sn · %2$s kaldı</string>
+    <string name="devicesync_step_library">Yeni dosyalar kitaplığa ekleniyor…</string>
+    <string name="devicesync_step_replacing">Eski dosyalar değiştiriliyor…</string>
+    <string name="devicesync_step_removing">Diğer telefonda olmayan şarkılar siliniyor…</string>
+    <string name="devicesync_step_data">Listeler, favoriler, ayarlar ve istatistikler uygulanıyor…</string>
+    <string name="devicesync_cancel_title">Aktarım iptal edilsin mi?</string>
+    <string name="devicesync_cancel_body">Kopyalanan dosyalar bu telefonda kalır. Bir dahaki sefere yalnızca kalanlar kopyalanır.</string>
+    <string name="devicesync_cancel_confirm">Aktarımı iptal et</string>
+    <string name="devicesync_keep_going">Devam et</string>
+    <string name="devicesync_done_title">Cihaz eşitleme bitti</string>
+    <plurals name="devicesync_result_copied">
+        <item quantity="one">%1$d dosya kopyalandı</item>
+        <item quantity="other">%1$d dosya kopyalandı</item>
+    </plurals>
+    <plurals name="devicesync_result_replaced">
+        <item quantity="one">%1$d dosya değiştirildi</item>
+        <item quantity="other">%1$d dosya değiştirildi</item>
+    </plurals>
+    <plurals name="devicesync_result_kept_both">
+        <item quantity="one">%1$d dosya yeni sürümünün yanında tutuldu</item>
+        <item quantity="other">%1$d dosya yeni sürümünün yanında tutuldu</item>
+    </plurals>
+    <plurals name="devicesync_result_removed">
+        <item quantity="one">%1$d şarkı silindi (diğer telefonda yok)</item>
+        <item quantity="other">%1$d şarkı silindi (diğer telefonda yok)</item>
+    </plurals>
+    <plurals name="devicesync_extras_title">
+        <item quantity="one">Diğer telefonda olmayan %1$d şarkı silinsin</item>
+        <item quantity="other">Diğer telefonda olmayan %1$d şarkı silinsin</item>
+    </plurals>
+    <string name="devicesync_extras_body">Aktarımdan sonra bu telefondan silinir. Android onay isteyebilir. Geri alınamaz.</string>
+    <plurals name="devicesync_extras_more">
+        <item quantity="one">…ve %1$d tane daha</item>
+        <item quantity="other">…ve %1$d tane daha</item>
+    </plurals>
+    <plurals name="devicesync_result_failed">
+        <item quantity="one">%1$d dosya kopyalanamadı</item>
+        <item quantity="other">%1$d dosya kopyalanamadı</item>
+    </plurals>
+    <string name="devicesync_result_bytes">%1$s alındı</string>
+    <plurals name="devicesync_result_playlists">
+        <item quantity="one">%1$d liste</item>
+        <item quantity="other">%1$d liste</item>
+    </plurals>
+    <plurals name="devicesync_result_favorites">
+        <item quantity="one">%1$d favori</item>
+        <item quantity="other">%1$d favori</item>
+    </plurals>
+    <plurals name="devicesync_result_settings">
+        <item quantity="one">%1$d ayar</item>
+        <item quantity="other">%1$d ayar</item>
+    </plurals>
+    <plurals name="devicesync_result_stats_songs">
+        <item quantity="one">%1$d şarkının istatistiği</item>
+        <item quantity="other">%1$d şarkının istatistiği</item>
+    </plurals>
+    <plurals name="devicesync_result_listens">
+        <item quantity="one">%1$d tam dinleme eklendi</item>
+        <item quantity="other">%1$d tam dinleme eklendi</item>
+    </plurals>
+    <string name="devicesync_join">%1$s · %2$s</string>
+    <string name="devicesync_address">%1$s:%2$d</string>
+    <string name="devicesync_expanded">Açık</string>
+    <string name="devicesync_collapsed">Kapalı</string>
+    <string name="devicesync_applying_wait">Neredeyse bitti. Alınan veriler uygulanırken lütfen bekle.</string>
+    <string name="devicesync_start_refused">Henüz başlatılamadı. Denetim bitince tekrar dene.</string>
+    <string name="devicesync_result_rescan_skipped">Kitaplık otomatik güncellenmedi. Yeni şarkıları görmek için Ayarlar\'dan kitaplığı eşitle.</string>
+    <string name="devicesync_show_failed">Dosyaları göster</string>
+    <string name="devicesync_hide_failed">Dosyaları gizle</string>
+    <string name="devicesync_file_failed_damaged">Bozuk geldi</string>
+    <string name="devicesync_file_failed_write">Kaydedilemedi</string>
+    <string name="devicesync_file_failed_read">Diğer telefonda okunamadı</string>
+    <string name="devicesync_file_failed_other">Kopyalanamadı</string>
+    <string name="devicesync_done">Bitti</string>
+    <string name="devicesync_failed_title">Cihaz eşitleme durdu</string>
+    <string name="devicesync_failure_code">Kod tutmadı. Kodu kontrol edip tekrar dene.</string>
+    <string name="devicesync_failure_version">Telefonlarda SonoraKMP\'nin sürümleri farklı. İkisini de güncelleyip tekrar dene.</string>
+    <string name="devicesync_failure_network">Bağlantı koptu. İki telefonun da aynı Wi-Fi\'da olduğunu kontrol edip tekrar dene.</string>
+    <string name="devicesync_failure_protocol">Diğer telefon beklenmedik bir şey gönderdi. Tekrar dene.</string>
+    <string name="devicesync_failure_storage">Hedef klasör okunamadı ya da yazılamadı.</string>
+    <string name="devicesync_failure_data">Dosyalar geldi ama listeler, favoriler, ayarlar veya istatistikler uygulanamadı.</string>
+    <string name="devicesync_failure_sender">Gönderim başlatılamadı. Bir müzik klasörünün ayarlı olduğunu kontrol edip tekrar dene.</string>
+    <string name="devicesync_failure_unknown">Bir şeyler ters gitti. Tekrar dene.</string>
+    <plurals name="devicesync_failure_kept">
+        <item quantity="one">Önceden kopyalanan %1$d dosya bu telefonda kalır.</item>
+        <item quantity="other">Önceden kopyalanan %1$d dosya bu telefonda kalır.</item>
+    </plurals>
+    <string name="devicesync_retry">Tekrar dene</string>
+    <string name="devicesync_failure_too_many">Diğer telefon, çok fazla yanlış koddan sonra eşleşmeyi duraklattı. Biraz bekle, sonra orada görünen yeni kodu gir.</string>
+    <string name="devicesync_failure_too_large">Diğer telefonun kitaplığı cihaz eşitlemeyle göndermek için çok büyük.</string>
+    <string name="devicesync_sender_locked">Çok fazla yanlış kod. Yeni denemeler %1$s duraklatıldı.</string>
+    <string name="devicesync_preparing">Gönderilecek kitaplık hazırlanıyor…</string>
+    <string name="devicesync_search_again">Tekrar ara</string>
+    <string name="devicesync_search_stopped">Arama durdu. Tekrar ara ya da diğer telefondaki adresi gir.</string>
+    <string name="devicesync_local_network_denied">Cihaz eşitleme, diğer telefonu bulup ulaşmak için yerel ağdaki cihazlara erişmek ister. Uygulama ayarlarından izin ver.</string>
+    <string name="devicesync_open_settings">Ayarları aç</string>
+</resources>

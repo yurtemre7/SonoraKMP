@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_loading">Kitaplığın yükleniyor</string>
+    <string name="gate_loading_slow">Normalden uzun sürüyor. Birazcık sabır.</string>
+    <string name="gate_error_title">SonoraKMP başlatılamadı</string>
+    <string name="gate_error_body">Kayıtlı verilerin okunamadı. Uygulamayı kapatıp sonra tekrar deneyebilir ya da uygulama verilerini silip sıfırdan başlayabilirsin. Müzik dosyalarına dokunulmaz.</string>
+    <string name="gate_error_clear_retry">Verileri sil ve tekrar dene</string>
+    <string name="gate_error_close_app">Uygulamayı kapat</string>
+    <string name="gate_permission_title">Müziğine erişime izin ver</string>
+    <string name="gate_permission_body">Kitaplığını kurmak için SonoraKMP\'nin bu cihazdaki ses dosyalarını okuma iznine ihtiyacı var.</string>
+    <string name="gate_permission_grant">Erişime izin ver</string>
+    <string name="gate_permission_denied_hint">Erişim kapatılmış. Uygulama ayarlarından \"Müzik ve ses\" iznini aç, sonra geri dön.</string>
+    <string name="gate_permission_open_settings">Uygulama ayarlarını aç</string>
+</resources>

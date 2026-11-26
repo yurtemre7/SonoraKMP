@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update2_downloading">İndiriliyor… %1$s / %2$s</string>
+    <string name="update2_downloading_unknown">İndiriliyor… %1$s</string>
+    <string name="update2_verifying">İndirme denetleniyor…</string>
+    <string name="update2_installing">Kuruluyor… Bitirmek için sistem istemini onayla.</string>
+    <string name="update2_installed">Güncelleme kuruldu</string>
+    <string name="update2_cancel">Vazgeç</string>
+    <string name="update2_permission_title">SonoraKMP\'nin güncelleme kurmasına izin ver</string>
+    <string name="update2_permission_message">Açılan ayarlarda \"Bu kaynaktan izin ver\"i aç, sonra geri dön. İndirme kendiliğinden başlar.</string>
+    <string name="update2_open_settings">Ayarları aç</string>
+    <string name="update2_err_no_network">İndirme başarısız. Bağlantını kontrol edip tekrar dene.</string>
+    <string name="update2_err_http">İndirme başarısız (hata %1$d).</string>
+    <string name="update2_err_no_asset">Bu sürümde sağlama dosyası yok, bu yüzden doğrulanamıyor.</string>
+    <string name="update2_err_checksum">İndirilen dosya bozuktu (sağlama uyuşmadı) ve silindi.</string>
+    <string name="update2_err_cancelled">Güncelleme iptal edildi</string>
+    <string name="update2_err_conflict">Kurulamadı: güncelleme, kurulu uygulamadan farklı imzalı.</string>
+    <string name="update2_err_incompatible">Kurulamadı: bu güncelleme cihazınla uyumlu değil.</string>
+    <string name="update2_err_storage">Kurulamadı: boş depolama yetmiyor.</string>
+    <string name="update2_err_install">Güncelleme kurulamadı (hata %1$d).</string>
+    <string name="update2_dev_disabled">Geliştirme derlemelerinde güncelleme kapalı</string>
+    <string name="update2_open_release">Sürüm sayfasını aç</string>
+    <string name="update2_state_downloading">%1$s sürümü indiriliyor…</string>
+    <string name="update2_state_permission">Kurulum izni bekleniyor</string>
+    <string name="update2_cd_progress">İndirme ilerlemesi</string>
+</resources>

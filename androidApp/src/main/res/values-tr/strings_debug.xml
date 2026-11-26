@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="debug_section_database">Veritabanı</string>
+    <string name="debug_section_artwork">Kapak önbelleği</string>
+    <string name="debug_section_sync">Kitaplık eşitleme</string>
+    <string name="debug_section_settings">Ayarlar</string>
+    <string name="debug_songs">Şarkılar</string>
+    <string name="debug_playlists">Çalma listeleri</string>
+    <string name="debug_favorites">Favoriler (şarkı / albüm / sanatçı)</string>
+    <string name="debug_stats_songs">İstatistiği olan şarkılar</string>
+    <string name="debug_dir_album_art">Albüm kapağı</string>
+    <string name="debug_dir_embedded_art">Gömülü kapak</string>
+    <string name="debug_dir_artist_images">Sanatçı görselleri</string>
+    <string name="debug_dir_cache_total">Tüm önbellek klasörü</string>
+    <string name="debug_dir_value">%1$d dosya · %2$s</string>
+    <string name="debug_ms">%1$d ms</string>
+    <string name="debug_last_sync_duration">Son eşitleme süresi</string>
+    <string name="debug_last_sync_at">Son eşitleme</string>
+    <string name="np_view_lyrics">Sözler</string>
+    <string name="np_view_related">Benzerler</string>
+</resources>

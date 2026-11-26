@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="progress_stage_scanning">Müzik klasörün taranıyor</string>
+    <string name="progress_stage_indexing">Klasör içeriği okunuyor</string>
+    <string name="progress_stage_artwork">Kapaklar alınıyor</string>
+    <string name="progress_stage_lyrics">Sözler aranıyor</string>
+    <string name="progress_stage_artist_images">Sanatçı görselleri bulunuyor</string>
+    <string name="progress_stage_replay_gain">Ses seviyeleri okunuyor</string>
+    <string name="progress_stage_durations">Parça süreleri denetleniyor</string>
+    <string name="progress_stage_colors">Kapak renkleri seçiliyor</string>
+    <string name="progress_stage_count">%1$s %2$d / %3$d</string>
+    <string name="progress_also">Ayrıca: %1$s</string>
+</resources>

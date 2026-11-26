@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="miniplayer_play">Çal</string>
+    <string name="miniplayer_pause">Duraklat</string>
+    <string name="miniplayer_replay">Baştan çal</string>
+    <string name="miniplayer_next">Sonraki şarkı</string>
+    <string name="miniplayer_open">Çalan şarkıyı aç</string>
+    <string name="miniplayer_description">Şimdi çalıyor: %1$s, %2$s</string>
+    <string name="miniplayer_action_previous">Önceki şarkı</string>
+    <string name="miniplayer_action_close">Oynatıcıyı kapat</string>
+    <string name="miniplayer_closed">Oynatıcı kapandı</string>
+    <string name="miniplayer_undo">Geri al</string>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="info2_changelog_missing">Yenilikler bu sürümde yok.</string>
+    <string name="info2_licenses_fonts">Yazı tipleri</string>
+    <string name="info2_licenses_libraries">Kütüphaneler</string>
+    <string name="info2_font_name">Bricolage Grotesque</string>
+    <string name="info2_font_license">SIL Open Font License 1.1</string>
+    <string name="info2_licenses_loading">Lisanslar yükleniyor…</string>
+    <string name="info2_close">Kapat</string>
+    <string name="info2_debug_environment">Ortam</string>
+    <string name="info2_debug_library">Kitaplık</string>
+    <string name="info2_debug_sync">Eşitleme</string>
+    <string name="info2_debug_artwork">Kapak önbelleği</string>
+    <string name="info2_debug_settings">Ayarlar</string>
+    <string name="info2_debug_songs">Şarkılar</string>
+    <string name="info2_debug_version">Sürüm</string>
+    <string name="info2_debug_package">Paket</string>
+    <string name="info2_debug_device">Cihaz</string>
+    <string name="info2_debug_android">Android</string>
+    <string name="info2_debug_songs_count">Şarkılar</string>
+    <string name="info2_debug_albums_count">Albümler</string>
+    <string name="info2_debug_artists_count">Sanatçılar</string>
+    <string name="info2_debug_playlists_count">Çalma listeleri</string>
+    <string name="info2_debug_favorites_count">Favori şarkılar</string>
+    <string name="info2_debug_artist_images">Sanatçı görselleri</string>
+    <string name="info2_debug_with_artwork">Kapaklı şarkılar</string>
+    <string name="info2_debug_files">Dosyalar</string>
+    <string name="info2_debug_size">Boyut</string>
+    <string name="info2_debug_folder">Klasör</string>
+    <string name="info2_debug_last_sync">Son eşitleme</string>
+    <string name="info2_debug_last_sync_duration">Son eşitleme süresi</string>
+    <string name="info2_debug_syncing">Şimdi eşitleniyor</string>
+    <string name="info2_debug_none">Yok</string>
+    <string name="info2_debug_yes">Evet</string>
+    <string name="info2_debug_no">Hayır</string>
+    <string name="info2_debug_songs_more">ve %1$d tane daha</string>
+    <string name="info2_debug_read_only">Salt okunur. Yenilemek için aşağı çek ya da yenile\'ye dokun.</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fast_scroller_label">Hızlı kaydırma</string>
+    <string name="fast_scroller_state">%%%1$d</string>
+    <string name="scroll_section_letter_other">#</string>
+    <plurals name="scroll_section_minutes">
+        <item quantity="one">%d dk</item>
+        <item quantity="other">%d dk</item>
+    </plurals>
+    <plurals name="scroll_section_plays">
+        <item quantity="one">%d çalma</item>
+        <item quantity="other">%d çalma</item>
+    </plurals>
+    <plurals name="selection_count">
+        <item quantity="one">%d seçili</item>
+        <item quantity="other">%d seçili</item>
+    </plurals>
+    <string name="selection_close">Seçimi kapat</string>
+    <string name="selection_select_all">Tümünü seç</string>
+    <string name="selection_play_next">Sıradaki yap</string>
+    <string name="selection_add_to_queue">Sıraya ekle</string>
+    <string name="selection_add_to_playlist">Listeye ekle</string>
+    <string name="selection_favorite">Favori</string>
+    <string name="selection_unfavorite">Favoriden çıkar</string>
+    <string name="selection_share">Paylaş</string>
+    <plurals name="selection_snack_play_next">
+        <item quantity="one">%d şarkı sıradaki oldu</item>
+        <item quantity="other">%d şarkı sıradaki oldu</item>
+    </plurals>
+    <plurals name="selection_snack_queued">
+        <item quantity="one">%d şarkı sıraya eklendi</item>
+        <item quantity="other">%d şarkı sıraya eklendi</item>
+    </plurals>
+    <plurals name="selection_snack_favorited">
+        <item quantity="one">%d şarkı favorilere eklendi</item>
+        <item quantity="other">%d şarkı favorilere eklendi</item>
+    </plurals>
+    <plurals name="selection_snack_unfavorited">
+        <item quantity="one">%d şarkı favorilerden çıkarıldı</item>
+        <item quantity="other">%d şarkı favorilerden çıkarıldı</item>
+    </plurals>
+    <string name="selection_snack_share_failed">Bu şarkılar paylaşılamadı</string>
+</resources>

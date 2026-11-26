@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="np_collapse">Oynatıcıyı kapat</string>
+    <string name="np_previous">Önceki</string>
+    <string name="np_next">Sonraki</string>
+    <string name="np_shuffle">Karıştır</string>
+    <string name="np_repeat">Tekrar</string>
+    <string name="np_repeat_off">Kapalı</string>
+    <string name="np_repeat_all">Tüm şarkılar</string>
+    <string name="np_repeat_one">Bu şarkı</string>
+    <string name="np_state_on">Açık</string>
+    <string name="np_state_off">Kapalı</string>
+    <string name="np_favorite">Favori</string>
+    <string name="np_mfx">Ses efektleri</string>
+    <string name="np_mfx_active">Ses efektleri açık</string>
+    <string name="np_mfx_speed">%1$s×</string>
+    <string name="np_sleep_timer">Uyku sayacı</string>
+    <string name="np_view_up_next">Sıradaki</string>
+    <string name="np_open_artist">Sanatçı: %1$s</string>
+    <string name="np_open_album">Albüm: %1$s</string>
+    <string name="np_immersive_enter">Kontrolleri gizle</string>
+    <string name="np_immersive_exit">Kontrolleri göster</string>
+</resources>

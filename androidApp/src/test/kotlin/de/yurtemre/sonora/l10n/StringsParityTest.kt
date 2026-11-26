@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
 
-/** Every translatable en string/plurals key exists in ja (and vice versa) with the same format arguments. */
+/** Every translatable en string/plurals key exists in every translation (and vice versa) with the same format arguments. */
 class StringsParityTest {
 
     private val res = File("src/main/res").also { check(it.isDirectory) { "run from the androidApp module dir" } }
@@ -33,15 +33,20 @@ class StringsParityTest {
     }
 
     @Test
-    fun englishAndJapaneseMatchInKeysAndFormatArguments() {
+    fun everyLanguageMatchesEnglishInKeysAndFormatArguments() {
         val en = load("values")
-        val ja = load("values-ja")
-        assertEquals("missing in values-ja", emptySet<String>(), en.keys - ja.keys)
-        assertEquals("missing in values", emptySet<String>(), ja.keys - en.keys)
-        val mismatches = en.filter { (k, args) -> k in ja && ja[k] != args }
-            .map { (k, args) -> "$k: en=$args ja=${ja[k]}" }
-        assertEquals(emptyList<String>(), mismatches)
+        for (dir in translationDirs()) {
+            val other = load(dir)
+            assertEquals("missing in $dir", emptySet<String>(), en.keys - other.keys)
+            assertEquals("missing in values (extra in $dir)", emptySet<String>(), other.keys - en.keys)
+            val mismatches = en.filter { (k, args) -> k in other && other[k] != args }
+                .map { (k, args) -> "$k: en=$args $dir=${other[k]}" }
+            assertEquals(dir, emptyList<String>(), mismatches)
+        }
     }
+
+    private fun translationDirs(): List<String> =
+        res.list().orEmpty().filter { it.startsWith("values-") && File(res, it).listFiles().orEmpty().any { f -> f.name.startsWith("strings") } }.sorted()
 
     private companion object {
         val ARG = Regex("%(?:(\\d+)\\$)?[-#+ 0,(]*\\d*(?:\\.\\d+)?([sdf])")

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_detail_no_description">Açıklama ekle</string>
+    <string name="playlist_detail_count_time">%1$s · %2$s</string>
+    <string name="playlist_detail_play">Çal</string>
+    <string name="playlist_detail_shuffle">Karıştır</string>
+    <string name="playlist_detail_more">Diğer seçenekler</string>
+    <string name="playlist_detail_rename">Yeniden adlandır</string>
+    <string name="playlist_detail_change_cover">Kapağı değiştir</string>
+    <string name="playlist_detail_remove_cover">Kapağı kaldır</string>
+    <string name="playlist_detail_export">M3U olarak dışa aktar</string>
+    <string name="playlist_detail_delete">Listeyi sil</string>
+    <string name="playlist_detail_delete_title">Bu liste silinsin mi?</string>
+    <string name="playlist_detail_delete_message">“%1$s” silinecek. Şarkıların kitaplıkta kalır.</string>
+    <string name="playlist_detail_delete_confirm">Sil</string>
+    <string name="playlist_detail_deleted">%1$s silindi</string>
+    <string name="playlist_detail_export_failed">Liste dışa aktarılamadı</string>
+    <string name="playlist_detail_cover_failed">Bu görsel kullanılamadı</string>
+    <string name="playlist_detail_add_songs">Şarkı ekle</string>
+    <string name="playlist_detail_empty_title">Bu liste boş</string>
+    <string name="playlist_detail_empty_subtitle">Buraya şarkı ekle ya da kitaplığındaki bir şarkıya uzun bas.</string>
+    <string name="playlist_detail_not_found">Bu liste artık yok</string>
+    <string name="playlist_detail_removed">%1$s çıkarıldı</string>
+    <plurals name="playlist_detail_removed_many">
+        <item quantity="one">%d şarkı çıkarıldı</item>
+        <item quantity="other">%d şarkı çıkarıldı</item>
+    </plurals>
+    <string name="playlist_detail_undo">Geri al</string>
+    <string name="playlist_detail_remove">Listeden çıkar</string>
+    <string name="playlist_detail_drag_handle">Yeniden sırala</string>
+    <string name="playlist_detail_move_up">Yukarı taşı</string>
+    <string name="playlist_detail_move_down">Aşağı taşı</string>
+    <string name="playlist_detail_back">Geri</string>
+    <string name="playlist_detail_cover_desc">%1$s kapağı</string>
+    <string name="playlist_add_title">Şarkı ekle</string>
+    <string name="playlist_add_search">Kitaplığında ara</string>
+    <plurals name="playlist_add_confirm">
+        <item quantity="one">%d şarkı ekle</item>
+        <item quantity="other">%d şarkı ekle</item>
+    </plurals>
+    <string name="playlist_add_none">Eklenecek şarkı yok</string>
+    <plurals name="playlist_added">
+        <item quantity="one">%d şarkı eklendi</item>
+        <item quantity="other">%d şarkı eklendi</item>
+    </plurals>
+</resources>
