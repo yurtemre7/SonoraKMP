@@ -41,7 +41,8 @@ jobs:
       # Resolve every configuration of every module and write gradle.lockfile files.
       - name: Resolve dependency graph
         run: |
-          ./gradlew --init-script .github/gradle-osv.init.gradle resolveAllForOsv --write-locks --no-configuration-cache --continue
+          ./gradlew --init-script .github/gradle-osv.init.gradle resolveAllForOsv --write-locks --no-configuration-cache --continue \
+            || echo "::warning::Gradle failed while resolving dependencies; scanning whatever lockfiles were written."
           find . -name gradle.lockfile -not -path './site/*' -exec wc -l {} +
 
       - name: Scan with OSV-Scanner
