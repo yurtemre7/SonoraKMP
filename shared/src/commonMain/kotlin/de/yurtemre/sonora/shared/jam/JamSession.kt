@@ -69,6 +69,12 @@ sealed interface HostAction {
     data class SetSettings(val settings: JamSettings) : HostAction
     data class AddSong(val song: JamSong) : HostAction
     data class SetRepeat(val repeat: JamRepeat) : HostAction
+
+    /** The host jumped to [positionMs] inside the current song (playing or paused). */
+    data class Seek(val positionMs: Long, val hostTimeMs: Long) : HostAction
+
+    /** The host's playback rate changed; [positionMs] at [hostTimeMs] is where the timeline is re-anchored. */
+    data class SetRate(val speed: Float, val pitch: Float, val positionMs: Long, val hostTimeMs: Long) : HostAction
 }
 
 sealed interface JamEvent {
@@ -83,7 +89,7 @@ sealed interface JamEvent {
 }
 
 private fun JamState.positionAt(hostTimeMs: Long): Long =
-    if (playing) positionMs + (hostTimeMs - this.hostTimeMs).coerceAtLeast(0) else positionMs
+    if (playing) positionMs + ((hostTimeMs - this.hostTimeMs).coerceAtLeast(0) * speed).toLong() else positionMs
 
 private fun JamState.step(delta: Int, hostTimeMs: Long): JamState {
     val target = index + delta
@@ -131,12 +137,18 @@ fun JamHostState.apply(event: JamEvent): JamHostState = when (event) {
         )
         is HostAction.AddSong -> withState(state.copy(queue = state.queue + a.song))
         is HostAction.SetRepeat -> withState(state.copy(repeat = a.repeat))
+        is HostAction.Seek -> withState(
+            state.copy(positionMs = a.positionMs, hostTimeMs = a.hostTimeMs, seekCount = state.seekCount + 1),
+        )
+        is HostAction.SetRate -> withState(
+            state.copy(speed = a.speed, pitch = a.pitch, positionMs = a.positionMs, hostTimeMs = a.hostTimeMs),
+        )
     }
 }
 
 /**
- * What a guest should do with the current Jam state. Deliberately has no speed or pitch field: guests never
- * change playback rate to chase the host.
+ * What a guest should do with the current Jam state. Deliberately has no speed or pitch field: guests play at the
+ * host's rate ([JamState.speed]) but never change it to chase the host's position.
  */
 sealed interface GuestPlan {
     /** The song at jam queue position [index] is not in the local library; the caller skips it silently. */

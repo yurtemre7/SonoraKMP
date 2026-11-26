@@ -92,6 +92,9 @@ interface PlaybackConnection {
      */
     fun setMirrorQueue(songs: List<Song>, index: Int, positionMs: Long, playWhenReady: Boolean, repeatOne: Boolean = false)
 
+    /** Jam guest: plays at the host's [speed] and [pitch] while mirroring (a later call replaces it; 1 and 1 = normal). */
+    fun setMirrorRate(speed: Float, pitch: Float)
+
     /** Ends the Jam mirror: [snapshot] comes back paused (null leaves an empty queue) and persistence resumes. */
     fun endMirror(snapshot: QueueSnapshot?)
 }

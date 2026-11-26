@@ -153,23 +153,68 @@ class JamControllerHostTest : JamControllerTestBase() {
         assertTrue(s.positionMs in 120_000..120_000 + JamHostSession.SEEK_CHECK_MS)
     }
 
-    @Test fun hostSpeedEffectIsShown() = runTest {
+    @Test fun aSeekCountsAsASeekForGuests() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        assertEquals(0, (transport.broadcasts.last() as JamStateFrame).state.seekCount)
+        playback.position = 120_000
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS + 1)
+        val s = (transport.broadcasts.last() as JamStateFrame).state
+        assertEquals(1, s.seekCount)
+        assertTrue(s.positionMs in 120_000..120_000 + JamHostSession.SEEK_CHECK_MS)
+    }
+
+    @Test fun aSeekWhilePausedIsBroadcastToo() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = false)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        playback.position = 45_000
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS + 1)
+        val s = (transport.broadcasts.single() as JamStateFrame).state
+        assertEquals(1, s.seekCount)
+        assertEquals(45_000L, s.positionMs)
+        assertFalse(s.playing)
+    }
+
+    @Test fun aSpeedChangeIsBroadcastWithoutCountingAsASeek() = runTest {
+        val jam = controller()
+        jam.host(JamSettings())
+        playback.hostQueue(listOf(a, b), index = 0, playing = true)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        transport.broadcasts.clear()
+        playback.position = playback.position // the fake's clock re-anchors before its speed changes
+        playback.mfx.value = MfxUiState(customSpeed = 1.25f, customPitch = 1.25f)
+        advanceTimeBy(JamController.HOST_DEBOUNCE_MS + 1)
+        val s = (transport.broadcasts.last() as JamStateFrame).state
+        assertEquals(1.25f, s.speed)
+        assertEquals(1.25f, s.pitch)
+        assertEquals(0, s.seekCount)
+        // At 1.25x the timeline runs 1.25x faster than the clock: that is no seek either.
+        transport.broadcasts.clear()
+        advanceTimeBy(JamHostSession.SEEK_CHECK_MS * 3)
+        assertTrue(transport.broadcasts.none { (it as JamStateFrame).state.seekCount > 0 })
+    }
+
+    @Test fun aSpeedEffectAloneIsNoWarning() = runTest {
         val jam = controller()
         jam.host(JamSettings())
         runCurrent()
-        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
-        playback.mfx.value = MfxUiState(customSpeed = 1.25f)
+        playback.mfx.value = MfxUiState(customSpeed = 1.25f) // guests follow the speed now
         runCurrent()
-        assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
+        assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
         assertNoEffects()
     }
 
-    @Test fun hostSkipSilenceCountsAsATimeEffect() = runTest {
+    @Test fun hostSkipSilenceIsAWarning() = runTest {
         val jam = controller()
         jam.host(JamSettings())
         runCurrent()
         assertFalse((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
-        skipSilence.value = true // guests never skip silence: they fall behind like with a speed effect
+        skipSilence.value = true // guests never skip silence: they fall behind
         runCurrent()
         assertTrue((jam.state.value as JamUiState.Hosting).hostSpeedEffectActive)
         skipSilence.value = false

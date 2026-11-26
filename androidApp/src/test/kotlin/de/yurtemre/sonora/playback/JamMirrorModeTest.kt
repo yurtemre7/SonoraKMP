@@ -28,14 +28,14 @@ class JamMirrorModeTest {
 
     private val own = SavedPlaybackState(songId = 2, queueIds = listOf(1, 2, 3), originalQueueIds = listOf(1, 2, 3), positionMs = 42_000, isShuffled = false)
     private val jam = SavedPlaybackState(songId = 9, queueIds = listOf(9, 8), originalQueueIds = listOf(9, 8), positionMs = 0, isShuffled = false)
-    private val speed = mutableListOf<Boolean>()
+    private val speed = mutableListOf<Pair<Float, Float>?>()
     private val silence = mutableListOf<Boolean>()
     private val store = PlaybackStateStore(MemoryDataStore())
     private var current: SavedPlaybackState? = own
 
     private fun TestScope.mode(): Pair<JamMirrorMode, PlaybackPersistence> {
         val persistence = PlaybackPersistence(store, backgroundScope, { current }, { 0L }, { true })
-        return JamMirrorMode(persistence, setNormalSpeed = { speed += it }, setSkipSilence = { silence += it }) to persistence
+        return JamMirrorMode(persistence, applyRate = { s, p -> speed += if (s == null || p == null) null else s to p }, setSkipSilence = { silence += it }) to persistence
     }
 
     @Test fun skipSilenceIsOffWhileMirroringAndTheUsersValueComesBack() = runTest {
@@ -44,14 +44,27 @@ class JamMirrorModeTest {
         assertEquals(listOf(true), silence)
         mode.begin { assertTrue("the audio settings change after the load", speed.isEmpty()) }
         assertEquals(listOf(true, false), silence)
-        assertEquals(listOf(true), speed)
+        assertEquals(listOf(1f to 1f), speed)
         mode.userSkipSilence = true // the setting is re-read while in the Jam: stays off
         assertEquals(false, silence.last())
-        mode.end { assertEquals("the pause comes first, at Jam speed", listOf(true), speed) }
+        mode.end { assertEquals("the pause comes first, at Jam speed", listOf(1f to 1f), speed) }
         assertEquals(true, silence.last())
-        assertEquals(listOf(true, false), speed)
+        assertEquals(listOf(1f to 1f, null), speed)
         mode.end { error("idempotent") }
         assertEquals(2, speed.size)
+    }
+
+    @Test fun theGuestPlaysAtTheHostsRateAndTheUsersOwnComesBack() = runTest {
+        val (mode, _) = mode()
+        mode.setRate(1.25f, 1.25f) // told before the first load: used by it
+        mode.begin { }
+        assertEquals(listOf(1.25f to 1.25f), speed)
+        mode.setRate(0.8f, 1f)
+        assertEquals(listOf(1.25f to 1.25f, 0.8f to 1f), speed)
+        mode.end { }
+        assertEquals(null, speed.last())
+        mode.setRate(1.5f, 1.5f) // not mirroring: nothing applied
+        assertEquals(3, speed.size)
     }
 
     /** ExoPlayer reports the pause from inside pauseImmediately(): that save must not store the Jam queue. */

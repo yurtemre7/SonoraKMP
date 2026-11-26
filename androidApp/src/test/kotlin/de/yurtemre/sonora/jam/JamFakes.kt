@@ -45,6 +45,8 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
     val effectCalls = mutableListOf<String>()
     val mirrorLoads = mutableListOf<MirrorLoad>()
     val seeks = mutableListOf<Long>()
+    /** Every setMirrorRate call: (speed, pitch). */
+    val mirrorRates = mutableListOf<Pair<Float, Float>>()
     val restored = mutableListOf<QueueSnapshot?>()
     /** Local time of every play() call. */
     val playAt = mutableListOf<Long>()
@@ -56,7 +58,7 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
     private var basePosition = 0L
     private var baseAt = 0L
     var position: Long
-        get() = if (player.value.isPlaying) basePosition + (nowMs() - baseAt) else basePosition
+        get() = if (player.value.isPlaying) basePosition + ((nowMs() - baseAt) * mfx.value.effectiveSpeed).toLong() else basePosition
         set(value) { basePosition = value; baseAt = nowMs() }
 
     private fun setPlaying(playing: Boolean) {
@@ -118,6 +120,8 @@ class RecordingPlayback(private val nowMs: () -> Long) : PlaybackConnection {
             setPlaying(playWhenReady && song != null)
         }
     }
+    override fun setMirrorRate(speed: Float, pitch: Float) { mirrorRates += speed to pitch }
+
     override fun endMirror(snapshot: QueueSnapshot?) {
         calls += "endMirror"
         restored += snapshot

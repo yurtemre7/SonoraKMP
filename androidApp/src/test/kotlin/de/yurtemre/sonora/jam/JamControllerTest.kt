@@ -175,6 +175,58 @@ class JamControllerTest : JamControllerTestBase() {
         assertNoEffects()
     }
 
+    @Test fun aHostSeekIsFollowedAtOnceMidSong() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, positionMs = 0)))
+        advanceTimeBy(30_000)
+        link.deliver(JamStateFrame(state(a, b, positionMs = 30_000))) // an ordinary frame: nothing to do
+        runCurrent()
+        assertTrue(playback.seeks.isEmpty())
+        advanceTimeBy(1_000)
+        // The host jumped to 90 s (a seekbar drag or a lyric tap): even a small or large jump is followed now.
+        link.deliver(JamStateFrame(state(a, b, positionMs = 90_000, seekCount = 1)))
+        runCurrent()
+        assertEquals(listOf(90_000L), playback.seeks)
+        assertTrue(playback.player.value.isPlaying)
+        // The same count again (a keepalive) is no new seek.
+        advanceTimeBy(2_000)
+        link.deliver(JamStateFrame(state(a, b, positionMs = 92_000, seekCount = 1)))
+        runCurrent()
+        assertEquals(listOf(90_000L), playback.seeks)
+        assertNoEffects()
+    }
+
+    @Test fun aSeekWhilePausedIsFollowedToo() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, playing = false, positionMs = 10_000)))
+        runCurrent()
+        link.deliver(JamStateFrame(state(a, b, playing = false, positionMs = 50_000, seekCount = 1)))
+        runCurrent()
+        assertEquals(listOf(50_000L), playback.seeks)
+    }
+
+    @Test fun joiningToAnAlreadySeekedJamIsNotASeek() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, positionMs = 0, seekCount = 7)))
+        runCurrent()
+        assertTrue(playback.seeks.isEmpty())
+    }
+
+    @Test fun theGuestPlaysAtTheHostsSpeed() = runTest {
+        val jam = controller()
+        val link = joined(jam)
+        link.deliver(JamStateFrame(state(a, b, positionMs = 0, speed = 1.25f, pitch = 1.25f)))
+        runCurrent()
+        assertEquals(1.25f to 1.25f, playback.mirrorRates.last())
+        link.deliver(JamStateFrame(state(a, b, positionMs = 0, speed = 1f, pitch = 1f)))
+        runCurrent()
+        assertEquals(1f to 1f, playback.mirrorRates.last())
+        assertNoEffects() // the user's own effect settings are never touched
+    }
+
     @Test fun smallDriftIsLeftAlone() = runTest {
         val jam = controller()
         val link = joined(jam)

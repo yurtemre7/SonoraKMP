@@ -67,10 +67,10 @@ class AudioEffects(
     }
 
     /**
-     * Jam guest: play at normal speed and pitch whatever the settings say, so the guest's clock-synced start holds
-     * (a Jam never changes the rate to chase the host; this only keeps the user's own effect out of the Jam).
+     * Jam guest: play at the host's (speed, pitch) whatever the settings say, so the user's own effect stays out of
+     * the Jam; null outside a Jam. The guest never changes the rate to chase the host's position.
      */
-    var normalSpeed: Boolean = false
+    var mirrorRate: Pair<Float, Float>? = null
         set(value) { field = value; reapplySpeed() }
 
     /** Re-apply speed/pitch (call per track, PLAY-13). */
@@ -107,7 +107,7 @@ class AudioEffects(
     }
 
     private fun applySpeed(s: AppSettings) {
-        val (speed, pitch) = if (normalSpeed) 1.0 to 1.0 else SpeedPresets.playbackParameters(
+        val (speed, pitch) = mirrorRate?.let { (s, p) -> s.toDouble() to p.toDouble() } ?: SpeedPresets.playbackParameters(
             s.mfxPreset,
             SpeedPresets.clampSpeed(s.speed),
             SpeedPresets.clampPitch(s.pitch),

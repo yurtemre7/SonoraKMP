@@ -380,6 +380,11 @@ class PlaybackConnectionImpl(
         },
     )
 
+    override fun setMirrorRate(speed: Float, pitch: Float) = send(
+        C.SET_MIRROR_RATE,
+        Bundle().apply { putFloat(C.ARG_VALUE, speed); putFloat(C.ARG_PITCH, pitch) },
+    )
+
     override fun endMirror(snapshot: QueueSnapshot?) = send(
         C.END_MIRROR,
         Bundle().apply {

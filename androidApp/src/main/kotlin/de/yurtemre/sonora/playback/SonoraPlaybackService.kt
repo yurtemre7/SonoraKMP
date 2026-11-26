@@ -195,7 +195,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
         )
         fader = TransitionFader(exo, player.volumes, scope)
         effects = AudioEffects(exo, settingsRepo.settings, scope).also { it.start() }
-        mirrorMode = JamMirrorMode(persistence, setNormalSpeed = { effects.normalSpeed = it }, setSkipSilence = { exo.skipSilenceEnabled = it })
+        mirrorMode = JamMirrorMode(persistence, applyRate = { speed, pitch -> effects.mirrorRate = if (speed == null || pitch == null) null else speed to pitch }, setSkipSilence = { exo.skipSilenceEnabled = it })
         focus = AudioFocusController(this, exo, settingsRepo.settings, scope, onPermanentLoss = ::onSystemPause)
             .also { it.start() }
         noisy = NoisyAndReconnectHandler(
@@ -468,6 +468,7 @@ class SonoraPlaybackService : MediaLibraryService(), KoinComponent {
                 a.getLongArray(C.ARG_IDS)?.toList().orEmpty(), a.getInt(C.ARG_INDEX), a.getLong(C.ARG_POSITION),
                 a.getBoolean(C.ARG_PLAY), a.getBoolean(C.ARG_REPEAT_ONE),
             )
+            C.SET_MIRROR_RATE -> mirrorMode.setRate(a.getFloat(C.ARG_VALUE, 1f), a.getFloat(C.ARG_PITCH, 1f))
             C.END_MIRROR -> endMirror(C.decodeQueue(a.getString(C.ARG_QUEUE_JSON)), a.getLong(C.ARG_POSITION))
         }
     }

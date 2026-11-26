@@ -7,12 +7,13 @@ import de.yurtemre.sonora.shared.queue.currentEntry
 
 /**
  * The playback service's Jam guest mode: while a mirror is loaded nothing is persisted ([PlaybackPersistence] keeps
- * the guest's own queue), and the guest plays at normal speed and pitch with skip silence off (both would move it
- * away from the host's timeline); the user's settings come back on [end].
+ * the guest's own queue), and the guest plays at the host's speed and pitch (normal until told) with skip silence
+ * off (the host's skipped silence cannot be followed); the user's settings come back on [end].
  */
 class JamMirrorMode(
     private val persistence: PlaybackPersistence,
-    private val setNormalSpeed: (Boolean) -> Unit,
+    /** Plays at the given speed and pitch while mirroring; (null, null) gives the user's own back. */
+    private val applyRate: (Float?, Float?) -> Unit,
     private val setSkipSilence: (Boolean) -> Unit,
 ) {
     var active = false
@@ -25,6 +26,16 @@ class JamMirrorMode(
             setSkipSilence(value && !active)
         }
 
+    /** The host's playback rate; applied while mirroring, kept for the first load too. */
+    private var speed = 1f
+    private var pitch = 1f
+
+    fun setRate(speed: Float, pitch: Float) {
+        this.speed = speed
+        this.pitch = pitch
+        if (active) applyRate(speed, pitch)
+    }
+
     /** Runs [load]; the first time, the own queue is saved before it and the Jam audio settings apply after it. */
     fun begin(load: () -> Unit) {
         if (active) {
@@ -34,7 +45,7 @@ class JamMirrorMode(
         persistence.beginMirror()
         active = true
         load()
-        setNormalSpeed(true)
+        applyRate(speed, pitch)
         setSkipSilence(false)
     }
 
@@ -47,7 +58,9 @@ class JamMirrorMode(
         stopPlayback()
         active = false
         persistence.endMirror()
-        setNormalSpeed(false)
+        speed = 1f
+        pitch = 1f
+        applyRate(null, null)
         setSkipSilence(userSkipSilence)
     }
 }

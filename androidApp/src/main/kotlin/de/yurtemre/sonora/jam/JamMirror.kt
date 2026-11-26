@@ -39,6 +39,17 @@ internal class JamMirror(private val playback: PlaybackConnection) {
     var repeatOne = false
         private set
 
+    private var speed = 1f
+    private var pitch = 1f
+
+    /** The host's playback rate: sent to the player now and again after every load (the first one resets it). */
+    fun setRate(speed: Float, pitch: Float) {
+        if (speed == this.speed && pitch == this.pitch) return
+        this.speed = speed
+        this.pitch = pitch
+        if (active) playback.setMirrorRate(speed, pitch)
+    }
+
     fun load(songs: List<Song>, index: Int, positionMs: Long, play: Boolean, repeatOne: Boolean = this.repeatOne) {
         if (!active) {
             previous = playback.queueSnapshot()
@@ -53,6 +64,7 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         confirmed = false
         this.repeatOne = repeatOne
         playback.setMirrorQueue(songs, index, positionMs, play, repeatOne)
+        playback.setMirrorRate(speed, pitch)
     }
 
     /**
@@ -130,6 +142,8 @@ internal class JamMirror(private val playback: PlaybackConnection) {
         loadedSongId = null
         ownEntryUid = null
         repeatOne = false
+        speed = 1f
+        pitch = 1f
         playback.endMirror(previous)
         previous = null
     }

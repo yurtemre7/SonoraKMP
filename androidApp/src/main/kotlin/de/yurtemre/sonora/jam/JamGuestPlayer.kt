@@ -17,7 +17,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * Puts the host's [JamState]s on the guest's player ([JamMirror]).
  *
- * Sound quality beats exact sync: never a speed or pitch change and never a seek while a song plays. A song starts
+ * Sound quality beats exact sync: never a speed or pitch change to chase the host and never a seek for drift while a
+ * song plays. Two things the host does on purpose are followed at once, though: its playback rate ([JamState.speed],
+ * [JamState.pitch]) and its seeks ([JamState.seekCount] went up). A song starts
  * when the local clock reaches the host's anchor (plus the speaker delay), or at once where the host is now when
  * that time has passed. Drift above 2 s seen while playing cuts the player's run to the current song, so the guest
  * can never start the next song before the host (a guest ahead goes quiet at the song's end; one behind finishes its
@@ -45,6 +47,8 @@ internal class JamGuestPlayer(
     private var latest: JamState? = null
     /** Drift above the threshold was seen while playing: seek at the next pause or resume. */
     private var pendingSeek = false
+    /** The host's seek count as of the last frame; null before the first one (a join is not a seek). */
+    private var lastSeekCount: Int? = null
     private var startJob: Job? = null
     /** Waits for this phone's song to end before the next one starts (trailing or trimmed). */
     private var tailJob: Job? = null
@@ -81,6 +85,9 @@ internal class JamGuestPlayer(
     fun onState(s: JamState) {
         latest = s
         cancel()
+        val seeked = lastSeekCount?.let { it != s.seekCount } ?: false
+        lastSeekCount = s.seekCount
+        mirror.setRate(s.speed, s.pitch)
         val now = env.nowMs()
         val v = mirror.view()
         val current = s.queue.getOrNull(s.index)?.let(library::match)
@@ -90,7 +97,7 @@ internal class JamGuestPlayer(
         val plan = synchronized(c) { planPlayback(s, library.songs(), c, now, actual) }
         when {
             plan is GuestPlan.Skip -> onMissing(s, v)
-            sameSong -> onSameSong(s, plan as GuestPlan.Play, v, now)
+            sameSong -> onSameSong(s, plan as GuestPlan.Play, v, now, seeked)
             else -> onNewSong(s, plan as GuestPlan.Play, v, now)
         }
     }
@@ -100,10 +107,16 @@ internal class JamGuestPlayer(
         if (mirror.active) mirror.trimToCurrent(mirror.view())
     }
 
-    private fun onSameSong(s: JamState, plan: GuestPlan.Play, v: LocalView, now: Long) {
+    private fun onSameSong(s: JamState, plan: GuestPlan.Play, v: LocalView, now: Long, seeked: Boolean) {
         if (s.playing) {
             if (v.playing) {
-                if (plan.seekOnNextBoundary) {
+                if (seeked) {
+                    // The host jumped: follow at once to where it is now (never for mere drift).
+                    playback.seekTo(jamStart(plan, now, env.speakerDelayMs()).positionMs)
+                    pendingSeek = false
+                    mirror.untrim()
+                    refreshRun(s, v)
+                } else if (plan.seekOnNextBoundary) {
                     pendingSeek = true // never mid-song: the seek waits for the next pause
                     mirror.trimToCurrent(v, keepLoop = true) // and the next song waits for the host
                     mirror.setRepeatOne(v, s.repeat == JamRepeat.One)
@@ -113,11 +126,12 @@ internal class JamGuestPlayer(
                 return
             }
             if (pausedBySystem) { // never started by the host: the user resumes (or the phone, on a safe output)
+                if (seeked) pendingSeek = true // the jump is made when the user resumes
                 refreshRun(s, v)
                 return
             }
             val start = jamStart(plan, now, env.speakerDelayMs())
-            if (plan.seekOnNextBoundary || pendingSeek) playback.seekTo(start.positionMs) // paused: inaudible
+            if (plan.seekOnNextBoundary || pendingSeek || seeked) playback.seekTo(start.positionMs) // paused: inaudible
             pendingSeek = false
             mirror.untrim()
             refreshRun(s, v)
@@ -127,7 +141,7 @@ internal class JamGuestPlayer(
             val queueOver = s.index == s.queue.lastIndex && s.positionMs >= s.queue[s.index].durationMs - NATURAL_END_MS
             if (v.playing && queueOver) return
             mirror.pause() // also while still buffering
-            if (plan.seekOnNextBoundary || pendingSeek) playback.seekTo(plan.positionMs)
+            if (plan.seekOnNextBoundary || pendingSeek || seeked) playback.seekTo(plan.positionMs)
             pendingSeek = false
             mirror.untrim()
             refreshRun(s, v.copy(playing = false))
