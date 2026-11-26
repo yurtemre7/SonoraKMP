@@ -45,7 +45,12 @@ val sonoraVersionCode: Int = providers.gradleProperty("sonora.versionCode").orNu
 
 android {
     namespace = "de.yurtemre.sonora"
-    compileSdk = 37
+    // Compose 1.13 requires android-37.1; targetSdk stays on 37.
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "de.yurtemre.sonorakmp"
