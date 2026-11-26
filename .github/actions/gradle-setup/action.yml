@@ -4,6 +4,11 @@ description: >
   fallback). Saving is the caller's job (see "Save Gradle cache" in ci.yml) and happens
   on main only, so PRs read the cache but never write it.
 
+inputs:
+  name:
+    description: "Cache name. Jobs that save on main need distinct names so they never race for one key."
+    default: build
+
 outputs:
   cache-hit:
     description: "true when the exact cache key was found."
@@ -29,7 +34,7 @@ runs:
       id: cache
       uses: actions/cache/restore@v5
       with:
-        key: gradle-${{ runner.os }}-v1-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', '**/*.gradle.kts', 'gradle.properties') }}
+        key: gradle-${{ runner.os }}-${{ inputs.name }}-v1-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', '**/*.gradle.kts', 'gradle.properties') }}
         path: |
           ~/.gradle/caches/modules-2
           ~/.gradle/caches/jars-*
