@@ -95,12 +95,14 @@ class ListenStatsRecorder(
             when (event) {
                 is StatsEvent.RecordRecent -> repo.recordRecent(event.songId, event.atMs)
                 is StatsEvent.RecordComplete -> {
-                    val date = Instant.ofEpochMilli(event.atMs).atZone(zone()).toLocalDate()
+                    val local = Instant.ofEpochMilli(event.atMs).atZone(zone())
+                    val date = local.toLocalDate()
                     repo.recordCompleteListen(
                         event.songId, event.atMs,
                         weekday = date.dayOfWeek.value % 7, // Sun=0
                         localDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
                         playlistId = event.playlistId,
+                        hour = local.hour,
                     )
                 }
                 is StatsEvent.RecordSkip -> repo.recordSkip(event.songId)

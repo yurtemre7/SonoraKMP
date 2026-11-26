@@ -1,5 +1,6 @@
 package de.yurtemre.sonora.shared.library
 
+import de.yurtemre.sonora.shared.repo.api.SlotPlays
 import de.yurtemre.sonora.shared.repo.api.SongStats
 import de.yurtemre.sonora.shared.repo.api.StatsSnapshot
 import kotlinx.datetime.TimeZone
@@ -35,6 +36,37 @@ class TimeOfDayMixTest {
         val stats = snap(1L to st(3, 8), 2L to st(9, 8), 3L to st(50, 20), 4L to st(5, 9))
         val r = TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Morning, zone, now)
         assertEquals(listOf(2L, 4L, 1L), r.map { it.id })
+    }
+
+    @Test fun recordedSlotsWinOverLastPlayedHour() {
+        val songs = listOf(song(1), song(2))
+        // song 1: last played at night, but all 4 plays were recorded in the morning
+        val s1 = SongStats(plays = 4, lastPlayedAtMs = at(23), slotPlays = SlotPlays(morning = 4))
+        // song 2: last played in the morning, but recorded plays are in the evening
+        val s2 = SongStats(plays = 6, lastPlayedAtMs = at(8), slotPlays = SlotPlays(evening = 6))
+        val stats = snap(1L to s1, 2L to s2)
+        assertEquals(listOf(1L), TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Morning, zone, now).map { it.id })
+        assertEquals(listOf(2L), TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Evening, zone, now).map { it.id })
+        assertTrue(TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Night, zone, now).isEmpty())
+    }
+
+    @Test fun legacyRemainderGoesToLastPlayedSlot() {
+        val songs = listOf(song(1), song(2))
+        val stats = snap(1L to st(5, 8), 2L to st(3, 20))
+        assertEquals(listOf(1L), TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Morning, zone, now).map { it.id })
+        assertEquals(listOf(2L), TimeOfDayMix.songs(songs, stats, TimeOfDayMix.Slot.Evening, zone, now).map { it.id })
+    }
+
+    @Test fun mixedRecordedAndLegacyPlaysAreSummed() {
+        val songs = listOf(song(1), song(2))
+        // song 1: 2 recorded morning + 3 legacy (last played 8h) = 5 morning plays
+        val s1 = SongStats(plays = 5, lastPlayedAtMs = at(8), slotPlays = SlotPlays(morning = 2))
+        // song 2: 4 recorded morning, no legacy
+        val s2 = SongStats(plays = 4, lastPlayedAtMs = at(8), slotPlays = SlotPlays(morning = 4))
+        val r = TimeOfDayMix.songs(songs, snap(1L to s1, 2L to s2), TimeOfDayMix.Slot.Morning, zone, now)
+        assertEquals(listOf(1L, 2L), r.map { it.id })
+        // legacy remainder does not leak into a slot other than the last-played one
+        assertTrue(TimeOfDayMix.songs(songs, snap(1L to s1), TimeOfDayMix.Slot.Evening, zone, now).isEmpty())
     }
 
     @Test fun emptyWithoutHistory() {

@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
 /**
  * Builds a v1 database from the exported schema (Room's MigrationTestHelper is instrumentation-only on
  * Android), fills user data, then opens it with Room at the current version: Room runs the migrations
- * and validates the result against the v3 schema.
+ * and validates the result against the v4 schema.
  */
 class MigrationTest {
     @Test
@@ -34,6 +34,8 @@ class MigrationTest {
                 assertEquals(7L, db.playlistDao().getEntries("p1").single().songId)
                 assertEquals(7L, db.favoritesDao().getSongs().single().songId)
                 assertEquals(12, db.statsDao().getSongStats(7)!!.plays)
+                val stats = db.statsDao().getSongStats(7)!! // v4 slot columns default to 0 for migrated rows
+                assertEquals(0, stats.playsMorning + stats.playsAfternoon + stats.playsEvening + stats.playsNight)
                 val song = db.songDao().getById(7)!!
                 assertEquals("Song", song.title)
                 assertEquals(null, song.dateAddedMs)

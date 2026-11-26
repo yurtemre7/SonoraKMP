@@ -115,6 +115,7 @@ object StatsDelta {
         skips = a.skips + b.skips,
         restarts = a.restarts + b.restarts,
         lastPlayedAtMs = maxNullable(a.lastPlayedAtMs, b.lastPlayedAtMs),
+        slotPlays = a.slotPlays + b.slotPlays,
     )
 
     private fun maxNullable(a: Long?, b: Long?): Long? = when {

@@ -54,6 +54,28 @@ class RepositoriesTest {
 
     private fun song(id: Long, path: String) = SongEntity(id, "t$id", "a", "al", 60_000, path)
 
+    @Test fun completeListenRecordsTimeOfDaySlot() = runBlocking {
+        db.songDao().upsertAll(listOf(song(1, "/m/1.mp3")))
+        stats.recordCompleteListen(1, 10, 1, "2026-11-01", null, hour = 8)
+        stats.recordCompleteListen(1, 20, 1, "2026-11-01", null, hour = 8)
+        stats.recordCompleteListen(1, 30, 1, "2026-11-01", null, hour = 23)
+        stats.recordCompleteListen(1, 40, 1, "2026-11-01", null) // hour unknown: no slot
+        val s = stats.snapshot.first().songs.getValue(1)
+        assertEquals(4, s.plays)
+        assertEquals(de.yurtemre.sonora.shared.repo.api.SlotPlays(morning = 2, night = 1), s.slotPlays)
+    }
+
+    @Test fun relinkSumsSlotPlays() = runBlocking {
+        db.songDao().upsertAll(listOf(song(1, "/m/1.mp3"), song(2, "/m/2.mp3")))
+        stats.recordCompleteListen(1, 10, 1, "2026-11-01", null, hour = 8)
+        stats.recordCompleteListen(2, 20, 1, "2026-11-01", null, hour = 8)
+        stats.recordCompleteListen(2, 30, 1, "2026-11-01", null, hour = 19)
+        stats.relinkSongIds(mapOf(2L to 1L))
+        val s = stats.snapshot.first().songs.getValue(1)
+        assertEquals(3, s.plays)
+        assertEquals(de.yurtemre.sonora.shared.repo.api.SlotPlays(morning = 2, evening = 1), s.slotPlays)
+    }
+
     @Test fun playlistAddDedupesRemoveAllAndReorder() = runBlocking {
         val p = playlists.create("P", listOf(1, 2))
         playlists.addSongs(p.id, listOf(2, 3, 3))

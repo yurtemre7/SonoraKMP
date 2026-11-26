@@ -102,6 +102,11 @@ data class SongStatsEntity(
     val skips: Int = 0,
     val restarts: Int = 0,
     @ColumnInfo(name = "last_played_at_ms") val lastPlayedAtMs: Long? = null,
+    /** Complete listens per time-of-day slot (TimeOfDayMix.slotFor); plays recorded before v4 are in none. */
+    @ColumnInfo(name = "plays_morning", defaultValue = "0") val playsMorning: Int = 0,
+    @ColumnInfo(name = "plays_afternoon", defaultValue = "0") val playsAfternoon: Int = 0,
+    @ColumnInfo(name = "plays_evening", defaultValue = "0") val playsEvening: Int = 0,
+    @ColumnInfo(name = "plays_night", defaultValue = "0") val playsNight: Int = 0,
 )
 
 @Entity(tableName = "playlist_stats")
