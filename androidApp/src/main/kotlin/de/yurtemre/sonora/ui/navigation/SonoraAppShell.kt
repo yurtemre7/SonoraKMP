@@ -214,7 +214,7 @@ fun SonoraAppShell(
             popTransitionSpec = { pop() },
             predictivePopTransitionSpec = { predictivePop() },
             entryProvider = entryProvider {
-                entry<Library> { HomeRoute(rootTab, rootView, { rootView = it }, { rootTab = it }, navigate, openNowPlaying) }
+                entry<Library> { HomeRoute(rootTab, rootView, { rootView = it }, { rootTab = it }, navigate) }
                 entry<Album> { AlbumRoute(it.name, it.artist, goBack, navigate) }
                 entry<Artist> { ArtistRoute(it.name, goBack, onOpenAlbum = { n, a -> navigate(Album(n, a)) }, onNavigate = navigate) }
                 entry<Playlist> { PlaylistRoute(it.id, goBack, onNavigate = navigate) }
@@ -259,9 +259,15 @@ fun SonoraAppShell(
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> Scaffold(
                 snackbarHost = { SnackbarHost(snackbar) },
-                bottomBar = { Column(if (showNav) Modifier else Modifier.bottomSafePadding()) {
+                // Home is a full-screen dashboard: the bar only shows with the Library (and animates in/out with the swap).
+                bottomBar = { val barVisible = showNav && rootView == RootView.Library
+                  Column(if (barVisible) Modifier else Modifier.bottomSafePadding()) {
                     mini()
-                    if (showNav) ShortNavigationBar {
+                    androidx.compose.animation.AnimatedVisibility(
+                        barVisible,
+                        enter = androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.shrinkVertically(),
+                    ) { ShortNavigationBar {
                         LibraryTab.entries.forEach { tab ->
                             ShortNavigationBarItem(
                                 colors = ShortNavigationBarItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
@@ -271,7 +277,7 @@ fun SonoraAppShell(
                                 label = { Text(stringResource(tab.labelRes)) },
                             )
                         }
-                    }
+                    } }
                 } },
             ) { padding -> display(Modifier.fillMaxSize().padAndConsume(PaddingValues(bottom = padding.calculateBottomPadding())), backStack) }
 
@@ -311,7 +317,7 @@ fun SonoraAppShell(
                     }
                 }
                 ListDetail(
-                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, rootView, { v -> rootView = v }, { t -> rootTab = t }, navigate, openNowPlaying) } }, mini = mini, modifier = m) },
+                    list = { m -> RailContent(hasMini = player.currentSong != null && !nowPlaying.expanded, display = { Box(it) { HomeRoute(rootTab, rootView, { v -> rootView = v }, { t -> rootTab = t }, navigate) } }, mini = mini, modifier = m) },
                     detail = when {
                         nowPlaying.expanded && player.currentSong != null -> { m ->
                             NowPlayingTwoPane(

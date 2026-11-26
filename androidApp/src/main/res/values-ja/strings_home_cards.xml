@@ -4,7 +4,6 @@
     <string name="home_card_shuffle_all_cd">ライブラリ全体をシャッフル再生</string>
     <string name="home_card_scan">ライブラリをスキャン</string>
     <string name="home_card_scanning">スキャン中…</string>
-    <string name="home_card_scan_progress" tools:ignore="PluralsCandidate">%1$d / %2$d</string>
     <string name="home_card_stats_title">ひと目で</string>
     <string name="home_card_stats_songs">曲</string>
     <string name="home_card_stats_plays">再生回数</string>
