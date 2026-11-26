@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
+import de.yurtemre.sonora.shared.model.MfxPreset
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.MfxBadge
 import de.yurtemre.sonora.ui.components.SleepTimerBadge
@@ -84,7 +85,7 @@ fun NowPlayingOverlay(
     val state by vm.player.collectAsStateWithLifecycle()
     val queue by playback.queue.collectAsStateWithLifecycle()
     val sleepTimer by playback.sleepTimer.collectAsStateWithLifecycle()
-    val mfx by playback.mfx.collectAsStateWithLifecycle()
+    val ownMfx by playback.mfx.collectAsStateWithLifecycle()
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
     val immersive by vm.immersive.collectAsStateWithLifecycle()
     val style by vm.style.collectAsStateWithLifecycle()
@@ -100,6 +101,10 @@ fun NowPlayingOverlay(
     val jamController = koinInject<JamController>()
     val jamState by jamController.state.collectAsStateWithLifecycle()
     val jamUi = jamPlayerUi(jamState)
+    // A guest plays at the host's rate (its own EQ effects still apply): the tag shows that, not the own settings.
+    val mfx = jamUi.hostRate?.let { (speed, pitch) ->
+        ownMfx.copy(preset = MfxPreset.entries.first { it.isNormal }, customSpeed = speed, customPitch = pitch)
+    } ?: ownMfx
     val joined by rememberUpdatedState(jamState.joinedOrNull())
     val guestActions = remember(jamController) { JamGuestActions(jamController) }
     val scope = rememberCoroutineScope()
@@ -110,8 +115,9 @@ fun NowPlayingOverlay(
     )
     val openMfx: () -> Unit = onMfx ?: { showEffects = true }
     val openSleep: () -> Unit = onSleepTimer ?: { showSleep = true }
-    if (showEffects) EffectsSheet(onDismiss = { showEffects = false }, connection = playback)
-    if (showSleep) SleepTimerSheet(onDismiss = { showSleep = false }, connection = playback)
+    // A Jam guest has no effects or sleep timer sheet (one opened before joining closes with the join).
+    if (showEffects && jamUi.showMfxControls) EffectsSheet(onDismiss = { showEffects = false }, connection = playback)
+    if (showSleep && jamUi.showSleepTimer) SleepTimerSheet(onDismiss = { showSleep = false }, connection = playback)
 
     // Composed after the slot's handler, so it wins while a secondary view is open.
     BackHandler(enabled = view != NowPlayingView.Player) { view = NowPlayingView.Player }
@@ -136,7 +142,7 @@ fun NowPlayingOverlay(
                 }
                 Spacer(Modifier.weight(1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    MfxBadge(mfx, onClick = openMfx)
+                    MfxBadge(mfx, onClick = if (jamUi.showMfxControls) openMfx else null)
                     if (jamUi.showSleepTimer) SleepTimerBadge(sleepTimer, onClick = openSleep)
                 }
                 if (song != null) {

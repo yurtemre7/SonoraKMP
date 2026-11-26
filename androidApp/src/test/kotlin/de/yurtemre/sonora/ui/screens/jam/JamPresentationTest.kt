@@ -115,6 +115,8 @@ class JamPresentationTest {
         val ui = jamPlayerUi(JamUiState.Idle)
         assertEquals(JamRole.None, ui.role)
         assertTrue(ui.showSeek && ui.showQueueEditing && ui.showShuffleRepeat && ui.showSleepTimer && ui.showSkip && ui.showPlayPause)
+        assertTrue(ui.showMfxControls)
+        assertNull(ui.hostRate)
         assertFalse(ui.showAddSong)
     }
 
@@ -126,6 +128,13 @@ class JamPresentationTest {
         assertFalse(ui.showQueueEditing)
         assertFalse(ui.showShuffleRepeat)
         assertFalse(ui.showSleepTimer)
+    }
+
+    @Test fun guestsOnlySeeTheTagOfTheHostsEffects() {
+        val ui = jamPlayerUi(joined().copy(speed = 1.25f, pitch = 1.25f))
+        assertFalse(ui.showMfxControls)
+        assertEquals(1.25f to 1.25f, ui.hostRate)
+        assertTrue(jamPlayerUi(JamUiState.Hosting("123456", 1, emptyList(), JamSettings(), false)).showMfxControls)
     }
 
     @Test fun guestsSeeSkipAndPauseOnlyWhenTheHostAllows() {

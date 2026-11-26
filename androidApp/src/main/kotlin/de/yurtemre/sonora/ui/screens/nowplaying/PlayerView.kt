@@ -341,7 +341,7 @@ internal fun SecondaryRow(
             )
         }
         val mfxState = stringResource(if (mfxActive) R.string.np_state_on else R.string.np_state_off)
-        IconButton(onClick = actions.onMfx, modifier = Modifier.semantics { stateDescription = mfxState }) {
+        if (jam.showMfxControls) IconButton(onClick = actions.onMfx, modifier = Modifier.semantics { stateDescription = mfxState }) {
             Icon(
                 Icons.Filled.GraphicEq,
                 stringResource(R.string.np_mfx),
