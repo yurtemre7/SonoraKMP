@@ -10,39 +10,55 @@ on:
     paths-ignore:
       - "site/**"
       - "docs/**"
+  workflow_dispatch:
 
+# PRs cancel superseded runs; main never does, so the cache-saving run always finishes.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
 jobs:
-  build:
-    name: Lint, test, build
+  # Seconds, no Gradle: fail fast before any runner spins up a JDK.
+  checks:
+    name: Repo checks
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/check_product_name.sh
+      - run: ./scripts/check_hardcoded_strings.sh
+
+  # Lint + APK: needs the Android toolchain, runs in parallel with the tests.
+  build:
+    name: Lint and debug build
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v6
+      - uses: ./.github/actions/gradle-setup
+        id: gradle
+
+      - name: Lint and assemble
+        run: ./gradlew lintDebug assembleDebug --stacktrace
+
+      - name: Save Gradle cache
+        if: success() && github.ref == 'refs/heads/main' && steps.gradle.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
         with:
-          distribution: temurin
-          java-version: "17"
-
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-
-      - name: Product name check
-        run: ./scripts/check_product_name.sh
-
-      - name: Hardcoded string check
-        run: ./scripts/check_hardcoded_strings.sh
-
-      - name: Lint, unit tests, debug build
-        run: ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
+          key: ${{ steps.gradle.outputs.cache-key }}
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/caches/jars-*
+            ~/.gradle/caches/transforms-*
+            ~/.gradle/wrapper/dists
 
       - name: Upload lint reports
         if: always()
@@ -53,15 +69,6 @@ jobs:
           path: "**/build/reports/lint-results-*.*"
           if-no-files-found: ignore
 
-      - name: Upload test reports
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-reports
-          retention-days: 3
-          path: "**/build/reports/tests/"
-          if-no-files-found: ignore
-
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
@@ -69,3 +76,64 @@ jobs:
           retention-days: 1
           path: androidApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  # Unit tests. Host tests load a per-OS SQLite native (see shared/build.gradle.kts), so
+  # Windows and macOS are real coverage. They cost 2x / 10x minutes, so they run on main
+  # and on demand; PRs get Ubuntu only.
+  test:
+    name: Unit tests (${{ matrix.os }})
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/gradle-setup
+        id: gradle
+        with:
+          name: test
+
+      - name: Unit tests
+        shell: bash
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Save Gradle cache
+        if: success() && github.ref == 'refs/heads/main' && steps.gradle.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          key: ${{ steps.gradle.outputs.cache-key }}
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/caches/jars-*
+            ~/.gradle/caches/transforms-*
+            ~/.gradle/wrapper/dists
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-${{ runner.os }}
+          retention-days: 3
+          path: "**/build/reports/tests/"
+          if-no-files-found: ignore
+
+      - name: Test summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Unit tests on ${{ runner.os }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Gradle cache: \`${{ steps.gradle.outputs.cache-hit == 'true' && 'exact hit' || 'miss (cold)' }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # Single stable check name for branch protection, independent of the matrix.
+  ci-ok:
+    name: CI passed
+    if: ${{ !cancelled() }}
+    needs: [checks, build, test]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "false" ]]

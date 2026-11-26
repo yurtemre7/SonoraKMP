@@ -26,6 +26,10 @@
     <string name="jam_join_body">Aynı Wi-Fi\'daki bir Jam\'e eşlik et</string>
     <string name="jam_open">Jam\'i aç</string>
     <string name="jam_how_it_works">Şarkılar her telefonun kendi kitaplığından çalar; yani akış yok, internet gerekmez. 8 telefona kadar katılabilir.</string>
+    <string name="settings_jam_warm_discovery">Jam\'leri arka planda ara</string>
+    <string name="settings_jam_warm_discovery_subtitle">Uygulama açıkken Wi-Fi\'ındaki Jam\'leri arar; böylece Katıl\'a dokunduğun anda liste hazır olur. Biraz pil harcar. Yerel ağ erişimi gerekir; bu ayar bunu asla istemez.</string>
+    <string name="settings_perm_jam_title">Jam ve yerel ağ</string>
+    <string name="settings_perm_jam_body">Jam, aynı Wi-Fi\'daki diğer telefonları bulur ve onlara katılır (mDNS ve Wi-Fi çoklu yayını; Android 17 ve sonrasında yerel ağ erişimi ister, Cihaz eşitleme de buna ihtiyaç duyar). Uygulama açıkken Jam, arka planda Jam aramayı sürdürebilir (Ayarlar › Çalma › Jam). Misafirler 6 haneli kodla doğrudan ana cihaza, şifreli olarak bağlanır; hiçbir şey internetten geçmez. Bir Jam sürerken medya ön plan hizmeti arka planda çalmayı sürdürür. Yönlendiricin keşfi engelliyorsa ana cihazın IP adresi ve portuyla da katılabilirsin.</string>
     <string name="jam_local_network_denied">Jam başlatmak ya da katılmak için SonoraKMP\'nin yerel ağa erişmesi gerekir</string>
     <string name="jam_start_sheet_body">Aynı Wi-Fi\'daki misafirler 6 haneli kodla katılır. Bunları sonra değiştirebilirsin.</string>
     <string name="jam_perm_add">Misafirler şarkı ekleyebilir</string>

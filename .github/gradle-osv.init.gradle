@@ -1,0 +1,20 @@
+// Init script (not part of the build): makes Gradle write gradle.lockfile for every project
+// so OSV-Scanner can read the fully resolved dependency graph. Used by osv-scan.yml.
+// `dependencies` only prints the graph and never triggers locking, so resolve explicitly.
+allprojects { p ->
+    p.dependencyLocking {
+        lockAllConfigurations()
+    }
+    p.tasks.register('resolveAllForOsv') {
+        doLast {
+            // Snapshot: resolving can register more configurations while we iterate.
+            new ArrayList(p.configurations.findAll { it.canBeResolved }).each { c ->
+                try {
+                    c.resolve()
+                } catch (Throwable e) {
+                    println "skip ${p.path}:${c.name}: ${e.message?.readLines()?.first()}"
+                }
+            }
+        }
+    }
+}

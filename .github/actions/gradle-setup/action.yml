@@ -1,0 +1,43 @@
+name: Gradle setup
+description: >
+  JDK + Gradle with a dependency cache restored by exact key only (no restore-keys
+  fallback). Saving is the caller's job (see "Save Gradle cache" in ci.yml) and happens
+  on main only, so PRs read the cache but never write it.
+
+inputs:
+  name:
+    description: "Cache name. Jobs that save on main need distinct names so they never race for one key."
+    default: build
+
+outputs:
+  cache-hit:
+    description: "true when the exact cache key was found."
+    value: ${{ steps.cache.outputs.cache-hit }}
+  cache-key:
+    description: "The exact cache key."
+    value: ${{ steps.cache.outputs.cache-primary-key }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    # Only wires up Gradle and the job summary; caching is done below.
+    - uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-disabled: true
+
+    - name: Restore Gradle cache (exact key)
+      id: cache
+      uses: actions/cache/restore@v5
+      with:
+        key: gradle-${{ runner.os }}-${{ inputs.name }}-v1-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', '**/*.gradle.kts', 'gradle.properties') }}
+        path: |
+          ~/.gradle/caches/modules-2
+          ~/.gradle/caches/jars-*
+          ~/.gradle/caches/transforms-*
+          ~/.gradle/wrapper/dists
+        # No restore-keys on purpose: a miss is a cold build, never a stale partial cache.

@@ -89,14 +89,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Version $version (tag $tag, prerelease=$prerelease, dry_run=$dry_run, previous=${prev:-none})"
 
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: true
+      - uses: ./.github/actions/gradle-setup
 
       - name: Set up signing
         env:

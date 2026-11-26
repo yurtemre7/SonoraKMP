@@ -70,16 +70,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Nightly $version (after ${latest:-no release yet})"
 
-      - uses: actions/setup-java@v6
+      - uses: ./.github/actions/gradle-setup
         if: steps.version.outputs.skip != 'true'
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - uses: gradle/actions/setup-gradle@v6
-        if: steps.version.outputs.skip != 'true'
-        with:
-          cache-read-only: true
 
       - name: Set up signing
         if: steps.version.outputs.skip != 'true'
