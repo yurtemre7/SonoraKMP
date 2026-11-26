@@ -259,9 +259,15 @@ fun SonoraAppShell(
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> Scaffold(
                 snackbarHost = { SnackbarHost(snackbar) },
-                bottomBar = { Column(if (showNav) Modifier else Modifier.bottomSafePadding()) {
+                // Home is a full-screen dashboard: the bar only shows with the Library (and animates in/out with the swap).
+                bottomBar = { val barVisible = showNav && rootView == RootView.Library
+                  Column(if (barVisible) Modifier else Modifier.bottomSafePadding()) {
                     mini()
-                    if (showNav) ShortNavigationBar {
+                    androidx.compose.animation.AnimatedVisibility(
+                        barVisible,
+                        enter = androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.shrinkVertically(),
+                    ) { ShortNavigationBar {
                         LibraryTab.entries.forEach { tab ->
                             ShortNavigationBarItem(
                                 colors = ShortNavigationBarItemDefaults.colors().let { it.copy(it.selectedIconColor, MaterialTheme.colorScheme.onSurface) },
@@ -271,7 +277,7 @@ fun SonoraAppShell(
                                 label = { Text(stringResource(tab.labelRes)) },
                             )
                         }
-                    }
+                    } }
                 } },
             ) { padding -> display(Modifier.fillMaxSize().padAndConsume(PaddingValues(bottom = padding.calculateBottomPadding())), backStack) }
 
