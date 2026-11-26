@@ -202,6 +202,6 @@ class JamSessionTest {
         assertEquals(1.5f, s.state.speed)
         assertEquals(0, s.state.seekCount)
         val plan = planPlayback(s.state, listOf(song(1)), ClockSync(), 4_000, null) as GuestPlan.Play
-        assertEquals("4 s of clock are 6 s of song at 1.5x", 16_000, plan.positionMs)
+        assertEquals(16_000L, plan.positionMs, "4 s of clock are 6 s of song at 1.5x")
     }
 }
