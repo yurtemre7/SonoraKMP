@@ -64,7 +64,7 @@ fun ShuffleAllCta(enabled: Boolean, onShuffle: () -> Unit, modifier: Modifier = 
         contentColor = content,
     ) {
         Column(
-            Modifier.heightIn(min = 104.dp).padding(16.dp),
+            Modifier.heightIn(min = 120.dp).padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Icon(Icons.Rounded.Shuffle, null, Modifier.size(32.dp))
