@@ -4,7 +4,9 @@ import java.io.File
 import java.net.ServerSocket
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -107,13 +109,14 @@ class MergeRememberedTest {
 
     @Test fun reachableRememberedPeersAreListedBesideTheFoundOnes() = runTest {
         val found = Item("Found", "10.0.0.9", 1)
-        val out = flowOf(listOf(found)).mergeRemembered({ listOf(a, b) }, { it == a }, up, ep).toList().last()
+        // The search never completes in real life, so take the first two emissions: before and after the probe.
+        val out = flowOf(listOf(found)).mergeRemembered({ listOf(a, b) }, { it == a }, up, ep).take(2).toList().last()
         assertEquals(listOf(found, Item("Pixel", "10.0.0.5", 4000, true)), out)
     }
 
     @Test fun aPeerThatMdnsAlsoReportsAppearsOnceAsFound() = runTest {
         val found = Item("Pixel (mdns)", "10.0.0.5", 4000)
-        val out = flowOf(listOf(found)).mergeRemembered({ listOf(a) }, { true }, up, ep).toList().last()
+        val out = flowOf(listOf(found)).mergeRemembered({ listOf(a) }, { true }, up, ep).take(2).toList().last()
         assertEquals(listOf(found), out)
     }
 
@@ -133,7 +136,7 @@ class MergeRememberedTest {
 
     @Test fun nothingRememberedMeansTheSearchResultsUnchanged() = runTest {
         val found = Item("Found", "10.0.0.9", 1)
-        val out = flowOf(listOf(found)).mergeRemembered({ emptyList() }, { true }, up, ep).toList().last()
+        val out = flowOf(listOf(found)).mergeRemembered({ emptyList() }, { true }, up, ep).first()
         assertEquals(listOf(found), out)
     }
 }
