@@ -3,7 +3,7 @@
     <string name="settings_section_home">Ana sayfa</string>
     <string name="home_layout_title">Ana sayfa düzeni</string>
     <string name="home_layout_row_subtitle">Ana sayfadaki bölümleri sırala ve gizle</string>
-    <string name="home_layout_explainer">Bir bölümü yukarı veya aşağı taşımak için tutamacı sürükle, istemediklerini kapat. Başlık ve karşılama her zaman en üstte kalır.</string>
+    <string name="home_layout_explainer">Ana sayfada bir bölüme basılı tutup sürükleyebilir ya da buradaki tutamaçları kullanabilirsin; istemediklerini kapat. Başlık ve karşılama her zaman en üstte kalır.</string>
     <string name="home_layout_drag_handle">Sıralamak için sürükle</string>
     <string name="home_layout_move_up">Yukarı taşı</string>
     <string name="home_layout_move_down">Aşağı taşı</string>

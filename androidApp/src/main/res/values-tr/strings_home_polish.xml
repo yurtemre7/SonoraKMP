@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_recommended_empty">Birkaç şarkı çal, öneriler burada belirsin.</string>
-    <string name="home_recent_empty">Çaldığın şarkılar burada görünür.</string>
     <string name="home_hint_pull_down">Ana sayfa için en üstte aşağı çek</string>
     <string name="home_hint_got_it">Tamam</string>
 </resources>

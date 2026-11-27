@@ -24,5 +24,4 @@
     <string name="home_action_settings">Ayarlar</string>
     <string name="home_title">Ana sayfa</string>
     <string name="home_recommended">Senin için</string>
-    <string name="home_recent">Son çalınanlar</string>
 </resources>

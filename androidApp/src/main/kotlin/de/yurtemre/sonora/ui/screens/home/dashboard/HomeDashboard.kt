@@ -1,5 +1,14 @@
 package de.yurtemre.sonora.ui.screens.home.dashboard
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import de.yurtemre.sonora.shared.model.HomeSectionState
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -112,10 +121,13 @@ fun HomeDashboard(
     val vm = viewModel { HomeDashboardViewModel(library, stats, clock, playlistRepo, favoritesRepo) }
     val favoriteSongs by vm.favoriteSongs.collectAsStateWithLifecycle()
     val settingsRepo = koinInject<SettingsRepository>()
-    val layout by remember(settingsRepo) { settingsRepo.settings.map { it.homeLayout }.distinctUntilChanged() }
+    val stored by remember(settingsRepo) { settingsRepo.settings.map { it.homeLayout }.distinctUntilChanged() }
         .collectAsStateWithLifecycle(null)
+    // A local copy so a long-press drag is smooth; it follows the stored layout otherwise and is saved when the drag ends.
+    var layout by remember { mutableStateOf<List<HomeSectionState>?>(null) }
+    var dragging by remember { mutableStateOf(false) }
+    LaunchedEffect(stored) { if (!dragging) layout = stored }
     val recommended by vm.recommended.collectAsStateWithLifecycle()
-    val recent by vm.recent.collectAsStateWithLifecycle()
     val glance by vm.glance.collectAsStateWithLifecycle()
     val timeMix by vm.timeMix.collectAsStateWithLifecycle()
     val jumpBack by vm.jumpBack.collectAsStateWithLifecycle()
@@ -136,8 +148,31 @@ fun HomeDashboard(
         }
     }
 
+    val listState = rememberLazyListState()
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        // Only sections move; the header and the end spacer are not reorderable. Hidden or empty sections add no
+        // item, so the move is mapped by key onto the full layout.
+        val moving = HomeSection.entries.firstOrNull { it.key == from.key } ?: return@rememberReorderableLazyListState
+        val target = HomeSection.entries.firstOrNull { it.key == to.key } ?: return@rememberReorderableLazyListState
+        val current = layout ?: return@rememberReorderableLazyListState
+        val fromIndex = current.indexOfFirst { it.section == moving }
+        val toIndex = current.indexOfFirst { it.section == target }
+        if (fromIndex < 0 || toIndex < 0) return@rememberReorderableLazyListState
+        dragging = true
+        layout = current.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+    }
+    LaunchedEffect(reorderState.isAnyItemDragging) {
+        if (reorderState.isAnyItemDragging) {
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        } else if (dragging) {
+            dragging = false
+            layout?.let { settingsRepo.setHomeLayout(it) }
+        }
+    }
+
     Box(modifier.fillMaxSize().windowInsetsPadding(SonoraInsets.horizontal).nestedScroll(swipeUp)) {
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item(key = "header") {
                 DashboardHeader(
                     userName = userName,
@@ -152,7 +187,7 @@ fun HomeDashboard(
             layout.orEmpty().filter { it.visible }.forEach { state ->
                 val section = state.section
                 when (section) {
-                    HomeSection.JumpBack -> if (jumpBack.isNotEmpty()) item(key = section.key) {
+                    HomeSection.JumpBack -> if (jumpBack.isNotEmpty()) draggableSection(reorderState, section) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             LinkedSectionHeader(stringResource(R.string.home_jump_back_in), onClick = { onNavigate(JumpBack) })
                             JumpBackInRow(
@@ -163,7 +198,7 @@ fun HomeDashboard(
                             )
                         }
                     }
-                    HomeSection.Actions -> item(key = section.key) {
+                    HomeSection.Actions -> draggableSection(reorderState, section) {
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -182,11 +217,11 @@ fun HomeDashboard(
                         }
                     }
                     HomeSection.Glance -> glance?.let { g ->
-                        item(key = section.key) { StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }) }
+                        draggableSection(reorderState, section) { StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }) }
                     }
                     HomeSection.Favorite -> glance?.let { g ->
                         g.favorite?.let { fav ->
-                            item(key = section.key) {
+                            draggableSection(reorderState, section) {
                                 FavoriteSongCard(
                                     song = fav,
                                     plays = g.favoritePlays,
@@ -195,7 +230,7 @@ fun HomeDashboard(
                             }
                         }
                     }
-                    HomeSection.Tiles -> item(key = section.key) {
+                    HomeSection.Tiles -> draggableSection(reorderState, section) {
                         HomeTiles(
                             onOpenTab,
                             quickEnabled = { tab -> if (tab == LibraryTab.Playlists) hasPlaylistSongs else hasSongs },
@@ -204,7 +239,7 @@ fun HomeDashboard(
                             },
                         )
                     }
-                    HomeSection.Favorites -> if (favoriteSongs.isNotEmpty()) item(key = section.key) {
+                    HomeSection.Favorites -> if (favoriteSongs.isNotEmpty()) draggableSection(reorderState, section) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             LinkedSectionHeader(stringResource(R.string.home_action_favorites), onClick = { onNavigate(Favorites) })
                             SongCarousel(favoriteSongs, playback, onSeeAll = { onNavigate(Favorites) })
@@ -212,7 +247,7 @@ fun HomeDashboard(
                     }
                     // Rows with no data: a short message once the library has songs; nothing at all on a fresh install
                     // (the Scan CTA already covers that) or while the first stats emission is pending.
-                    HomeSection.Recommended -> if (recommended.isNotEmpty() || hasSongs) item(key = section.key) {
+                    HomeSection.Recommended -> if (recommended.isNotEmpty() || hasSongs) draggableSection(reorderState, section) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             LinkedSectionHeader(stringResource(R.string.home_recommended), onClick = { onNavigate(Recommended) })
                             if (recommended.isNotEmpty()) SongCarousel(recommended, playback, onSeeAll = { onNavigate(Recommended) })
@@ -220,17 +255,10 @@ fun HomeDashboard(
                         }
                     }
                     HomeSection.TimeMix -> timeMix?.takeIf { it.songs.isNotEmpty() }?.let { mix ->
-                        item(key = section.key) { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
+                        draggableSection(reorderState, section) { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
                     }
-                    HomeSection.Weekly -> if (weekly.loaded && weekly.songs.isNotEmpty()) item(key = section.key) {
+                    HomeSection.Weekly -> if (weekly.loaded && weekly.songs.isNotEmpty()) draggableSection(reorderState, section) {
                         WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier)
-                    }
-                    HomeSection.Recent -> if (recent.isNotEmpty() || hasSongs) item(key = section.key) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            LinkedSectionHeader(stringResource(R.string.home_recent), onClick = { onNavigate(RecentlyPlayed) })
-                            if (recent.isNotEmpty()) SongCarousel(recent, playback, onSeeAll = { onNavigate(RecentlyPlayed) })
-                            else EmptyRowMessage(stringResource(R.string.home_recent_empty))
-                        }
                     }
                 }
             }
@@ -238,6 +266,24 @@ fun HomeDashboard(
         }
     }
     if (nameDialog) NameEditDialog(userName, onDismiss = { nameDialog = false })
+}
+
+/** A Home section as one lazy item that a long press picks up and drags (see [HomeSection] and the Home layout setting). */
+private fun LazyListScope.draggableSection(
+    state: ReorderableLazyListState,
+    section: HomeSection,
+    content: @Composable () -> Unit,
+) {
+    item(key = section.key) {
+        ReorderableItem(state, key = section.key) { isDragging ->
+            val scale by animateFloatAsState(if (isDragging) 1.03f else 1f, label = "sectionDrag")
+            Box(
+                Modifier
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .longPressDraggableHandle(),
+            ) { content() }
+        }
+    }
 }
 
 private const val HOME_ROW_SONGS = 3

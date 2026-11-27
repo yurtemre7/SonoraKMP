@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_recommended_empty">曲を再生すると、おすすめがここに並びます。</string>
-    <string name="home_recent_empty">再生した曲がここに表示されます。</string>
     <string name="home_hint_pull_down">先頭で下に引くとホームへ</string>
     <string name="home_hint_got_it">OK</string>
 </resources>
