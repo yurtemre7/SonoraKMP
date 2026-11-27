@@ -57,6 +57,7 @@ import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.library.WeeklyMixRepository
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
+import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
@@ -65,6 +66,7 @@ import de.yurtemre.sonora.ui.components.DevBadge
 import de.yurtemre.sonora.ui.components.SonoraInsets
 import de.yurtemre.sonora.ui.components.displayTitle
 import de.yurtemre.sonora.ui.navigation.Album
+import de.yurtemre.sonora.ui.navigation.Favorites
 import de.yurtemre.sonora.ui.navigation.JumpBack
 import de.yurtemre.sonora.ui.navigation.LibraryTab
 import de.yurtemre.sonora.ui.navigation.RecentlyPlayed
@@ -102,7 +104,9 @@ fun HomeDashboard(
     val weeklyRepo = koinInject<WeeklyMixRepository>()
     val playback = koinInject<PlaybackConnection>()
     val playlistRepo = koinInject<PlaylistRepository>()
-    val vm = viewModel { HomeDashboardViewModel(library, stats, clock, playlistRepo) }
+    val favoritesRepo = koinInject<FavoritesRepository>()
+    val vm = viewModel { HomeDashboardViewModel(library, stats, clock, playlistRepo, favoritesRepo) }
+    val favoriteSongs by vm.favoriteSongs.collectAsStateWithLifecycle()
     val recommended by vm.recommended.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
     val glance by vm.glance.collectAsStateWithLifecycle()
@@ -199,6 +203,10 @@ fun HomeDashboard(
                     else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
                 }
             }
+            if (favoriteSongs.isNotEmpty()) {
+                item(key = "favorites_header") { LinkedSectionHeader(stringResource(R.string.home_action_favorites), onClick = { onNavigate(Favorites) }) }
+                item(key = "favorites") { SongCarousel(favoriteSongs, playback, onSeeAll = { onNavigate(Favorites) }) }
+            }
             timeMix?.takeIf { it.songs.isNotEmpty() }?.let { mix ->
                 item(key = "time_mix") { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
             }
@@ -229,17 +237,20 @@ private fun DashboardHeader(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 0.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).semantics { heading() },
-            )
-            Spacer(Modifier.width(8.dp))
-            DevBadge()
-            Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            // The title group takes all the free width so the gear stays at the end (a fill = false weight plus a
+            // second weighted Spacer left the title's unused share as a gap in front of the gear).
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.6).sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+                )
+                Spacer(Modifier.width(8.dp))
+                DevBadge()
+            }
             IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.home_action_settings)) }
         }
         // The greeting places the name differently per language: format with a marker, split around it and link the name.
