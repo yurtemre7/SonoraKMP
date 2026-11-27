@@ -28,6 +28,7 @@ object SettingsKeys {
     val APP_LOCALE = stringPreferencesKey("app_locale")
     val DEFAULT_START_PAGE = intPreferencesKey("default_start_page")
     val START_ON_HOME = booleanPreferencesKey("start_on_home")
+    val HOME_LAYOUT = stringPreferencesKey("home_layout")
     val KEEP_PLAYING_ON_CLOSE = booleanPreferencesKey("keep_playing_on_close")
     val RESTORE_LAST_PLAYED_SONG = booleanPreferencesKey("restore_last_played_song")
     val REPLAY_GAIN_MODE = stringPreferencesKey("replay_gain_mode")

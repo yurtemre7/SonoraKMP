@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_section_home">Ana sayfa</string>
+    <string name="home_layout_title">Ana sayfa düzeni</string>
+    <string name="home_layout_row_subtitle">Ana sayfadaki bölümleri sırala ve gizle</string>
+    <string name="home_layout_explainer">Bir bölümü yukarı veya aşağı taşımak için tutamacı sürükle, istemediklerini kapat. Başlık ve karşılama her zaman en üstte kalır.</string>
+    <string name="home_layout_drag_handle">Sıralamak için sürükle</string>
+    <string name="home_layout_move_up">Yukarı taşı</string>
+    <string name="home_layout_move_down">Aşağı taşı</string>
+    <string name="home_layout_reset">Varsayılana sıfırla</string>
+    <string name="home_layout_actions">Karıştır ve tara</string>
+    <string name="home_layout_glance">Bir bakışta</string>
+    <string name="home_layout_favorite">Favori şarkın</string>
+    <string name="home_layout_tiles">Kitaplık kutucukları</string>
+    <string name="home_layout_time_mix">Günün saatine göre karışım</string>
+    <string name="home_layout_weekly">Haftalık karışım</string>
+</resources>

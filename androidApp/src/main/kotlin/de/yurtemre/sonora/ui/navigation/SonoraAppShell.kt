@@ -91,6 +91,7 @@ import de.yurtemre.sonora.ui.screens.smartlist.SmartListRoute
 import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixRoute
 import de.yurtemre.sonora.ui.screens.settings.SettingsRoute
 import de.yurtemre.sonora.ui.screens.settings.appearance.SettingsAppearanceRoute
+import de.yurtemre.sonora.ui.screens.settings.appearance.SettingsHomeLayoutRoute
 import de.yurtemre.sonora.ui.screens.settings.backup.SettingsBackupRoute
 import de.yurtemre.sonora.ui.screens.settings.formatting.SettingsFormattingRoute
 import de.yurtemre.sonora.ui.screens.settings.info.SettingsInfoRoute
@@ -228,7 +229,8 @@ fun SonoraAppShell(
                 entry<WeeklyMix> { WeeklyMixRoute(goBack, navigate) }
                 entry<Stats> { StatsRoute(goBack, navigate) }
                 entry<Settings> { TextWidth { SettingsRoute(goBack, navigate, onOpenUpdates = { navigate(SettingsInfo) }) } }
-                entry<SettingsAppearance> { TextWidth { SettingsAppearanceRoute(goBack) } }
+                entry<SettingsAppearance> { TextWidth { SettingsAppearanceRoute(goBack, onOpenHomeLayout = { navigate(SettingsHomeLayout) }) } }
+                entry<SettingsHomeLayout> { TextWidth { SettingsHomeLayoutRoute(goBack) } }
                 entry<SettingsFormatting> { TextWidth { SettingsFormattingRoute(goBack) } }
                 entry<SettingsPlayback> { TextWidth { SettingsPlaybackRoute(goBack) } }
                 entry<SettingsPrivacy> { TextWidth { SettingsPrivacyRoute(goBack) } }

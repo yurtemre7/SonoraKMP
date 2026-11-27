@@ -50,6 +50,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    suspend fun setHomeLayout(v: List<HomeSectionState>) = put { it[K.HOME_LAYOUT] = HomeLayout.serialize(v) }
+
     // ---- Playback ----
     suspend fun setKeepPlayingOnClose(v: Boolean) = put { it[K.KEEP_PLAYING_ON_CLOSE] = v }
     suspend fun setRestoreLastPlayedSong(v: Boolean) = put { it[K.RESTORE_LAST_PLAYED_SONG] = v }
@@ -172,6 +174,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 appLocale = AppLocale.fromStorage(p[K.APP_LOCALE]),
                 defaultStartPage = (p[K.DEFAULT_START_PAGE] ?: d.defaultStartPage).coerceIn(0, 3),
                 startOnHome = p[K.START_ON_HOME] ?: d.startOnHome,
+                homeLayout = HomeLayout.parse(p[K.HOME_LAYOUT]),
                 keepPlayingOnClose = p[K.KEEP_PLAYING_ON_CLOSE] ?: d.keepPlayingOnClose,
                 restoreLastPlayedSong = p[K.RESTORE_LAST_PLAYED_SONG] ?: d.restoreLastPlayedSong,
                 replayGainMode = ReplayGainMode.fromStorage(p[K.REPLAY_GAIN_MODE]),

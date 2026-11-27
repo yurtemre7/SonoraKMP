@@ -30,6 +30,7 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 @Serializable data object Stats : NavKey
 @Serializable data object Settings : NavKey
 @Serializable data object SettingsAppearance : NavKey
+@Serializable data object SettingsHomeLayout : NavKey
 @Serializable data object SettingsFormatting : NavKey
 @Serializable data object SettingsPlayback : NavKey
 @Serializable data object SettingsPrivacy : NavKey

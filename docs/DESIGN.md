@@ -130,6 +130,9 @@ The one bold element. Everything around it stays quiet.
   title that is cut also shows in full under the cover, decided before layout so the
   cover is sized once) and *Classic* (a plain title under the artwork). Key
   `title_style`, KMP only, not in backups.
+- Home layout (Settings > Appearance > Home): order and visibility of the Home dashboard sections, KMP-only key
+  `home_layout` (`key:1,key:0` in display order), per device, not in backups. Default: Jump back in first, then
+  Shuffle and Scan, so the Shuffle tile sits lower and is within thumb reach.
 
 ## 6. Other components
 
