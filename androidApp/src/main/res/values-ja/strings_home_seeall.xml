@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_see_all">すべて見る</string>
+    <string name="home_section_open_cd">%1$sを開く</string>
+    <string name="recent_explainer">再生した曲を新しい順に、日ごとにまとめています。タップでここから再生します。</string>
+    <string name="recommended_explainer">次に聴きたい曲です。よく聴く曲に加えて、同じアーティストやアルバムのまだあまり聴いていない曲を選んでいます。直近数時間に聴いた曲は除きます。履歴がないときは新しい曲を表示します。</string>
+    <string name="recommended_shuffle">おすすめをシャッフル</string>
+    <string name="recommended_empty_title">おすすめはまだありません</string>
+    <string name="jumpback_explainer">最近聴いたアルバムを新しい順に表示します。タップで開き、再生ボタンで再生します。</string>
+    <string name="jumpback_empty_title">アルバムはまだありません</string>
+    <string name="jumpback_empty_subtitle">再生したアルバムがここに表示されます。</string>
+</resources>

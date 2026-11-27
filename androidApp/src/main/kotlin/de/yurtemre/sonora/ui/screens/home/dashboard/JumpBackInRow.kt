@@ -31,17 +31,19 @@ import de.yurtemre.sonora.shared.library.JumpBackItem
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.theme.SleeveShape
 
-/** Up to three recently played albums: tap opens the album, long press or the small play button plays it. */
+/** Up to three recently played albums plus a See all tile: tap opens the album, long press or the small play button plays it. */
 @Composable
 fun JumpBackInRow(
     items: List<JumpBackItem>,
     onOpen: (JumpBackItem) -> Unit,
     onPlay: (JumpBackItem) -> Unit,
+    onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        items.forEach { item -> JumpBackTile(item, onOpen, onPlay, Modifier.weight(1f)) }
-        // Keep tile widths stable when fewer than three albums are available.
+        items.take(3).forEach { item -> JumpBackTile(item, onOpen, onPlay, Modifier.weight(1f)) }
+        // The next slot opens the full list; empty slots keep tile widths stable when fewer than three albums exist.
+        SeeAllTile(onSeeAll, Modifier.weight(1f).aspectRatio(1f))
         repeat((3 - items.size).coerceAtLeast(0)) { Box(Modifier.weight(1f)) }
     }
 }

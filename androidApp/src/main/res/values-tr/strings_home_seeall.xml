@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_see_all">Tümünü gör</string>
+    <string name="home_section_open_cd">%1$s aç</string>
+    <string name="recent_explainer">Çaldığın şarkılar, en yeniden eskiye ve güne göre gruplu. Birine dokun, buradan çalsın.</string>
+    <string name="recommended_explainer">Sıradaki şarkılar: en çok dinlediklerin, bir de aynı sanatçı ya da albümden az dinlediklerin. Son birkaç saatte dinlediklerin hariç. Geçmiş yoksa en yeni şarkıların görünür.</string>
+    <string name="recommended_shuffle">Önerileri karıştır</string>
+    <string name="recommended_empty_title">Henüz öneri yok</string>
+    <string name="jumpback_explainer">Son dinlediğin albümler, en yeniden eskiye. Açmak için dokun, çalmak için oynat düğmesine bas.</string>
+    <string name="jumpback_empty_title">Henüz albüm yok</string>
+    <string name="jumpback_empty_subtitle">Çaldığın albümler burada görünür.</string>
+</resources>
