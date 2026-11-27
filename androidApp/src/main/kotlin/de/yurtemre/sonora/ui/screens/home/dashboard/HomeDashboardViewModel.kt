@@ -9,6 +9,7 @@ import de.yurtemre.sonora.shared.library.Recommendations
 import de.yurtemre.sonora.shared.library.TimeOfDayMix
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
+import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
@@ -36,7 +37,13 @@ class HomeDashboardViewModel(
     stats: StatsRepository,
     clock: Clock,
     private val playlists: PlaylistRepository,
+    favorites: FavoritesRepository,
 ) : ViewModel() {
+    /** Favourite songs, most recently favourited first. */
+    val favoriteSongs: StateFlow<List<Song>> = combine(library.songs, favorites.favoriteSongs) { songs, favs ->
+        songs.filter { it.id in favs }.sortedByDescending { favs[it.id] ?: 0L }
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val recommended: StateFlow<List<Song>> = combine(library.songs, stats.snapshot) { songs, snap ->
         Recommendations.recommended(songs, snap, clock.nowMs())
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
