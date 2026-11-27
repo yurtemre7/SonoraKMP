@@ -132,7 +132,9 @@ The one bold element. Everything around it stays quiet.
   `title_style`, KMP only, not in backups.
 - Home layout (Settings > Appearance > Home): order and visibility of the Home dashboard sections, KMP-only key
   `home_layout` (`key:1,key:0` in display order), per device, not in backups. Default: Jump back in first, then
-  Shuffle and Scan, so the Shuffle tile sits lower and is within thumb reach.
+  Shuffle and Scan, so the Shuffle tile sits lower and is within thumb reach. A long press on a section on Home
+  picks it up for dragging; the settings screen has handles and switches for the same. There is no Recently
+  played row on Home (Jump back in covers it); the screen stays reachable from the Library.
 
 ## 6. Other components
 

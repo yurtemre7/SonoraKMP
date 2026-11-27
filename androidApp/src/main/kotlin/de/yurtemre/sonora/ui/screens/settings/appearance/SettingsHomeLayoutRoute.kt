@@ -133,5 +133,4 @@ private val HomeSection.labelRes: Int get() = when (this) {
     HomeSection.Recommended -> R.string.home_recommended
     HomeSection.TimeMix -> R.string.home_layout_time_mix
     HomeSection.Weekly -> R.string.home_layout_weekly
-    HomeSection.Recent -> R.string.home_recent
 }

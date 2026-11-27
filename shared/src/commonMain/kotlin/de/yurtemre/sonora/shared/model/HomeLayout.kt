@@ -11,7 +11,6 @@ enum class HomeSection(val key: String) {
     Recommended("recommended"),
     TimeMix("time_mix"),
     Weekly("weekly"),
-    Recent("recent"),
 }
 
 /** One row of the Home layout: a [section] and whether it is shown. */
@@ -19,7 +18,7 @@ data class HomeSectionState(val section: HomeSection, val visible: Boolean = tru
 
 /**
  * The stored Home layout (`home_layout`, KMP-only, per device, not in backups), written as `key:1,key:0` in display
- * order. Unknown keys and repeats are dropped; sections missing from the string (for example ones added by a later
+ * order. Unknown keys (for example the removed `recent`) and repeats are dropped; sections missing from the string (for example ones added by a later
  * version) are appended at the end, shown. An empty or missing value is the default order.
  */
 object HomeLayout {

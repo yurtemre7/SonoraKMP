@@ -22,8 +22,8 @@ class HomeLayoutTest {
     }
 
     @Test fun unknownAndRepeatedKeysAreDroppedAndMissingOnesAppended() {
-        val parsed = HomeLayout.parse("recent:0,nope:1,recent:1,glance:1")
-        assertEquals(HomeSection.Recent to false, parsed[0].section to parsed[0].visible)
+        val parsed = HomeLayout.parse("weekly:0,nope:1,recent:1,weekly:1,glance:1")
+        assertEquals(HomeSection.Weekly to false, parsed[0].section to parsed[0].visible)
         assertEquals(HomeSection.Glance, parsed[1].section)
         assertEquals(HomeSection.entries.size, parsed.size)
         assertEquals(HomeSection.entries.toSet(), parsed.map { it.section }.toSet())

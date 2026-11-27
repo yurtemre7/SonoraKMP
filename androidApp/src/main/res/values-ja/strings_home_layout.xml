@@ -3,7 +3,7 @@
     <string name="settings_section_home">ホーム</string>
     <string name="home_layout_title">ホームのレイアウト</string>
     <string name="home_layout_row_subtitle">ホームのセクションを並べ替えたり非表示にしたりできます</string>
-    <string name="home_layout_explainer">ハンドルをドラッグしてセクションを上下に移動し、不要なものはオフにします。タイトルとあいさつは常に一番上に表示されます。</string>
+    <string name="home_layout_explainer">ホームでセクションを長押ししてドラッグするか、ここのハンドルで移動できます。不要なものはオフにします。タイトルとあいさつは常に一番上に表示されます。</string>
     <string name="home_layout_drag_handle">ドラッグして並べ替え</string>
     <string name="home_layout_move_up">上へ移動</string>
     <string name="home_layout_move_down">下へ移動</string>
