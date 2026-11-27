@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_section_home">ホーム</string>
+    <string name="home_layout_title">ホームのレイアウト</string>
+    <string name="home_layout_row_subtitle">ホームのセクションを並べ替えたり非表示にしたりできます</string>
+    <string name="home_layout_explainer">ハンドルをドラッグしてセクションを上下に移動し、不要なものはオフにします。タイトルとあいさつは常に一番上に表示されます。</string>
+    <string name="home_layout_drag_handle">ドラッグして並べ替え</string>
+    <string name="home_layout_move_up">上へ移動</string>
+    <string name="home_layout_move_down">下へ移動</string>
+    <string name="home_layout_reset">初期設定に戻す</string>
+    <string name="home_layout_actions">シャッフルとスキャン</string>
+    <string name="home_layout_glance">ひと目でわかる統計</string>
+    <string name="home_layout_favorite">お気に入りの曲</string>
+    <string name="home_layout_tiles">ライブラリのタイル</string>
+    <string name="home_layout_time_mix">時間帯ミックス</string>
+    <string name="home_layout_weekly">週間ミックス</string>
+</resources>

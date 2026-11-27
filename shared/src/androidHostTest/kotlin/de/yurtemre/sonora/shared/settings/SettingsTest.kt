@@ -52,6 +52,7 @@ class SettingsTest {
             settings.first().let { assertEquals(false to 1, it.startOnHome to it.defaultStartPage, "tab view") }
             setStartView(home = false, page = 9)
             assertEquals(3, settings.first().defaultStartPage, "setStartView clamp")
+            check("homeLayout", HomeLayout.default.reversed().mapIndexed { i, st -> st.copy(visible = i % 2 == 0) }, ::setHomeLayout) { it.homeLayout }
             check("keepPlayingOnClose", true, ::setKeepPlayingOnClose) { it.keepPlayingOnClose }
             check("restoreLastPlayedSong", false, ::setRestoreLastPlayedSong) { it.restoreLastPlayedSong }
             check("replayGainMode", ReplayGainMode.entries.last(), ::setReplayGainMode) { it.replayGainMode }

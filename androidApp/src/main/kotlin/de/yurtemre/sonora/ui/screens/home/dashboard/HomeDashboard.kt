@@ -55,12 +55,14 @@ import androidx.navigation3.runtime.NavKey
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.PlaybackConnection
 import de.yurtemre.sonora.shared.library.WeeklyMixRepository
+import de.yurtemre.sonora.shared.model.HomeSection
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.shared.repo.api.Clock
 import de.yurtemre.sonora.shared.repo.api.FavoritesRepository
 import de.yurtemre.sonora.shared.repo.api.LibraryRepository
 import de.yurtemre.sonora.shared.repo.api.PlaylistRepository
 import de.yurtemre.sonora.shared.repo.api.StatsRepository
+import de.yurtemre.sonora.shared.settings.SettingsRepository
 import de.yurtemre.sonora.ui.components.AlbumArt
 import de.yurtemre.sonora.ui.components.DevBadge
 import de.yurtemre.sonora.ui.components.SonoraInsets
@@ -79,14 +81,16 @@ import de.yurtemre.sonora.ui.screens.home.greetingRes
 import de.yurtemre.sonora.ui.screens.home.tabs.WeeklyMixCard
 import de.yurtemre.sonora.ui.screens.weekly.WeeklyMixViewModel
 import de.yurtemre.sonora.ui.theme.SleeveShape
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * The Home dashboard: app-name toolbar + greeting, now-playing / Continue card, Shuffle and Scan CTAs, stats glance,
- * favourite song, library tiles, Recommended / Weekly mix / Recently played rows. Swiping up past the end opens the Library.
+ * The Home dashboard: app-name toolbar + greeting, then the sections of [HomeSection] (Jump back in, Shuffle and Scan,
+ * stats glance, favourite song, library tiles, Favorites, Recommended, mixes, Recently played) in the user's order.
+ * Swiping up past the end opens the Library.
  */
 @Composable
 fun HomeDashboard(
@@ -107,6 +111,9 @@ fun HomeDashboard(
     val favoritesRepo = koinInject<FavoritesRepository>()
     val vm = viewModel { HomeDashboardViewModel(library, stats, clock, playlistRepo, favoritesRepo) }
     val favoriteSongs by vm.favoriteSongs.collectAsStateWithLifecycle()
+    val settingsRepo = koinInject<SettingsRepository>()
+    val layout by remember(settingsRepo) { settingsRepo.settings.map { it.homeLayout }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(null)
     val recommended by vm.recommended.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
     val glance by vm.glance.collectAsStateWithLifecycle()
@@ -139,85 +146,92 @@ fun HomeDashboard(
                     modifier = Modifier.windowInsetsPadding(SonoraInsets.top),
                 )
             }
-            item(key = "ctas") {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    ShuffleAllCta(
-                        enabled = (glance?.songCount ?: 0) > 0,
-                        onShuffle = { scope.launch { playback.playShuffled(library.songs.first()) } },
-                        modifier = Modifier.weight(1f),
-                    )
-                    ScanLibraryCta(
-                        isSyncing = isSyncing,
-                        tasks = tasks,
-                        onScan = onScanLibrary,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            glance?.let { g ->
-                item(key = "glance") {
-                    StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) })
-                }
-                g.favorite?.let { fav ->
-                    item(key = "favorite") {
-                        FavoriteSongCard(
-                            song = fav,
-                            plays = g.favoritePlays,
-                            onPlay = { playback.playSong(fav, listOf(fav)) },
+            // Sections follow the order and visibility from Settings > Appearance > Home layout; a section whose data
+            // is empty adds no item, so the rest closes up. Until the stored layout arrives only the header shows.
+            val hasSongs = (glance?.songCount ?: 0) > 0
+            layout.orEmpty().filter { it.visible }.forEach { state ->
+                val section = state.section
+                when (section) {
+                    HomeSection.JumpBack -> if (jumpBack.isNotEmpty()) item(key = section.key) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            LinkedSectionHeader(stringResource(R.string.home_jump_back_in), onClick = { onNavigate(JumpBack) })
+                            JumpBackInRow(
+                                jumpBack,
+                                onOpen = { onNavigate(Album(it.albumName, it.albumArtist)) },
+                                onPlay = { if (it.songs.isNotEmpty()) playback.playSong(it.songs.first(), it.songs) },
+                                onSeeAll = { onNavigate(JumpBack) },
+                            )
+                        }
+                    }
+                    HomeSection.Actions -> item(key = section.key) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            ShuffleAllCta(
+                                enabled = hasSongs,
+                                onShuffle = { scope.launch { playback.playShuffled(library.songs.first()) } },
+                                modifier = Modifier.weight(1f),
+                            )
+                            ScanLibraryCta(
+                                isSyncing = isSyncing,
+                                tasks = tasks,
+                                onScan = onScanLibrary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    HomeSection.Glance -> glance?.let { g ->
+                        item(key = section.key) { StatsGlanceCard(g, onOpenStats = { onNavigate(Stats) }) }
+                    }
+                    HomeSection.Favorite -> glance?.let { g ->
+                        g.favorite?.let { fav ->
+                            item(key = section.key) {
+                                FavoriteSongCard(
+                                    song = fav,
+                                    plays = g.favoritePlays,
+                                    onPlay = { playback.playSong(fav, listOf(fav)) },
+                                )
+                            }
+                        }
+                    }
+                    HomeSection.Tiles -> item(key = section.key) {
+                        HomeTiles(
+                            onOpenTab,
+                            quickEnabled = { tab -> if (tab == LibraryTab.Playlists) hasPlaylistSongs else hasSongs },
+                            onQuickShuffle = { tab ->
+                                scope.launch { vm.randomTarget(tab)?.let { playback.playShuffled(it.songs, it.playlistId) } }
+                            },
                         )
                     }
-                }
-            }
-            item(key = "tiles") {
-                HomeTiles(
-                    onOpenTab,
-                    quickEnabled = { tab ->
-                        if (tab == LibraryTab.Playlists) hasPlaylistSongs else (glance?.songCount ?: 0) > 0
-                    },
-                    onQuickShuffle = { tab ->
-                        scope.launch { vm.randomTarget(tab)?.let { playback.playShuffled(it.songs, it.playlistId) } }
-                    },
-                )
-            }
-            if (jumpBack.isNotEmpty()) {
-                item(key = "jump_back_header") { LinkedSectionHeader(stringResource(R.string.home_jump_back_in), onClick = { onNavigate(JumpBack) }) }
-                item(key = "jump_back") {
-                    JumpBackInRow(
-                        jumpBack,
-                        onOpen = { onNavigate(Album(it.albumName, it.albumArtist)) },
-                        onPlay = { if (it.songs.isNotEmpty()) playback.playSong(it.songs.first(), it.songs) },
-                        onSeeAll = { onNavigate(JumpBack) },
-                    )
-                }
-            }
-            // Rows with no data: a short message once the library has songs; nothing at all on a fresh install
-            // (the Scan CTA above already covers that) or while the first stats emission is pending.
-            val hasSongs = (glance?.songCount ?: 0) > 0
-            if (recommended.isNotEmpty() || hasSongs) {
-                item(key = "recommended_header") { LinkedSectionHeader(stringResource(R.string.home_recommended), onClick = { onNavigate(Recommended) }) }
-                item(key = "recommended") {
-                    if (recommended.isNotEmpty()) SongCarousel(recommended, playback, onSeeAll = { onNavigate(Recommended) })
-                    else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
-                }
-            }
-            if (favoriteSongs.isNotEmpty()) {
-                item(key = "favorites_header") { LinkedSectionHeader(stringResource(R.string.home_action_favorites), onClick = { onNavigate(Favorites) }) }
-                item(key = "favorites") { SongCarousel(favoriteSongs, playback, onSeeAll = { onNavigate(Favorites) }) }
-            }
-            timeMix?.takeIf { it.songs.isNotEmpty() }?.let { mix ->
-                item(key = "time_mix") { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
-            }
-            if (weekly.loaded && weekly.songs.isNotEmpty()) {
-                item(key = "weekly") { WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier) }
-            }
-            if (recent.isNotEmpty() || hasSongs) {
-                item(key = "recent_header") { LinkedSectionHeader(stringResource(R.string.home_recent), onClick = { onNavigate(RecentlyPlayed) }) }
-                item(key = "recent") {
-                    if (recent.isNotEmpty()) SongCarousel(recent, playback, onSeeAll = { onNavigate(RecentlyPlayed) })
-                    else EmptyRowMessage(stringResource(R.string.home_recent_empty))
+                    HomeSection.Favorites -> if (favoriteSongs.isNotEmpty()) item(key = section.key) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            LinkedSectionHeader(stringResource(R.string.home_action_favorites), onClick = { onNavigate(Favorites) })
+                            SongCarousel(favoriteSongs, playback, onSeeAll = { onNavigate(Favorites) })
+                        }
+                    }
+                    // Rows with no data: a short message once the library has songs; nothing at all on a fresh install
+                    // (the Scan CTA already covers that) or while the first stats emission is pending.
+                    HomeSection.Recommended -> if (recommended.isNotEmpty() || hasSongs) item(key = section.key) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            LinkedSectionHeader(stringResource(R.string.home_recommended), onClick = { onNavigate(Recommended) })
+                            if (recommended.isNotEmpty()) SongCarousel(recommended, playback, onSeeAll = { onNavigate(Recommended) })
+                            else EmptyRowMessage(stringResource(R.string.home_recommended_empty))
+                        }
+                    }
+                    HomeSection.TimeMix -> timeMix?.takeIf { it.songs.isNotEmpty() }?.let { mix ->
+                        item(key = section.key) { TimeMixCard(mix, onPlay = { playback.playSong(mix.songs.first(), mix.songs) }) }
+                    }
+                    HomeSection.Weekly -> if (weekly.loaded && weekly.songs.isNotEmpty()) item(key = section.key) {
+                        WeeklyMixCard(weekly, onOpen = { onNavigate(WeeklyMix) }, modifier = Modifier)
+                    }
+                    HomeSection.Recent -> if (recent.isNotEmpty() || hasSongs) item(key = section.key) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            LinkedSectionHeader(stringResource(R.string.home_recent), onClick = { onNavigate(RecentlyPlayed) })
+                            if (recent.isNotEmpty()) SongCarousel(recent, playback, onSeeAll = { onNavigate(RecentlyPlayed) })
+                            else EmptyRowMessage(stringResource(R.string.home_recent_empty))
+                        }
+                    }
                 }
             }
             item(key = "end") { Spacer(Modifier.height(16.dp)) }

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -42,7 +43,7 @@ private const val EMBER = 0xFFE5573B.toInt()
 
 /** SET-02 / UI-33: theme mode, colour source + swatches, AMOLED, blur, now playing look, greeting. */
 @Composable
-fun SettingsAppearanceRoute(onBack: () -> Unit) {
+fun SettingsAppearanceRoute(onBack: () -> Unit, onOpenHomeLayout: () -> Unit) {
     val repo: SettingsRepository = koinInject()
     val library: LibraryRepository = koinInject()
     val settings by repo.settings.collectAsStateWithLifecycle(AppSettings())
@@ -120,6 +121,17 @@ fun SettingsAppearanceRoute(onBack: () -> Unit) {
                     if (DynamicColorSupported) R.string.settings_blur_subtitle else R.string.settings_requires_android_12,
                 ),
                 enabled = DynamicColorSupported,
+            )
+        }
+
+        settingsHeader("home") { stringResource(R.string.settings_section_home) }
+        item(key = "home_layout") {
+            SettingsRow(
+                stringResource(R.string.home_layout_title),
+                icon = Icons.Rounded.ViewAgenda,
+                subtitle = stringResource(R.string.home_layout_row_subtitle),
+                chevron = true,
+                onClick = onOpenHomeLayout,
             )
         }
 

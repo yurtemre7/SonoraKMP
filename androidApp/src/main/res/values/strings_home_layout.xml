@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_section_home">Home</string>
+    <string name="home_layout_title">Home layout</string>
+    <string name="home_layout_row_subtitle">Reorder and hide the sections on Home</string>
+    <string name="home_layout_explainer">Drag the handle to move a section up or down, and switch off the ones you do not want on Home. The title and greeting always stay on top.</string>
+    <string name="home_layout_drag_handle">Drag to reorder</string>
+    <string name="home_layout_move_up">Move up</string>
+    <string name="home_layout_move_down">Move down</string>
+    <string name="home_layout_reset">Reset to default</string>
+    <string name="home_layout_actions">Shuffle and scan</string>
+    <string name="home_layout_glance">At a glance</string>
+    <string name="home_layout_favorite">Your favorite song</string>
+    <string name="home_layout_tiles">Library tiles</string>
+    <string name="home_layout_time_mix">Time of day mix</string>
+    <string name="home_layout_weekly">Weekly mix</string>
+</resources>
