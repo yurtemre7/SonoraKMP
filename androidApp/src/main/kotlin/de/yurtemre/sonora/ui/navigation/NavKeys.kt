@@ -19,6 +19,10 @@ enum class LibraryTab { Songs, Albums, Artists, Playlists;
 @Serializable data class Playlist(val id: String) : NavKey
 @Serializable data object Favorites : NavKey
 @Serializable data object RecentlyPlayed : NavKey
+/** Recommended for you: the full list behind the Home row. */
+@Serializable data object Recommended : NavKey
+/** Jump back in: every recently played album. */
+@Serializable data object JumpBack : NavKey
 /** A built-in smart list; [kind] is a `SmartListKind.key`. */
 @Serializable data class SmartList(val kind: String) : NavKey
 /** The weekly mix: an auto-generated, weekly-refreshing song list. */
