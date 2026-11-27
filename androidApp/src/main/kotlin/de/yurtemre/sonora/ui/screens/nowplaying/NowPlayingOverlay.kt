@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.yurtemre.sonora.R
 import de.yurtemre.sonora.playback.api.SleepTimerUiState
 import de.yurtemre.sonora.shared.model.MfxPreset
+import de.yurtemre.sonora.shared.model.NowPlayingStyle
 import de.yurtemre.sonora.shared.model.Song
 import de.yurtemre.sonora.ui.components.MfxBadge
 import de.yurtemre.sonora.ui.components.SleepTimerBadge
